@@ -1,0 +1,761 @@
+Awesome, you’re ready to take **GoonHub** from prototype to the **real deal**—a fully functional, crypto-native NSFW creator hub with a PornHub-inspired UI, built on Solana, featuring vanity "goon" mint addresses, paywalls, tipping, and AI chat. Since you’ve got the 4-hour prototype plan down (Solana contract, Next.js frontend with PH-like homepage and `/studio/coin`), I’ll now guide you through building the **full MVP** as outlined in the v0.3 plan, focusing on a production-ready setup. Given your beginner status, I’ll keep it clear, actionable, and step-by-step, prioritizing the core features: content uploads, paywalls/tips, GOON coin launches, and basic moderation, all styled with the PornHub vibe. We’ll integrate Supabase for the database, Helius for Solana webhooks, and xAI’s API for AI chat, ensuring compliance with NSFW policies.
+
+The full MVP removes the 8-12 day timeline constraint but assumes you’re ready to build over a longer period (e.g., a few weeks). I’ll structure this as a comprehensive guide, including code, setup instructions, and deployment steps, tailored for a beginner. I’ll also address the vanity mint challenge (~1-2 min generation) with a pre-generated keypair pool to ensure smooth UX. Let’s ship the real GoonHub!
+
+---
+
+### GoonHub MVP Build Guide
+
+**Objective**: Build and deploy **GoonHub**, a Solana-based NSFW creator platform with a PornHub-inspired UI (dark, grid-heavy, sticky header, collapsible sidebar, category chips, hover-preview cards). Features include uploading short clips/photos, paywalls/tips in SOL/USDC, AI chat with creator personas (xAI API), and token launches with mint addresses ending in “goon” (e.g., `BkgPQZirJDceEp82JmguB7WFvomwqMwxdSSM9XfXgoon`). The platform uses Next.js, Tailwind CSS, shadcn/ui, Supabase, Helius, and DigitalOcean for production readiness, with strict NSFW compliance.
+
+**Scope**:
+- Public feed (masonry grid, NSFW filters, GOON-gated posts).
+- Creator profiles (banner, avatar, bio, posts, GOON coins).
+- Post details (media player, paywall, tip modal).
+- Wallet connect (Phantom/Solflare), account menu with age attestation.
+- Creator studio (post upload, price/visibility, GOON coin launch).
+- Moderation (report button, hidden state).
+- AI chat (text, xAI API).
+- Out of scope: Livestreams, fiat onramp, bonding curves, advanced discovery.
+
+**Tech Stack**:
+- **Frontend**: Next.js (App Router), Tailwind CSS, shadcn/ui, Framer Motion, lucide-react.
+- **Backend**: Next.js API routes, Supabase (Postgres, Auth, RLS).
+- **Storage**: DigitalOcean Spaces (S3-compatible).
+- **Blockchain**: Solana (Helius RPC for webhooks).
+- **AI**: xAI Grok API (https://x.ai/api).
+- **Hosting**: Vercel (frontend), DigitalOcean Droplet (API, vanity mint workers).
+- **Observability**: Sentry, PostHog.
+- **Rate Limiting**: Upstash Redis.
+
+**UI Design**:
+- **Palette**: `--bg: #0B0B0B`, `--panel: #121212`, `--text: #EAEAEA`, `--muted: #A0A0A0`, `--accent: #F9A11B` (GOON orange), `--accent-2: #FFD089`, `--success: #22C55E`, `--danger: #EF4444`.
+- **Typography**: Inter (UI), JetBrains Mono (mint addresses).
+- **Components**: shadcn/ui, Tailwind CSS, rounded-2xl corners, glassy overlays, hover effects.
+- **Layout**: Sticky header (logo, search, wallet, Upload/Launch GOON Coin), collapsible sidebar (Featured, Feed, Creators, Tags), category chips, 3-6 column masonry grid, hover previews (WebM, 300ms delay), keyboard nav (/, j/k), SEO titles (`Title – @Creator – GoonHub`).
+
+---
+
+### Step-by-Step Build Instructions
+
+#### Step 1: Set Up Environment
+**Duration**: ~1-2 hours
+**Objective**: Install tools and configure services for development.
+
+1. **Local Tools**:
+   - **Node.js/Yarn**: Install Node.js LTS (v18+) from https://nodejs.org. Run `npm install -g yarn`. Verify: `node -v` (v18+), `yarn -v` (1.x).
+   - **Rust**: Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`. Install nightly: `rustup toolchain install nightly-2024-11-19`. Verify: `rustc --version` (1.80+).
+   - **Solana CLI**: Run `sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)"`. Mac/Linux: `export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"`. Verify: `solana --version` (1.18.18).
+   - **Anchor**: Run `cargo install --git https://github.com/coral-xyz/anchor anchor-cli --tag v0.30.1 --locked`. Verify: `anchor --version` (0.30.1).
+   - **Solana Wallet**: Run `solana-keygen new --outfile ~/.config/solana/id.json`. Save seed phrase. Set devnet: `solana config set --url https://api.devnet.solana.com`. Airdrop SOL: `solana airdrop 5` (check: `solana balance`).
+   - **Troubleshooting**: Download issues? Try another browser. Airdrop fails? Retry or use VPN.
+
+2. **External Services**:
+   - **Supabase**: Sign up at https://supabase.com, create a project, and note the API URL and anon key.
+   - **Helius**: Register at https://helius.dev for a devnet RPC key and webhook setup.
+   - **DigitalOcean Spaces**: Set up at https://cloud.digitalocean.com for media storage (get access key/secret).
+   - **Upstash Redis**: Sign up at https://upstash.com for rate limiting.
+   - **Sentry**: Register at https://sentry.io for error tracking.
+   - **PostHog**: Sign up at https://posthog.com for analytics.
+
+#### Step 2: Set Up Supabase Database
+**Objective**: Create and secure the database for users, posts, tokens, etc.
+
+1. **Create Tables**:
+   - In Supabase dashboard, run the SQL from the v0.3 plan (see `<xaiArtifact>` for `schema.sql` above).
+   - Enable RLS and set policies:
+     - Posts: `CREATE POLICY "Public read published" ON posts FOR SELECT USING (status = 'published');`
+     - Purchases: `CREATE POLICY "User reads own" ON purchases FOR SELECT USING (user_id = auth.uid());`
+     - Tips: `CREATE POLICY "User reads own tips" ON tips FOR SELECT USING (from_user = auth.uid());`
+     - Tokens: `CREATE POLICY "Public read tokens" ON tokens FOR SELECT USING (true);`
+
+2. **Set Up Auth**:
+   - Enable JWT-based auth in Supabase with a custom signer for wallet-based login (see Step 4).
+
+#### Step 3: Deploy Solana Contract
+**Objective**: Deploy a contract for token minting, with vanity mints handled server-side.
+
+1. **Create Anchor Project**:
+   - Run: `anchor init goonhub-token`
+   - Navigate: `cd goonhub-token`
+   - Replace `programs/goonhub-token/src/lib.rs` with the code from `<xaiArtifact>` for `lib.rs` above.
+
+2. **Build and Deploy**:
+   - Set nightly: `rustup override set nightly-2024-11-19`
+   - Build: `RUSTUP_TOOLCHAIN="nightly-2024-11-19" anchor build`
+   - Deploy: `anchor deploy`
+   - Copy Program ID and update `lib.rs` and `Anchor.toml`.
+   - **Troubleshooting**: Build fails? Run `cargo clean`. Deploy fails? Airdrop SOL (`solana airdrop 5`).
+
+3. **Pre-generate Vanity Keypairs** (Optional, recommended):
+   - Create a script to generate 100 “goon” keypairs offline:
+<xaiArtifact artifact_id="16c7c34f-c14e-4091-8890-58b9195a6cee" artifact_version_id="e4cbad06-3064-4c8f-aad8-b790f3db5b86" title="pregenGoonKeypairs.ts" contentType="text/typescript">
+```typescript
+import { Keypair } from '@solana/web3.js';
+import { writeFileSync } from 'fs';
+
+async function pregenVanityKeypairs(suffix: string = 'goon', count: number = 100) {
+  const keypairs: { publicKey: string; secretKey: string }[] = [];
+  let tries = 0;
+
+  while (keypairs.length < count) {
+    const kp = Keypair.generate();
+    const address = kp.publicKey.toBase58();
+    if (address.toLowerCase().endsWith(suffix.toLowerCase())) {
+      keypairs.push({
+        publicKey: address,
+        secretKey: Buffer.from(kp.secretKey).toString('base64'),
+      });
+      console.log(`Found #${keypairs.length}: ${address} after ${tries} tries`);
+    }
+    tries++;
+    if (tries % 100000 === 0) console.log(`Checked ${tries}...`);
+  }
+
+  writeFileSync('goon-keypairs.json', JSON.stringify(keypairs, null, 2));
+  console.log(`Generated ${count} keypairs, saved to goon-keypairs.json`);
+}
+
+pregenVanityKeypairs().catch(console.error);
+```
+</xaiArtifact>
+   - Run: `yarn add ts-node typescript @solana/web3.js && ts-node pregenGoonKeypairs.ts`
+   - Store `goon-keypairs.json` securely (encrypt before uploading to Supabase).
+   - **Note**: Takes ~2-33 hours. Store in Supabase for instant assignment in `/api/coin/launch`.
+
+#### Step 4: Build Next.js Application
+**Objective**: Create the frontend and backend with a PornHub-inspired UI and full MVP functionality.
+
+1. **Set Up Project**:
+   - Run: `npx create-next-app@latest goonhub --typescript --tailwind --eslint`
+   - Select: App Router, src directory, no src/app.
+   - Navigate: `cd goonhub`
+   - Install: `yarn add @solana/web3.js @solana/spl-token @solana/wallet-adapter-react @solana/wallet-adapter-react-ui @solana/wallet-adapter-wallets @radix-ui/react-toast framer-motion next-image @supabase/supabase-js`
+   - Install shadcn/ui: `npx shadcn-ui@latest init` (default theme, dark mode, Tailwind CSS).
+   - Add components: `npx shadcn-ui@latest add card input button toast`
+
+2. **Global CSS**:
+   - Replace `src/app/globals.css` with the code from `<xaiArtifact>` for `globals.css` above.
+
+3. **Layout and Components**:
+   - Replace `src/app/layout.tsx` with the code from `<xaiArtifact>` for `layout.tsx`.
+   - Add components (`Header.tsx`, `Sidebar.tsx`, `CategoryChips.tsx`, `VideoCard.tsx`, `MasonryGrid.tsx`) from their respective `<xaiArtifact>` blocks.
+   - Create `src/app/page.tsx` (homepage) from `<xaiArtifact>` for `page.tsx`.
+   - Create `src/app/studio/coin/page.tsx` from `<xaiArtifact>` for `coin/page.tsx`.
+   - Create `src/app/api/coin/launch/route.ts` from `<xaiArtifact>` for `api/coin/launch/route.ts`.
+
+4. **Additional Pages**:
+   - **Creator Profile** (`src/app/c/[handle]/page.tsx`):
+<xaiArtifact artifact_id="054cfe28-d02c-42b6-9983-fabc7d6d806c" artifact_version_id="6144cc27-6080-4cc9-8f41-ed07a2b93f80" title="c/[handle]/page.tsx" contentType="text/typescript">
+```typescript
+import Header from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
+import { CategoryChips } from '@/components/CategoryChips';
+import VideoCard from '@/components/VideoCard';
+import MasonryGrid from '@/components/MasonryGrid';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+export default async function CreatorProfile({ params }: { params: { handle: string } }) {
+  const { data: creator } = await supabase.from('users').select('*').eq('handle', params.handle).single();
+  const { data: posts } = await supabase.from('posts').select('*').eq('creator_id', creator?.id).eq('status', 'published');
+  const { data: tokens } = await supabase.from('tokens').select('*').eq('creator_id', creator?.id);
+
+  const tags = ['posts', 'goon coins'];
+
+  return (
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+      <Header />
+      <main className="mx-auto flex max-w-7xl gap-4 px-3 pt-3">
+        <Sidebar />
+        <section className="w-full">
+          <div className="relative h-40 bg-[var(--panel)] rounded-xl mb-4">
+            <img src={creator?.avatar_url} alt={creator?.handle} className="absolute -bottom-12 left-4 h-24 w-24 rounded-full border-4 border-[var(--bg)]" />
+          </div>
+          <div className="p-4">
+            <h1 className="text-2xl font-bold">@{creator?.handle}</h1>
+            <p className="text-[var(--muted)]">{creator?.bio}</p>
+          </div>
+          <CategoryChips tags={tags} />
+          <MasonryGrid>
+            {posts?.map((post) => (
+              <VideoCard
+                key={post.id}
+                thumb={post.thumb_url}
+                duration="00:30"
+                title={post.caption}
+                creator={creator?.handle}
+                views="1.2M"
+                gated={post.price_lamports > 0}
+                mintEndsGoon={false}
+              />
+            ))}
+            {tokens?.map((token) => (
+              <div key={token.id} className="p-4 bg-[var(--panel)] rounded-xl">
+                <h3 className="text-sm font-semibold">{token.name}</h3>
+                <p className="text-xs text-[var(--muted)]">Mint: {token.mint_address}</p>
+                <span className="inline-block mt-2 rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-[var(--accent)]">…goon</span>
+              </div>
+            ))}
+          </MasonryGrid>
+        </section>
+      </main>
+    </div>
+  );
+}
+```
+</xaiArtifact>
+   - **Post Detail** (`src/app/p/[id]/page.tsx`):
+<xaiArtifact artifact_id="75317641-9054-494b-88a4-b2877a1f7d68" artifact_version_id="c055541e-c52a-45a0-b2de-15a1a69431fd" title="p/[id]/page.tsx" contentType="text/typescript">
+```typescript
+'use client';
+import { useState, useEffect } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { createClient } from '@supabase/supabase-js';
+import Header from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+
+export default function PostDetail({ params }: { params: { id: string } }) {
+  const { publicKey, signTransaction } = useWallet();
+  const { toast } = useToast();
+  const [post, setPost] = useState<any>(null);
+  const [unlocked, setUnlocked] = useState(false);
+
+  useEffect(() => {
+    async function fetchPost() {
+      const { data } = await supabase.from('posts').select('*').eq('id', params.id).single();
+      setPost(data);
+    }
+    fetchPost();
+  }, [params.id]);
+
+  const unlockPost = async () => {
+    if (!publicKey || !signTransaction) {
+      toast({ title: 'Error', description: 'Connect wallet first!' });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/tx/build/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId: params.id, userPubkey: publicKey.toBase58() }),
+      });
+      const { serializedTx } = await response.json();
+      if (!serializedTx) throw new Error('No tx');
+
+      const tx = Transaction.from(Buffer.from(serializedTx, 'base64'));
+      const signedTx = await signTransaction(tx);
+      const signature = await connection.sendRawTransaction(signedTx.serialize());
+      await connection.confirmTransaction(signature, 'confirmed');
+
+      await supabase.from('purchases').insert({ user_id: publicKey.toString(), post_id: params.id, amount_lamports: post?.price_lamports, txn_sig: signature });
+      setUnlocked(true);
+      toast({ title: 'Success', description: 'Post unlocked!' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'Failed to unlock post' });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--bg)] p-4">
+      <Header />
+      <main className="mx-auto max-w-7xl">
+        <Sidebar />
+        <Card className="bg-[var(--panel)] border-none">
+          <CardHeader>
+            <CardTitle>{post?.caption}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {unlocked || post?.price_lamports === 0 ? (
+              <video src={post?.media_url} controls className="w-full rounded-xl" />
+            ) : (
+              <div className="relative aspect-video bg-white/5 rounded-xl">
+                <img src={post?.thumb_url} alt="Thumbnail" className="w-full h-full object-cover filter blur-sm" />
+                <Button onClick={unlockPost} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 btn-goon">
+                  Unlock for {post?.price_lamports / 1e9} SOL
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}
+```
+</xaiArtifact>
+   - **Wallet Settings** (`src/app/wallet/page.tsx`):
+<xaiArtifact artifact_id="b12628d5-7b95-4689-935d-376127daca72" artifact_version_id="6e3d0158-4a39-448d-9dad-1c8165dbd1c0" title="wallet/page.tsx" contentType="text/typescript">
+```typescript
+'use client';
+import { useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { createClient } from '@supabase/supabase-js';
+import Header from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+export default function Wallet() {
+  const { publicKey } = useWallet();
+  const { toast } = useToast();
+  const [ageVerified, setAgeVerified] = useState(false);
+
+  const attestAge = async () => {
+    if (!publicKey) {
+      toast({ title: 'Error', description: 'Connect wallet first!' });
+      return;
+    }
+    try {
+      await supabase.from('users').upsert({ id: publicKey.toString(), age_verified: true });
+      setAgeVerified(true);
+      toast({ title: 'Success', description: 'Age attested!' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'Failed to attest age' });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--bg)] p-4">
+      <Header />
+      <main className="mx-auto max-w-7xl">
+        <Sidebar />
+        <Card className="bg-[var(--panel)] border-none max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Wallet Settings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-[var(--muted)] mb-4">Connected: {publicKey?.toBase58() || 'None'}</p>
+            <Button onClick={attestAge} disabled={ageVerified} className="btn-goon">
+              {ageVerified ? 'Age Verified' : 'Attest Age (18+)'}
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}
+```
+</xaiArtifact>
+   - **Post Upload** (`src/app/studio/new/page.tsx`):
+<xaiArtifact artifact_id="f4ecf90e-ec1a-49fd-86a1-410771dd09c2" artifact_version_id="5aa2d101-47d5-4a23-a167-b5fa9dab0e34" title="studio/new/page.tsx" contentType="text/typescript">
+```typescript
+'use client';
+import { useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { createClient } from '@supabase/supabase-js';
+import Header from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+export default function NewPost() {
+  const { publicKey } = useWallet();
+  const { toast } = useToast();
+  const [caption, setCaption] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [price, setPrice] = useState('0');
+
+  const uploadPost = async () => {
+    if (!publicKey) {
+      toast({ title: 'Error', description: 'Connect wallet first!' });
+      return;
+    }
+    if (!file) {
+      toast({ title: 'Error', description: 'Select a file!' });
+      return;
+    }
+
+    try {
+      const { data: presign } = await supabase.storage.from('media').createSignedUploadUrl(`posts/${publicKey.toBase58()}/${Date.now()}.${file.name.split('.').pop()}`);
+      await supabase.storage.from('media').upload(presign.path, file);
+      const mediaUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${presign.path}`;
+
+      const { data: post } = await supabase.from('posts').insert({
+        creator_id: publicKey.toString(),
+        media_url: mediaUrl,
+        thumb_url: mediaUrl, // Replace with thumbnail logic
+        caption,
+        price_lamports: Number(price) * 1e9,
+        visibility: 'public',
+        status: 'published',
+      }).select().single();
+
+      toast({ title: 'Success', description: 'Post uploaded!' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'Failed to upload post' });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--bg)] p-4">
+      <Header />
+      <main className="mx-auto max-w-7xl">
+        <Sidebar />
+        <Card className="bg-[var(--panel)] border-none max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>New Post</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Input
+              type="file"
+              accept="image/*,video/mp4"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="mb-4"
+            />
+            <Input
+              placeholder="Caption"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              className="mb-4 bg-white/5 text-[var(--text)]"
+            />
+            <Input
+              type="number"
+              placeholder="Price (SOL)"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="mb-4 bg-white/5 text-[var(--text)]"
+            />
+            <Button onClick={uploadPost} className="btn-goon">Publish</Button>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}
+```
+</xaiArtifact>
+   - **API for Unlock/Tip** (`src/app/api/tx/build/unlock/route.ts`):
+<xaiArtifact artifact_id="397b7123-73c8-4f3d-8cb1-366c469536b0" artifact_version_id="5d3a5459-8f5c-44b9-bde6-529643eee6dc" title="api/tx/build/unlock/route.ts" contentType="text/typescript">
+```typescript
+import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+export async function POST(req: NextRequest) {
+  try {
+    const { postId, userPubkey } = await req.json();
+    const userPublicKey = new PublicKey(userPubkey);
+    const { data: post } = await supabase.from('posts').select('creator_id, price_lamports').eq('id', postId).single();
+    const creatorPublicKey = new PublicKey(post.creator_id);
+
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: userPublicKey,
+        toPubkey: creatorPublicKey,
+        lamports: post.price_lamports,
+      })
+    );
+
+    const serializedTx = transaction.serialize({ requireAllSignatures: false }).toString('base64');
+    return NextResponse.json({ serializedTx });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to build unlock tx' }, { status: 500 });
+  }
+}
+```
+</xaiArtifact>
+   - **API for Coin Launch** (Update `src/app/api/coin/launch/route.ts` to use pre-generated keypairs):
+<xaiArtifact artifact_id="7e5f3dfe-bc62-480b-951a-cbd27774370f" artifact_version_id="1a6eba1b-f9f0-4012-888e-8771d168ee3e" title="api/coin/launch/route.ts" contentType="text/typescript">
+```typescript
+import { Connection, Keypair, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
+import { createMint, getMinimumBalanceForRentExemptMint, MINT_SIZE, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+export async function POST(req: NextRequest) {
+  try {
+    const { name, symbol, supply, imageUrl, userPubkey } = await req.json();
+    const userPublicKey = new PublicKey(userPubkey);
+
+    if (!name.toUpperCase().endsWith('GOON') || symbol.toUpperCase() !== 'GOON') {
+      return NextResponse.json({ error: 'Name must end with GOON, symbol must be GOON' }, { status: 400 });
+    }
+
+    // Fetch pre-generated keypair from Supabase
+    const { data: keypairData } = await supabase.from('goon_keypairs').select('public_key, secret_key').eq('used', false).limit(1).single();
+    if (!keypairData) throw new Error('No available goon keypairs');
+
+    const mintKeypair = Keypair.fromSecretKey(Buffer.from(keypairData.secret_key, 'base64'));
+    const lamports = await getMinimumBalanceForRentExemptMint(connection);
+
+    const transaction = new Transaction().add(
+      SystemProgram.createAccount({
+        fromPubkey: userPublicKey,
+        newAccountPubkey: mintKeypair.publicKey,
+        space: MINT_SIZE,
+        lamports,
+        programId: TOKEN_PROGRAM_ID,
+      }),
+      createMint(
+        connection,
+        userPublicKey,
+        mintKeypair.publicKey,
+        userPublicKey,
+        9,
+        mintKeypair
+      )
+    );
+
+    const serializedTx = transaction.serialize({ requireAllSignatures: false }).toString('base64');
+
+    // Mark keypair as used
+    await supabase.from('goon_keypairs').update({ used: true }).eq('public_key', mintKeypair.publicKey.toBase58());
+
+    // Store token in database
+    await supabase.from('tokens').insert({
+      creator_id: userPubkey,
+      mint_address: mintKeypair.publicKey.toBase58(),
+      name,
+      symbol,
+      supply,
+      image_url: imageUrl,
+    });
+
+    return NextResponse.json({ serializedTx, mintAddress: mintKeypair.publicKey.toBase58() });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to build launch tx' }, { status: 500 });
+  }
+}
+```
+</xaiArtifact>
+   - **Webhook for Transaction Confirmation** (`src/app/api/webhook/helius/route.ts`):
+<xaiArtifact artifact_id="60aed3e8-2190-4ccf-8c0a-0ffeb230707c" artifact_version_id="c5c2844c-5f6d-49d7-9b76-337c3805f0f3" title="api/webhook/helius/route.ts" contentType="text/typescript">
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+export async function POST(req: NextRequest) {
+  try {
+    const { signature, type, data } = await req.json();
+    // Handle transaction confirmation (e.g., update purchases/tips/tokens)
+    console.log(`Received webhook: ${signature}, type: ${type}, data: ${JSON.stringify(data)}`);
+    return NextResponse.json({ status: 'received' });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+  }
+}
+```
+</xaiArtifact>
+   - **AI Chat** (`src/app/chat/[handle]/page.tsx`):
+<xaiArtifact artifact_id="2678898a-fb0e-4b9c-b28a-834f2917690d" artifact_version_id="f5ae6170-dc4c-480a-8f5b-72a3561d37f0" title="chat/[handle]/page.tsx" contentType="text/typescript">
+```typescript
+'use client';
+import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import Header from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+export default function Chat({ params }: { params: { handle: string } }) {
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [input, setInput] = useState('');
+  const [persona, setPersona] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchPersona() {
+      const { data } = await supabase.from('ai_personas').select('system_prompt').eq('creator_id', params.handle).single();
+      setPersona(data?.system_prompt || 'Respond as a flirty creator with a GOON vibe.');
+    }
+    fetchPersona();
+  }, [params.handle]);
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+
+    const newMessages = [...messages, { role: 'user', content: input }];
+    setMessages(newMessages);
+    setInput('');
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages, systemPrompt: persona }),
+      });
+      const { reply } = await response.json();
+      setMessages([...newMessages, { role: 'assistant', content: reply }]);
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'Failed to send message' });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--bg)] p-4">
+      <Header />
+      <main className="mx-auto max-w-7xl">
+        <Sidebar />
+        <Card className="bg-[var(--panel)] border-none">
+          <CardHeader>
+            <CardTitle>Chat with @{params.handle}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-96 overflow-y-auto mb-4">
+              {messages.map((msg, idx) => (
+                <div key={idx} className={`mb-2 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                  <span className={`inline-block p-2 rounded-lg ${msg.role === 'user' ? 'bg-[var(--accent)]/20' : 'bg-white/5'}`}>
+                    {msg.content}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type a message..."
+                className="bg-white/5 text-[var(--text)]"
+              />
+              <Button onClick={sendMessage} className="btn-goon">Send</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}
+```
+</xaiArtifact>
+   - **AI Chat API** (`src/app/api/chat/route.ts`):
+<xaiArtifact artifact_id="66a6829d-f2a5-4d56-ad26-f584e4af3ec0" artifact_version_id="f2faa208-0553-489f-8159-b36d0e64d056" title="api/chat/route.ts" contentType="text/typescript">
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(req: NextRequest) {
+  try {
+    const { messages, systemPrompt } = await req.json();
+    // Call xAI Grok API (replace with actual endpoint and key)
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'grok',
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        temperature: 0.8,
+      }),
+    });
+    const data = await response.json();
+    return NextResponse.json({ reply: data.choices[0].message.content });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to process chat' }, { status: 500 });
+  }
+}
+```
+</xaiArtifact>
+
+5. **Environment Variables**:
+   - Create `.env.local`:
+<xaiArtifact artifact_id="fdd39e63-182e-4be5-b7b5-331a630b9eff" artifact_version_id="f48fcbff-59b3-4c3e-9179-a410dc5899d3" title=".env.local" contentType="text/plain">
+```
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+XAI_API_KEY=your-xai-api-key
+HELIUS_API_KEY=your-helius-api-key
+DO_SPACES_KEY=your-do-spaces-key
+DO_SPACES_SECRET=your-do-spaces-secret
+```
+</xaiArtifact>
+   - Replace with credentials from Supabase, Helius, xAI, and DigitalOcean.
+
+6. **Placeholder Images**:
+   - Download 6 placeholder images from https://placehold.co/400x225 and save as `public/placeholder1.jpg` to `public/placeholder6.jpg`.
+
+7. **Run Locally**:
+   - Run: `yarn dev`
+   - Open: http://localhost:3000
+   - Install Phantom wallet (https://phantom.app), import seed phrase, set to devnet, connect.
+   - Test: Navigate to `/` (PornHub-like grid), `/studio/coin` (launch GOON coin), `/studio/new` (upload post), `/c/[handle]` (profile), `/p/[id]` (post detail), `/wallet` (age attestation).
+
+#### Step 5: Deploy to Production
+**Objective**: Host the frontend on Vercel and API on DigitalOcean.
+
+1. **Vercel (Frontend)**:
+   - Push to GitHub: `git init`, `git add .`, `git commit -m "Initial commit"`, `git push`.
+   - Connect to Vercel: Import repo, set environment variables from `.env.local`.
+   - Deploy: Vercel handles Next.js build and hosting.
+
+2. **DigitalOcean Droplet (API, Vanity Workers)**:
+   - Create a Droplet (Ubuntu, 2GB RAM).
+   - Install Node.js, Yarn, and PM2: `sudo apt update`, `sudo apt install nodejs npm`, `npm install -g yarn pm2`.
+   - Copy API routes (`src/app/api/*`) to Droplet, install dependencies: `yarn install`.
+   - Run with PM2: `pm2 start npm --name "goonhub-api" -- start`.
+   - Set up Nginx reverse proxy to port 3000.
+   - Configure Helius webhook to hit Droplet’s `/api/webhook/helius`.
+
+3. **Supabase and Spaces**:
+   - Ensure Supabase RLS policies are active.
+   - Configure Spaces bucket for public media access.
+
+#### Step 6: Test and Polish
+- **Test**:
+  - Launch a GOON coin at `/studio/coin` (verify mint ends in “goon”).
+  - Upload a post at `/studio/new`, set price, and publish.
+  - Unlock a post at `/p/[id]` with SOL.
+  - Attest age at `/wallet`.
+  - Chat with AI at `/chat/[handle]`.
+- **Polish**:
+  - Add LazyPreview (hover video scrub, 300ms delay).
+  - Implement keyboard nav (/, j/k for feed).
+  - Optimize SEO titles (`Title – @Creator – GoonHub`).
+  - Test responsive design (mobile, tablet, desktop).
+- **Compliance**: Verify age attestation works and NSFW guidelines are in `/legal/*`.
+
+---
+
+### Notes
+- **Vanity Addresses**: Use pre-generated keypairs (from Step 3) to avoid ~1-2 min wait. Store in Supabase `goon_keypairs` table (add `used BOOLEAN DEFAULT FALSE`). Fallback to random mint with GoonBadge after 5 mins.
+- **Compliance**: Age attestation is critical for NSFW. Add a mandatory checkbox on first login. Include detailed NSFW policies in `/legal/*`.
+- **IP Safety**: Distinct “hub” logo in orange (#F9A11B) avoids PornHub IP issues.
+- **Costs**: Devnet free; mainnet ~0.002 SOL per mint, ~$10/month for Droplet, ~$5/month for Spaces.
+- **Troubleshooting**: Share errors with step number for quick fixes.
+
+---
+
+### Deliverables
+I’ve provided all code in `<xaiArtifact>` tags, ready to copy-paste. If you want a bundled zip file or GitHub repo with placeholder images, let me know, and I’ll create it (run with `yarn dev`). Alternatively, I can:
+- Refine a specific feature (e.g., LazyPreview, WebSocket for vanity progress, Supabase auth).
+- Provide a Figma mockup for the PornHub-inspired UI.
+- Help debug a specific step.
+
+What’s your next move? Want the repo, a focus on one part, or something else? Let’s make GoonHub the real shii! 🚀

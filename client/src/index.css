@@ -1,0 +1,501 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: hsl(0, 0%, 4.3%); /* #0B0B0B */
+  --panel: hsl(0, 0%, 7.1%); /* #121212 */
+  --text: hsl(0, 0%, 91.8%); /* #EAEAEA */
+  --muted: hsl(0, 0%, 62.7%); /* #A0A0A0 */
+  --accent: hsl(32, 94.1%, 52.2%); /* #F9A11B */
+  --accent-2: hsl(42, 100%, 76.3%); /* #FFD089 */
+  --success: hsl(142, 71%, 45.3%); /* #22C55E */
+  --danger: hsl(0, 84%, 60.2%); /* #EF4444 */
+  --border: hsl(240, 3.7%, 15.9%); /* #27272A */
+  
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--panel);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: hsl(0, 0%, 4.3%);
+  --secondary: var(--accent-2);
+  --secondary-foreground: hsl(0, 0%, 4.3%);
+  --muted: var(--panel);
+  --muted-foreground: hsl(0, 0%, 62.7%);
+  --accent: hsl(32, 94.1%, 52.2%);
+  --accent-foreground: hsl(0, 0%, 4.3%);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--text);
+  --input: var(--border);
+  --ring: var(--accent);
+  --radius: 12px;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  /* Ensure text is visible by default */
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-foreground;
+  }
+  
+  p {
+    @apply text-foreground;
+  }
+  
+  /* Override any default dark text */
+  .text-gray-900, .text-black {
+    @apply text-foreground !important;
+  }
+  
+  /* Ensure all elements inherit proper text color */
+  div, span, label, button {
+    color: inherit;
+  }
+  
+  /* More targeted text color fixes */
+  button, .btn, [role="button"] {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  /* Fix category chips and navigation */
+  .text-card-foreground, [class*="text-card-foreground"] {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  .text-foreground, [class*="text-foreground"] {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  /* Specific overrides for colored elements */
+  .text-white, [class*="text-white"] {
+    color: white !important;
+  }
+  
+  .text-accent, [class*="text-accent"]:not([class*="text-accent-foreground"]) {
+    color: hsl(32, 94.1%, 52.2%) !important;
+  }
+  
+  .text-accent-foreground, [class*="text-accent-foreground"] {
+    color: hsl(0, 0%, 4.3%) !important;
+  }
+  
+  .text-muted-foreground, [class*="text-muted-foreground"] {
+    color: hsl(0, 0%, 62.7%) !important;
+  }
+  
+  .text-success, [class*="text-success"] {
+    color: hsl(142, 71%, 45.3%) !important;
+  }
+  
+  .text-destructive, [class*="text-destructive"] {
+    color: hsl(0, 84%, 60.2%) !important;
+  }
+  
+  /* Ensure buttons and interactive elements are visible */
+  button:not([class*="text-"]), 
+  [role="button"]:not([class*="text-"]) {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  /* Force visibility for all buttons */
+  button {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  /* Category chips specific fix */
+  [data-testid^="chip-"] {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  [data-testid="button-load-more"] {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+}
+
+@layer components {
+  .btn-goon {
+    @apply bg-gradient-to-r from-[hsl(32,94.1%,52.2%)] to-[hsl(42,100%,76.3%)] hover:from-[hsl(32,94.1%,47.2%)] hover:to-[hsl(42,100%,71.3%)] text-black font-medium rounded-lg transition-all;
+    box-shadow: 0 0 20px rgba(249, 161, 27, 0.3);
+  }
+  
+  .glass-effect {
+    backdrop-filter: blur(12px);
+    background: rgba(18, 18, 18, 0.8);
+  }
+  
+  .glow-orange {
+    box-shadow: 0 0 20px rgba(249, 161, 27, 0.3);
+  }
+  
+  .hover-scale {
+    transition: transform 0.3s ease;
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+  
+  .masonry-grid {
+    columns: 1;
+    column-gap: 12px;
+  }
+  
+  @media (min-width: 640px) {
+    .masonry-grid {
+      columns: 2;
+      column-gap: 16px;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .masonry-grid {
+      columns: 3;
+      column-gap: 16px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .masonry-grid {
+      columns: 4;
+      column-gap: 16px;
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .masonry-grid {
+      columns: 5;
+      column-gap: 16px;
+    }
+  }
+  
+  @media (min-width: 1536px) {
+    .masonry-grid {
+      columns: 6;
+      column-gap: 16px;
+    }
+  }
+  
+  .masonry-item {
+    break-inside: avoid;
+    margin-bottom: 12px;
+  }
+  
+  @media (min-width: 768px) {
+    .masonry-item {
+      margin-bottom: 16px;
+    }
+  }
+  
+  .loading-skeleton {
+    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+  }
+  
+  @keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  
+  /* Wallet button styling - more specific selectors */
+  .wallet-adapter-button,
+  .wallet-adapter-button-trigger,
+  button[class*="wallet-adapter"],
+  [class*="wallet-adapter"] button {
+    background: hsl(0, 0%, 7.1%) !important;
+    background-color: hsl(0, 0%, 7.1%) !important;
+    border: 1px solid hsl(240, 3.7%, 15.9%) !important;
+    color: hsl(0, 0%, 91.8%) !important;
+    border-radius: 0.5rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.2s ease !important;
+    min-height: 40px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  .wallet-adapter-button:hover,
+  .wallet-adapter-button-trigger:hover,
+  button[class*="wallet-adapter"]:hover,
+  [class*="wallet-adapter"] button:hover {
+    background: hsl(32, 94.1%, 52.2%) !important;
+    background-color: hsl(32, 94.1%, 52.2%) !important;
+    color: hsl(0, 0%, 4.3%) !important;
+    border-color: hsl(32, 94.1%, 52.2%) !important;
+    box-shadow: 0 4px 12px rgba(249, 161, 27, 0.3) !important;
+    transform: translateY(-1px) !important;
+  }
+  
+  .wallet-adapter-button:not([disabled]):hover,
+  .wallet-adapter-button-trigger:not([disabled]):hover,
+  button[class*="wallet-adapter"]:not([disabled]):hover {
+    background: hsl(32, 94.1%, 52.2%) !important;
+    background-color: hsl(32, 94.1%, 52.2%) !important;
+    color: hsl(0, 0%, 4.3%) !important;
+  }
+  
+  .wallet-adapter-button[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+  }
+  
+  /* Connected wallet button styling */
+  .wallet-adapter-button:not(.wallet-adapter-button-trigger) {
+    background: linear-gradient(135deg, hsl(32, 94.1%, 52.2%) 0%, hsl(42, 100%, 76.3%) 100%) !important;
+    color: hsl(0, 0%, 4.3%) !important;
+    border: none !important;
+    font-weight: 600 !important;
+    box-shadow: 0 0 20px rgba(249, 161, 27, 0.3) !important;
+  }
+  
+  .wallet-adapter-button:not(.wallet-adapter-button-trigger):hover {
+    background: linear-gradient(135deg, hsl(32, 94.1%, 47.2%) 0%, hsl(42, 100%, 71.3%) 100%) !important;
+    box-shadow: 0 0 25px rgba(249, 161, 27, 0.4) !important;
+    transform: translateY(-2px) !important;
+  }
+  
+  /* Wallet dropdown styling */
+  .wallet-adapter-dropdown {
+    background: hsl(0, 0%, 7.1%) !important;
+    border: 1px solid hsl(240, 3.7%, 15.9%) !important;
+    border-radius: 0.5rem !important;
+  }
+  
+  .wallet-adapter-dropdown-list {
+    background: hsl(0, 0%, 7.1%) !important;
+    border: 1px solid hsl(240, 3.7%, 15.9%) !important;
+  }
+  
+  .wallet-adapter-dropdown-list-item {
+    background: hsl(0, 0%, 7.1%) !important;
+    color: hsl(0, 0%, 91.8%) !important;
+    padding: 0.75rem 1rem !important;
+  }
+  
+  .wallet-adapter-dropdown-list-item:hover {
+    background: hsl(32, 94.1%, 52.2%) !important;
+    color: hsl(0, 0%, 4.3%) !important;
+  }
+  
+  /* Wallet modal styling */
+  .wallet-adapter-modal {
+    background: rgba(0, 0, 0, 0.8) !important;
+  }
+  
+  .wallet-adapter-modal-container {
+    background: hsl(0, 0%, 7.1%) !important;
+    border: 1px solid hsl(240, 3.7%, 15.9%) !important;
+    border-radius: 0.75rem !important;
+    padding: 1.5rem !important;
+  }
+  
+  .wallet-adapter-modal-title {
+    color: hsl(0, 0%, 91.8%) !important;
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .wallet-adapter-modal-list {
+    gap: 0.5rem !important;
+  }
+  
+  .wallet-adapter-modal-list-item {
+    background: hsl(0, 0%, 9.4%) !important;
+    border: 1px solid hsl(240, 3.7%, 15.9%) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+    color: hsl(0, 0%, 91.8%) !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .wallet-adapter-modal-list-item:hover {
+    background: hsl(32, 94.1%, 52.2%) !important;
+    color: hsl(0, 0%, 4.3%) !important;
+    border-color: hsl(32, 94.1%, 52.2%) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(249, 161, 27, 0.3) !important;
+  }
+  
+  .wallet-adapter-modal-button-close {
+    color: hsl(0, 0%, 62.7%) !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0.5rem !important;
+    border-radius: 0.25rem !important;
+  }
+  
+  .wallet-adapter-modal-button-close:hover {
+    background: hsl(0, 0%, 15%) !important;
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  /* Mobile-specific optimizations */
+  @media (max-width: 768px) {
+    /* Ensure proper spacing for mobile navigation */
+    .pb-20 {
+      padding-bottom: 5rem !important;
+    }
+    
+    /* Optimize header spacing on mobile */
+    .px-4 {
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+    }
+    
+    /* Mobile-friendly button sizes */
+    .h-9.w-9 {
+      height: 2.25rem !important;
+      width: 2.25rem !important;
+    }
+    
+    /* Mobile search input */
+    .w-32 {
+      width: 8rem !important;
+    }
+  }
+  
+  /* Wallet button content styling */
+  .wallet-adapter-button-start-icon,
+  .wallet-adapter-button-end-icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  .wallet-adapter-button .wallet-adapter-button-start-icon {
+    margin-right: 8px !important;
+  }
+  
+  /* Ensure wallet button text is properly styled */
+  .wallet-adapter-button-trigger {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+  }
+  
+  /* Special styling for disconnected state */
+  .wallet-adapter-button-trigger:not(:disabled) {
+    background: hsl(0, 0%, 7.1%) !important;
+    border: 1px solid hsl(240, 3.7%, 15.9%) !important;
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  .wallet-adapter-button-trigger:not(:disabled):hover {
+    background: hsl(32, 94.1%, 52.2%) !important;
+    color: hsl(0, 0%, 4.3%) !important;
+    border-color: hsl(32, 94.1%, 52.2%) !important;
+  }
+  
+  /* Force specific problematic elements to be white */
+  [data-testid="chip-all"],
+  [data-testid="chip-videos"],
+  [data-testid="chip-photos"],
+  [data-testid="chip-goon-coins"],
+  [data-testid="chip-live"], 
+  [data-testid="chip-premium"],
+  [data-testid="button-load-more"] {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  /* Category chips - force all variants */
+  button[class*="rounded-full"],
+  .rounded-full button,
+  button.rounded-full {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  /* Load more button specific */
+  button[class*="border-border"] {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+}
+
+@layer utilities {
+  /* Highest priority text visibility fixes */
+  * {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  /* Extra aggressive button text forcing */
+  button, button *, [role="button"], [role="button"] * {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  /* Category chips and navigation elements */
+  [data-testid^="chip-"], [data-testid^="chip-"] *,
+  [data-testid="button-load-more"], [data-testid="button-load-more"] * {
+    color: hsl(0, 0%, 91.8%) !important;
+  }
+  
+  /* Restore specific colors */
+  .text-white, [class*="text-white"] {
+    color: white !important;
+  }
+  
+  .text-accent, [class*="text-accent"]:not([class*="text-accent-foreground"]) {
+    color: hsl(32, 94.1%, 52.2%) !important;
+  }
+  
+  .text-accent-foreground, [class*="text-accent-foreground"] {
+    color: hsl(0, 0%, 4.3%) !important;
+  }
+  
+  .text-muted-foreground, [class*="text-muted-foreground"] {
+    color: hsl(0, 0%, 62.7%) !important;
+  }
+  
+  .text-success, [class*="text-success"] {
+    color: hsl(142, 71%, 45.3%) !important;
+  }
+  
+  .text-destructive, [class*="text-destructive"] {
+    color: hsl(0, 84%, 60.2%) !important;
+  }
+}
+
+/* FINAL WALLET OVERRIDE - HIGHEST PRIORITY */
+.wallet-adapter-button,
+.wallet-adapter-button-trigger,
+button[class*="wallet-adapter"],
+[class*="wallet-adapter"] button,
+.wallet-connect button,
+.wallet-connect [class*="wallet"] {
+  background: #121212 !important;
+  background-color: #121212 !important;
+  border: 1px solid #27272A !important;
+  color: #EAEAEA !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  padding: 8px 16px !important;
+  min-height: 40px !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+.wallet-adapter-button:hover,
+.wallet-adapter-button-trigger:hover,
+button[class*="wallet-adapter"]:hover,
+[class*="wallet-adapter"] button:hover,
+.wallet-connect button:hover,
+.wallet-connect [class*="wallet"]:hover {
+  background: #F9A11B !important;
+  background-color: #F9A11B !important;
+  color: #0B0B0B !important;
+  border-color: #F9A11B !important;
+  box-shadow: 0 4px 12px rgba(249, 161, 27, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
