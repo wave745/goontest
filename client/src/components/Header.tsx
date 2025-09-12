@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { Link } from 'wouter';
-import { Search, Upload, Coins, Home, Users, Settings } from 'lucide-react';
+import { Link, useLocation } from 'wouter';
+import { Upload, Coins, Users, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import SearchBar from './SearchBar';
+import UploadDialog from './UploadDialog';
 
 export default function Header() {
   const { connected, publicKey } = useWallet();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [location] = useLocation();
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 glass-effect border-b border-border">
@@ -25,22 +27,16 @@ export default function Header() {
           </Link>
           
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/" className="text-foreground hover:text-accent transition-colors" data-testid="link-feed">
-              Feed
-            </Link>
-            <Link href="/creators" className="text-muted-foreground hover:text-accent transition-colors" data-testid="link-creators">
+            <Link href="/creators" className={`hover:text-accent transition-colors ${location === '/creators' ? 'text-foreground' : 'text-muted-foreground'}`} data-testid="link-creators">
               Creators
             </Link>
-            <Link href="/studio" className="text-muted-foreground hover:text-accent transition-colors" data-testid="link-studio">
+            <Link href="/studio" className={`hover:text-accent transition-colors ${location === '/studio' ? 'text-foreground' : 'text-muted-foreground'}`} data-testid="link-studio">
               Studio
             </Link>
           </div>
           
           {/* Mobile Navigation */}
           <div className="md:hidden flex items-center gap-2">
-            <Link href="/" className="p-2 text-foreground hover:text-accent transition-colors rounded-lg hover:bg-accent/10" data-testid="link-feed-mobile">
-              <Home className="h-5 w-5" />
-            </Link>
             <Link href="/creators" className="p-2 text-muted-foreground hover:text-accent transition-colors rounded-lg hover:bg-accent/10" data-testid="link-creators-mobile">
               <Users className="h-5 w-5" />
             </Link>
@@ -51,30 +47,20 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Mobile Search */}
-          <div className="md:hidden relative">
-            <Input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-32 bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-accent text-sm"
-              data-testid="input-search-mobile"
+          {/* Search Bar */}
+          <div className="hidden md:block">
+            <SearchBar 
+              className="w-64" 
+              placeholder="Search creators, posts..."
             />
-            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           </div>
           
-          {/* Desktop Search */}
-          <div className="relative hidden md:block">
-            <Input
-              type="text"
-              placeholder="Search creators, content..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-accent"
-              data-testid="input-search"
+          {/* Mobile Search */}
+          <div className="md:hidden">
+            <SearchBar 
+              className="w-32" 
+              placeholder="Search..."
             />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           </div>
 
           {connected && (
@@ -86,6 +72,7 @@ export default function Header() {
                   variant="ghost"
                   className="p-2 h-9 w-9 bg-card border-border hover:bg-accent/10"
                   data-testid="button-upload-mobile"
+                  onClick={() => setIsUploadDialogOpen(true)}
                 >
                   <Upload className="h-4 w-4" />
                 </Button>
@@ -107,6 +94,7 @@ export default function Header() {
                 size="sm"
                 className="hidden md:flex items-center gap-2"
                 data-testid="button-upload"
+                onClick={() => setIsUploadDialogOpen(true)}
               >
                 <Upload className="h-4 w-4" />
                 Upload
@@ -132,6 +120,12 @@ export default function Header() {
           </div>
         </div>
       </div>
+      
+      {/* Upload Dialog */}
+      <UploadDialog 
+        open={isUploadDialogOpen} 
+        onOpenChange={setIsUploadDialogOpen} 
+      />
     </header>
   );
 }

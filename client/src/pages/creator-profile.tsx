@@ -1,5 +1,6 @@
 import { useParams } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useWallet } from '@solana/wallet-adapter-react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { CategoryChips } from '@/components/CategoryChips';
@@ -7,7 +8,7 @@ import VideoCard from '@/components/VideoCard';
 import MasonryGrid from '@/components/MasonryGrid';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { UserPlus, MessageCircle, Coins } from 'lucide-react';
+import { UserPlus, MessageCircle, Coins, Check } from 'lucide-react';
 import type { User, Post, Token } from '@shared/schema';
 
 type CreatorWithStats = User & {
@@ -19,9 +20,66 @@ type CreatorWithStats = User & {
 
 export default function CreatorProfile() {
   const { handle } = useParams<{ handle: string }>();
+  const { connected, publicKey } = useWallet();
+  const queryClient = useQueryClient();
   
   const { data: creator, isLoading } = useQuery<CreatorWithStats>({
     queryKey: ['/api/creators', handle],
+    queryFn: async () => {
+      const response = await fetch(`/api/creators/${handle}`);
+      if (!response.ok) {
+        throw new Error('Creator not found');
+      }
+      return response.json();
+    },
+    enabled: !!handle,
+  });
+
+  // Check if current user is following this creator
+  const { data: isFollowing } = useQuery<boolean>({
+    queryKey: ['/api/profile/is-following', publicKey?.toBase58(), creator?.id],
+    queryFn: async () => {
+      if (!publicKey || !creator) return false;
+      const response = await fetch(`/api/profile/is-following?followerId=${publicKey.toBase58()}&followingId=${creator.id}`);
+      if (!response.ok) return false;
+      const data = await response.json();
+      return data.isFollowing;
+    },
+    enabled: !!publicKey && !!creator,
+  });
+
+  // Follow/Unfollow mutation
+  const followMutation = useMutation({
+    mutationFn: async ({ followerId, followingId, action }: { followerId: string; followingId: string; action: 'follow' | 'unfollow' }) => {
+      console.log('Making API call:', { followerId, followingId, action });
+      const response = await fetch(`/api/profile/follow`, {
+        method: action === 'follow' ? 'POST' : 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ followerId, followingId })
+      });
+      console.log('API response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error:', errorText);
+        throw new Error(`Failed to ${action}: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('API success:', result);
+      return result;
+    },
+    onSuccess: (data) => {
+      console.log('Follow mutation success:', data);
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['/api/creators', handle] });
+      queryClient.invalidateQueries({ queryKey: ['/api/profile/is-following', publicKey?.toBase58(), creator?.id] });
+      if (publicKey) {
+        queryClient.invalidateQueries({ queryKey: ['/api/profile', publicKey.toBase58()] });
+      }
+    },
+    onError: (error) => {
+      console.error('Follow mutation error:', error);
+      alert(`Error: ${error.message}`);
+    },
   });
 
   if (isLoading) {
@@ -97,14 +155,59 @@ export default function CreatorProfile() {
               </div>
               
               <div className="flex items-center gap-2">
-                <Button variant="outline" className="bg-card border-border" data-testid="button-follow-creator">
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Follow
-                </Button>
-                <Button className="btn-goon" data-testid="button-chat-creator">
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Chat
-                </Button>
+                {creator && (
+                  <Button 
+                    variant="outline" 
+                    className="bg-card border-border" 
+                    data-testid="button-follow-creator"
+                    onClick={() => {
+                      console.log('Follow button clicked!');
+                      console.log('Connected:', connected);
+                      console.log('PublicKey:', publicKey?.toBase58());
+                      console.log('Creator ID:', creator.id);
+                      console.log('Is Following:', isFollowing);
+                      
+                      if (!connected || !publicKey) {
+                        alert('Please connect your wallet to follow users');
+                        return;
+                      }
+                      
+                      if (publicKey.toBase58() === creator.id) {
+                        alert('You cannot follow yourself');
+                        return;
+                      }
+
+                      if (isFollowing) {
+                        console.log('Unfollowing user...');
+                        followMutation.mutate({
+                          followerId: publicKey.toBase58(),
+                          followingId: creator.id,
+                          action: 'unfollow'
+                        });
+                      } else {
+                        console.log('Following user...');
+                        followMutation.mutate({
+                          followerId: publicKey.toBase58(),
+                          followingId: creator.id,
+                          action: 'follow'
+                        });
+                      }
+                    }}
+                    disabled={followMutation.isPending}
+                  >
+                    {isFollowing ? (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Following
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Follow
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
 

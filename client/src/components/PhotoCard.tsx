@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Heart, Eye, MessageCircle, Share2, MoreVertical, Coins, Check, Play } from 'lucide-react';
+import { Heart, Eye, MessageCircle, Share2, MoreVertical, Coins, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +10,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
 
-interface VideoCardProps {
+interface PhotoCardProps {
   id: string;
-  thumb: string;
-  duration: string;
+  imageUrl: string;
   title: string;
   creator: {
     id: string;
@@ -30,10 +29,9 @@ interface VideoCardProps {
   onClick?: () => void;
 }
 
-export default function VideoCard({
+export default function PhotoCard({
   id,
-  thumb,
-  duration,
+  imageUrl,
   title,
   creator,
   views,
@@ -43,7 +41,7 @@ export default function VideoCard({
   isVerified,
   tags,
   onClick
-}: VideoCardProps) {
+}: PhotoCardProps) {
   const { connected, publicKey } = useWallet();
   const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState(false);
@@ -131,31 +129,18 @@ export default function VideoCard({
       onClick={handleView}
     >
       <CardContent className="p-0">
-        {/* Video Thumbnail Container */}
-        <div className="relative aspect-video overflow-hidden">
+        {/* Image Container */}
+        <div className="relative aspect-square overflow-hidden">
           <img
-            src={thumb}
+            src={imageUrl}
             alt={title}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
           
-          {/* Play Button Overlay */}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors duration-300">
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                <Play className="h-6 w-6 text-black ml-1" />
-              </div>
-            </div>
-          </div>
+          {/* Overlay on hover */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
           
-          {/* Duration Badge */}
-          <div className="absolute bottom-2 right-2">
-            <Badge variant="secondary" className="bg-black/70 text-white text-xs">
-              {duration}
-            </Badge>
-          </div>
-
           {/* Price Badge */}
           {isGated && (
             <div className="absolute top-2 right-2">
@@ -167,7 +152,7 @@ export default function VideoCard({
           )}
 
           {/* Action Buttons */}
-          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="flex gap-2">
               <Button
                 size="sm"

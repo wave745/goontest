@@ -32,16 +32,38 @@ export default function ChatWithHandle() {
 
   const { data: creator } = useQuery<UserType>({
     queryKey: ['/api/creators', handle],
+    queryFn: async () => {
+      const response = await fetch(`/api/creators/${handle}`);
+      if (!response.ok) {
+        throw new Error('Creator not found');
+      }
+      return response.json();
+    },
+    enabled: !!handle,
   });
 
   const { data: persona } = useQuery<AiPersona>({
     queryKey: ['/api/personas', handle],
+    queryFn: async () => {
+      const response = await fetch(`/api/personas/${handle}`);
+      if (!response.ok) {
+        throw new Error('Persona not found');
+      }
+      return response.json();
+    },
     enabled: !!creator,
   });
 
   const { data: messages } = useQuery<ChatMessageWithUser[]>({
     queryKey: ['/api/chat/messages', handle],
-    enabled: connected && !!creator,
+    queryFn: async () => {
+      const response = await fetch(`/api/chat/messages/${handle}?userId=${publicKey?.toBase58()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+      return response.json();
+    },
+    enabled: connected && !!creator && !!publicKey,
   });
 
   const sendMessageMutation = useMutation({

@@ -40,9 +40,33 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
+  // Serve static files from the root public directory in development
+  const publicPath = path.resolve(import.meta.dirname, "..", "public");
+  
+  // Add static file serving with proper headers BEFORE vite middleware
+  app.use(express.static(publicPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      } else if (filePath.endsWith('.png')) {
+        res.setHeader('Content-Type', 'image/png');
+      } else if (filePath.endsWith('.gif')) {
+        res.setHeader('Content-Type', 'image/gif');
+      } else if (filePath.endsWith('.svg')) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+      }
+    }
+  }));
+
   app.use(vite.middlewares);
+
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+
+    // Skip static files (images, etc.) - let them be handled by static middleware
+    if (url.match(/\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot)$/i)) {
+      return next();
+    }
 
     try {
       const clientTemplate = path.resolve(
@@ -69,6 +93,7 @@ export async function setupVite(app: Express, server: Server) {
 
 export function serveStatic(app: Express) {
   const distPath = path.resolve(import.meta.dirname, "public");
+  const publicPath = path.resolve(import.meta.dirname, "..", "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
@@ -76,6 +101,8 @@ export function serveStatic(app: Express) {
     );
   }
 
+  // Serve static files from the root public directory
+  app.use(express.static(publicPath));
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
+import { useWallet } from '@solana/wallet-adapter-react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
@@ -12,12 +13,13 @@ import PaywallModal from '@/components/modals/PaywallModal';
 import StudioModal from '@/components/modals/StudioModal';
 import WalletModal from '@/components/modals/WalletModal';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Plus, Coins } from 'lucide-react';
+import { MessageCircle, Plus, Coins, Upload } from 'lucide-react';
 import type { Post, User } from '@shared/schema';
 
 type PostWithCreator = Post & { creator: User };
 
 export default function Home() {
+  const { connected } = useWallet();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedPost, setSelectedPost] = useState<PostWithCreator | null>(null);
   const [selectedCreator, setSelectedCreator] = useState<User | null>(null);
@@ -120,26 +122,26 @@ export default function Home() {
       <MobileNav />
       
       {/* Floating Action Buttons - Hidden on mobile */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-3 hidden md:flex">
-        <Button
-          size="icon"
-          className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-full shadow-lg hover:shadow-xl transition-all"
-          onClick={() => setShowStudioModal(true)}
-          data-testid="button-open-chat"
-        >
-          <MessageCircle className="h-5 w-5 text-white" />
-        </Button>
-        
-        <Link href="/coins">
+      {connected && (
+        <div className="fixed bottom-6 right-6 flex flex-col gap-3 hidden md:flex">
           <Button
-            size="icon"
-            className="w-12 h-12 btn-goon rounded-full shadow-lg hover:shadow-xl transition-all"
-            data-testid="button-open-coins"
+            size="lg"
+            className="h-14 w-14 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
+            onClick={() => setShowStudioModal(true)}
+            data-testid="button-upload"
+          >
+            <Upload className="h-6 w-6" />
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-12 w-12 rounded-full bg-card border-border text-card-foreground hover:bg-accent/10 shadow-lg"
+            data-testid="button-coins"
           >
             <Coins className="h-5 w-5" />
           </Button>
-        </Link>
-      </div>
+        </div>
+      )}
 
       {/* Modals */}
       <TipModal

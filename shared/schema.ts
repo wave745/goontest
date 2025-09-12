@@ -64,6 +64,34 @@ export const insertChatMessageSchema = z.object({
   txn_sig: z.string().optional(),
 });
 
+export const insertFollowSchema = z.object({
+  follower_id: z.string(),
+  following_id: z.string(),
+});
+
+export const insertActivitySchema = z.object({
+  type: z.enum(["core_update", "user_streaming", "new_launch", "following_post", "following_stream", "following_tip"]),
+  user_id: z.string().optional(), // For user-specific activities
+  target_user_id: z.string().optional(), // For activities about other users
+  post_id: z.string().optional(), // For post-related activities
+  title: z.string(),
+  description: z.string(),
+  metadata: z.record(z.any()).optional(), // Additional data like stream title, post preview, etc.
+  is_read: z.boolean().default(false),
+});
+
+export const insertLiveStreamSchema = z.object({
+  creator_id: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  status: z.enum(["live", "ended", "scheduled"]).default("live"),
+  stream_key: z.string().optional(),
+  viewer_count: z.number().default(0),
+  max_viewers: z.number().default(0),
+  duration: z.number().default(0), // in seconds
+  metadata: z.record(z.any()).optional(), // Additional stream data
+});
+
 // TypeScript types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertPost = z.infer<typeof insertPostSchema>;
@@ -72,6 +100,9 @@ export type InsertPurchase = z.infer<typeof insertPurchaseSchema>;
 export type InsertTip = z.infer<typeof insertTipSchema>;
 export type InsertAiPersona = z.infer<typeof insertAiPersonaSchema>;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type InsertFollow = z.infer<typeof insertFollowSchema>;
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type InsertLiveStream = z.infer<typeof insertLiveStreamSchema>;
 
 export type User = InsertUser & {
   created_at: Date;
@@ -107,4 +138,20 @@ export type AiPersona = InsertAiPersona & {
 export type ChatMessage = InsertChatMessage & {
   id: string;
   created_at: Date;
+};
+
+export type Follow = InsertFollow & {
+  id: string;
+  created_at: Date;
+};
+
+export type Activity = InsertActivity & {
+  id: string;
+  created_at: Date;
+};
+
+export type LiveStream = InsertLiveStream & {
+  id: string;
+  created_at: Date;
+  ended_at?: Date;
 };

@@ -63,7 +63,7 @@ export default function PaywallModal({ isOpen, onClose, post, onUnlock }: Paywal
   if (!post) return null;
 
   const priceSOL = post.price_lamports / 1e9;
-  const priceUSD = priceSOL * 47; // Mock exchange rate
+  const priceUSD = priceSOL * 47; // TODO: Get real exchange rate from API
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

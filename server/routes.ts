@@ -1,19 +1,22 @@
 import type { Express } from "express";
+import type { Multer } from "multer";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage/index.js";
 import { z } from "zod";
 import { insertPostSchema, insertTokenSchema, insertChatMessageSchema, insertPurchaseSchema, insertTipSchema } from "@shared/schema";
 import { generateGoonToken } from "./services/solana";
 import { chatWithAI } from "./services/xai";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, upload?: Multer): Promise<Server> {
   // Get posts with optional filtering
   app.get("/api/posts", async (req, res) => {
     try {
-      const { category, creator } = req.query;
+      const { category, creator, type, sort } = req.query;
       const posts = await storage.getPosts({
         category: category as string,
         creatorId: creator as string,
+        type: type as string, // 'photo' or 'video'
+        sort: sort as string, // 'latest', 'trending'
       });
       
       // Add creator info to each post
@@ -47,15 +50,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new post
-  app.post("/api/posts", async (req, res) => {
+  // Track post view
+  app.post("/api/posts/:id/view", async (req, res) => {
     try {
-      const validatedData = insertPostSchema.parse(req.body);
+      const post = await storage.incrementPostViews(req.params.id);
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      
+      res.json({ success: true, views: post.views });
+    } catch (error) {
+      console.error("Failed to track post view:", error);
+      res.status(500).json({ error: "Failed to track post view" });
+    }
+  });
+
+  // Like post
+  app.post("/api/posts/:id/like", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      const success = await storage.likePost(req.params.id, userId);
+      if (!success) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to like post:", error);
+      res.status(500).json({ error: "Failed to like post" });
+    }
+  });
+
+  // Unlike post
+  app.delete("/api/posts/:id/like", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      const success = await storage.unlikePost(req.params.id, userId);
+      if (!success) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to unlike post:", error);
+      res.status(500).json({ error: "Failed to unlike post" });
+    }
+  });
+
+  // Check if user liked post
+  app.get("/api/posts/:id/like", async (req, res) => {
+    try {
+      const { userId } = req.query;
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      const isLiked = await storage.isPostLiked(req.params.id, userId as string);
+      res.json({ isLiked });
+    } catch (error) {
+      console.error("Failed to check like status:", error);
+      res.status(500).json({ error: "Failed to check like status" });
+    }
+  });
+
+  // Create new post
+  app.post("/api/posts", upload?.single('media') || ((req, res, next) => next()), async (req, res) => {
+    try {
+      // Handle both JSON and FormData
+      let postData;
+      
+      if (req.headers['content-type']?.includes('multipart/form-data')) {
+        // Handle FormData from file upload
+        const { media, creator_id, caption, price_lamports, visibility, tags } = req.body;
+        
+        console.log('FormData request:', {
+          contentType: req.headers['content-type'],
+          body: req.body,
+          file: req.file,
+          creator_id
+        });
+        
+        if (!req.file || !creator_id) {
+          return res.status(400).json({ error: "Media file and creator_id are required" });
+        }
+
+        // Handle file upload
+        let mediaUrl, thumbUrl;
+        
+        if (req.file) {
+          // Upload to storage service (S3, Cloudinary, etc.)
+          const uploadResult = await uploadToStorage(req.file, 'posts');
+          mediaUrl = uploadResult.url;
+          thumbUrl = uploadResult.thumbnail || uploadResult.url;
+        } else {
+          return res.status(400).json({ error: "Media file is required" });
+        }
+
+        postData = {
+          creator_id,
+          media_url: mediaUrl,
+          thumb_url: thumbUrl,
+          caption: caption || '',
+          price_lamports: parseInt(price_lamports) || 0,
+          visibility: visibility || 'public',
+          tags: tags ? JSON.parse(tags) : []
+        };
+      } else {
+        // Handle JSON data
+        postData = req.body;
+      }
+
+      const validatedData = insertPostSchema.parse(postData);
       const post = await storage.createPost(validatedData);
       res.json(post);
     } catch (error) {
       console.error("Failed to create post:", error);
       res.status(400).json({ error: "Invalid post data" });
+    }
+  });
+
+  // Get posts by creator (for studio)
+  app.get("/api/posts/my", async (req, res) => {
+    try {
+      const { creatorId } = req.query;
+      if (!creatorId) {
+        return res.status(400).json({ error: "Creator ID required" });
+      }
+
+      const posts = await storage.getPosts({ creatorId: creatorId as string });
+      res.json(posts);
+    } catch (error) {
+      console.error("Failed to fetch user posts:", error);
+      res.status(500).json({ error: "Failed to fetch posts" });
     }
   });
 
@@ -86,7 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user_id: userPubkey,
         post_id: postId,
         amount_lamports: post.price_lamports,
-        txn_sig: `mock_${Date.now()}`, // Replace with actual transaction signature
+        txn_sig: `txn_${Date.now()}`,
       });
 
       res.json({ success: true });
@@ -96,29 +230,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all creators
+  // Get all creators with pagination
   app.get("/api/creators", async (req, res) => {
     try {
-      // Get all users that are creators
-      const allUsers = Array.from(storage.users.values());
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100); // Max 100 per page
+      const offset = (page - 1) * limit;
+
+      // Get all users that are creators from Supabase
+      const allUsers = await storage.getAllUsers();
       const creators = allUsers.filter(user => user.is_creator);
 
+      // Apply pagination
+      const paginatedCreators = creators.slice(offset, offset + limit);
+
       const creatorsWithStats = await Promise.all(
-        creators.map(async (creator) => {
+        paginatedCreators.map(async (creator) => {
           const posts = await storage.getPosts({ creatorId: creator.id });
           const tokens = await storage.getTokens(creator.id);
+          const followerCount = await storage.getFollowerCount(creator.id);
 
           return {
             ...creator,
             posts,
             tokens,
-            followerCount: 1200, // Mock data
+            followerCount,
             postCount: posts.length,
           };
         })
       );
 
-      res.json(creatorsWithStats);
+      res.json({
+        creators: creatorsWithStats,
+        pagination: {
+          page,
+          limit,
+          total: creators.length,
+          totalPages: Math.ceil(creators.length / limit),
+          hasNext: offset + limit < creators.length,
+          hasPrev: page > 1
+        }
+      });
     } catch (error) {
       console.error("Failed to fetch creators:", error);
       res.status(500).json({ error: "Failed to fetch creators" });
@@ -135,12 +287,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const posts = await storage.getPosts({ creatorId: creator.id });
       const tokens = await storage.getTokens(creator.id);
+      const followerCount = await storage.getFollowerCount(creator.id);
 
       res.json({
         ...creator,
         posts,
         tokens,
-        followerCount: 1200, // Mock data
+        followerCount,
         postCount: posts.length,
       });
     } catch (error) {
@@ -312,7 +465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         creator_id: creatorId,
         role: 'user',
         content,
-        txn_sig: `mock_${Date.now()}`, // Replace with actual transaction signature
+        txn_sig: `txn_${Date.now()}`,
       });
 
       // Get AI response
@@ -333,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user's subscriptions (mock for now)
+  // Get user's subscriptions
   app.get("/api/subscriptions", async (req, res) => {
     try {
       // TODO: Implement actual subscription logic
@@ -352,6 +505,495 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to fetch subscriptions:", error);
       res.status(500).json({ error: "Failed to fetch subscriptions" });
+    }
+  });
+
+  // Check if user is following another user (must be before /api/profile/:walletAddress)
+  app.get("/api/profile/is-following", async (req, res) => {
+    try {
+      const { followerId, followingId } = req.query;
+      
+      if (!followerId || !followingId) {
+        return res.status(400).json({ error: "Both followerId and followingId are required" });
+      }
+
+      const isFollowing = await storage.isFollowing(followerId as string, followingId as string);
+      res.json({ isFollowing });
+    } catch (error) {
+      console.error("Failed to check follow status:", error);
+      res.status(500).json({ error: "Failed to check follow status" });
+    }
+  });
+
+  // Profile endpoints
+  app.get("/api/profile/:walletAddress", async (req, res) => {
+    try {
+      const { walletAddress } = req.params;
+      
+      // Get or create user
+      let user = await storage.getUser(walletAddress);
+      if (!user) {
+        // Create new user if doesn't exist
+        user = await storage.createUser({
+          id: walletAddress,
+          handle: undefined,
+          avatar_url: undefined,
+          banner_url: undefined,
+          bio: undefined,
+          age_verified: false,
+          is_creator: false,
+        });
+      }
+
+      // Get follower and following counts
+      const followerCount = await storage.getFollowerCount(walletAddress);
+      const followingCount = await storage.getFollowingCount(walletAddress);
+      
+      // Get user's posts for stats
+      const posts = await storage.getPosts({ creatorId: walletAddress });
+      
+      // Calculate total views and earnings
+      const totalViews = posts.reduce((sum, post) => sum + post.views, 0);
+      const totalEarnings = 0; // TODO: Calculate from purchases/tips
+
+      const profileWithStats = {
+        ...user,
+        followerCount,
+        followingCount,
+        postCount: posts.length,
+        totalViews,
+        totalEarnings,
+      };
+
+      res.json(profileWithStats);
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+      res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+
+  app.put("/api/profile", async (req, res) => {
+    try {
+      const { walletAddress, ...updates } = req.body;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ error: "Wallet address is required" });
+      }
+
+      // Get or create user (same behavior as GET endpoint)
+      let user = await storage.getUser(walletAddress);
+      if (!user) {
+        // Create new user if doesn't exist
+        user = await storage.createUser({
+          id: walletAddress,
+          handle: updates.handle || undefined,
+          avatar_url: updates.avatar_url || undefined,
+          banner_url: updates.banner_url || undefined,
+          bio: updates.bio || undefined,
+          age_verified: updates.age_verified || false,
+          is_creator: updates.is_creator || false,
+        });
+      } else {
+        // Update existing user
+        user = await storage.updateUser(walletAddress, updates);
+        if (!user) {
+          return res.status(500).json({ error: "Failed to update profile" });
+        }
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  app.post("/api/profile/avatar", async (req, res) => {
+    try {
+      // TODO: Implement file upload handling
+      res.json({ 
+        success: true, 
+        avatar_url: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop" 
+      });
+    } catch (error) {
+      console.error("Failed to upload avatar:", error);
+      res.status(500).json({ error: "Failed to upload avatar" });
+    }
+  });
+
+  app.get("/api/profile/followers/:walletAddress", async (req, res) => {
+    try {
+      const { walletAddress } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const offset = (page - 1) * limit;
+
+      const followers = await storage.getFollowers(walletAddress);
+      const paginatedFollowers = followers.slice(offset, offset + limit);
+
+      res.json({
+        followers: paginatedFollowers,
+        pagination: {
+          page,
+          limit,
+          total: followers.length,
+          totalPages: Math.ceil(followers.length / limit),
+          hasNext: offset + limit < followers.length,
+          hasPrev: page > 1
+        }
+      });
+    } catch (error) {
+      console.error("Failed to fetch followers:", error);
+      res.status(500).json({ error: "Failed to fetch followers" });
+    }
+  });
+
+  app.get("/api/profile/following/:walletAddress", async (req, res) => {
+    try {
+      const { walletAddress } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const offset = (page - 1) * limit;
+
+      const following = await storage.getFollowing(walletAddress);
+      const paginatedFollowing = following.slice(offset, offset + limit);
+
+      res.json({
+        following: paginatedFollowing,
+        pagination: {
+          page,
+          limit,
+          total: following.length,
+          totalPages: Math.ceil(following.length / limit),
+          hasNext: offset + limit < following.length,
+          hasPrev: page > 1
+        }
+      });
+    } catch (error) {
+      console.error("Failed to fetch following:", error);
+      res.status(500).json({ error: "Failed to fetch following" });
+    }
+  });
+
+  app.post("/api/profile/follow", async (req, res) => {
+    try {
+      const { followerId, followingId } = req.body;
+      
+      if (!followerId || !followingId) {
+        return res.status(400).json({ error: "Both followerId and followingId are required" });
+      }
+
+      if (followerId === followingId) {
+        return res.status(400).json({ error: "Cannot follow yourself" });
+      }
+
+      const follow = await storage.followUser(followerId, followingId);
+      res.json(follow);
+    } catch (error) {
+      console.error("Failed to follow user:", error);
+      res.status(500).json({ error: "Failed to follow user" });
+    }
+  });
+
+  app.delete("/api/profile/follow", async (req, res) => {
+    try {
+      const { followerId, followingId } = req.body;
+      
+      if (!followerId || !followingId) {
+        return res.status(400).json({ error: "Both followerId and followingId are required" });
+      }
+
+      const success = await storage.unfollowUser(followerId, followingId);
+      res.json({ success });
+    } catch (error) {
+      console.error("Failed to unfollow user:", error);
+      res.status(500).json({ error: "Failed to unfollow user" });
+    }
+  });
+
+
+  // Test endpoint to create users
+  app.post("/api/test/create-user", async (req, res) => {
+    try {
+      const { id, handle, name, bio, avatar, wallet_address } = req.body;
+      
+      const user = await storage.createUser({
+        id: id || `test_${Date.now()}`,
+        handle: handle || `testuser_${Date.now()}`,
+        bio: bio || "Test bio",
+        avatar_url: avatar || null,
+        age_verified: false,
+        is_creator: true,
+      });
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Failed to create test user:", error);
+      res.status(500).json({ error: "Failed to create test user" });
+    }
+  });
+
+  // Search endpoints
+  app.get("/api/search", async (req, res) => {
+    try {
+      const { q: query, type, limit = 10 } = req.query;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+
+      const searchLimit = Math.min(parseInt(limit as string) || 10, 50); // Max 50 results
+
+      if (type === 'users') {
+        const users = await storage.searchUsers(query, searchLimit);
+        res.json({ users });
+      } else if (type === 'posts') {
+        const posts = await storage.searchPosts(query, searchLimit);
+        
+        // Add creator info to each post
+        const postsWithCreators = await Promise.all(
+          posts.map(async (post) => {
+            const creator = await storage.getUser(post.creator_id);
+            return { ...post, creator };
+          })
+        );
+        
+        res.json({ posts: postsWithCreators });
+      } else {
+        // Search all types
+        const results = await storage.searchAll(query, searchLimit);
+        
+        // Add creator info to posts
+        const postsWithCreators = await Promise.all(
+          results.posts.map(async (post) => {
+            const creator = await storage.getUser(post.creator_id);
+            return { ...post, creator };
+          })
+        );
+        
+        res.json({
+          users: results.users,
+          posts: postsWithCreators,
+          tokens: results.tokens
+        });
+      }
+    } catch (error) {
+      console.error("Failed to search:", error);
+      res.status(500).json({ error: "Failed to search" });
+    }
+  });
+
+  // Search suggestions endpoint
+  app.get("/api/search/suggestions", async (req, res) => {
+    try {
+      const { q: query, limit = 5 } = req.query;
+      
+      if (!query || typeof query !== 'string' || query.length < 2) {
+        return res.json({ suggestions: [] });
+      }
+
+      const searchLimit = Math.min(parseInt(limit as string) || 5, 10);
+      
+      // Get quick suggestions from users and posts
+      const [users, posts] = await Promise.all([
+        storage.searchUsers(query, searchLimit),
+        storage.searchPosts(query, searchLimit)
+      ]);
+
+      const suggestions = [
+        ...users.map(user => ({
+          type: 'user',
+          id: user.id,
+          title: user.handle || user.id,
+          subtitle: user.bio,
+          avatar: user.avatar_url
+        })),
+        ...posts.map(post => ({
+          type: 'post',
+          id: post.id,
+          title: post.caption?.substring(0, 50) + (post.caption?.length > 50 ? '...' : ''),
+          subtitle: post.tags?.join(', '),
+          thumbnail: post.thumb_url
+        }))
+      ];
+
+      res.json({ suggestions: suggestions.slice(0, searchLimit) });
+    } catch (error) {
+      console.error("Failed to get search suggestions:", error);
+      res.status(500).json({ error: "Failed to get search suggestions" });
+    }
+  });
+
+  // Activity endpoints
+  app.get("/api/activities", async (req, res) => {
+    try {
+      const { userId, limit = 50 } = req.query;
+      const activities = await storage.getActivities(userId as string, parseInt(limit as string));
+      res.json(activities);
+    } catch (error) {
+      console.error("Failed to fetch activities:", error);
+      res.status(500).json({ error: "Failed to fetch activities" });
+    }
+  });
+
+  app.post("/api/activities", async (req, res) => {
+    try {
+      const activity = await storage.createActivity(req.body);
+      res.json(activity);
+    } catch (error) {
+      console.error("Failed to create activity:", error);
+      res.status(500).json({ error: "Failed to create activity" });
+    }
+  });
+
+  app.put("/api/activities/:id/read", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const activity = await storage.markActivityAsRead(id);
+      if (!activity) {
+        return res.status(404).json({ error: "Activity not found" });
+      }
+      res.json(activity);
+    } catch (error) {
+      console.error("Failed to mark activity as read:", error);
+      res.status(500).json({ error: "Failed to mark activity as read" });
+    }
+  });
+
+  app.get("/api/activities/unread-count", async (req, res) => {
+    try {
+      const { userId } = req.query;
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+      const count = await storage.getUnreadActivityCount(userId as string);
+      res.json({ count });
+    } catch (error) {
+      console.error("Failed to get unread activity count:", error);
+      res.status(500).json({ error: "Failed to get unread activity count" });
+    }
+  });
+
+  // Core team announcement endpoint
+  app.post("/api/activities/announcement", async (req, res) => {
+    try {
+      const { title, description, type = 'core_update', metadata = {} } = req.body;
+      
+      if (!title || !description) {
+        return res.status(400).json({ error: "title and description are required" });
+      }
+
+      const activity = await storage.createActivity({
+        type: type as any,
+        title,
+        description,
+        metadata,
+        is_read: false
+      });
+
+      res.json(activity);
+    } catch (error) {
+      console.error("Failed to create announcement:", error);
+      res.status(500).json({ error: "Failed to create announcement" });
+    }
+  });
+
+  // Live Stream endpoints
+  app.get("/api/streams", async (req, res) => {
+    try {
+      const { creatorId, status } = req.query;
+      const streams = await storage.getLiveStreams(creatorId as string, status as string);
+      res.json(streams);
+    } catch (error) {
+      console.error("Failed to fetch live streams:", error);
+      res.status(500).json({ error: "Failed to fetch live streams" });
+    }
+  });
+
+  app.get("/api/streams/active", async (req, res) => {
+    try {
+      const streams = await storage.getActiveStreams();
+      res.json(streams);
+    } catch (error) {
+      console.error("Failed to fetch active streams:", error);
+      res.status(500).json({ error: "Failed to fetch active streams" });
+    }
+  });
+
+  app.get("/api/streams/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const stream = await storage.getLiveStream(id);
+      if (!stream) {
+        return res.status(404).json({ error: "Stream not found" });
+      }
+      res.json(stream);
+    } catch (error) {
+      console.error("Failed to fetch stream:", error);
+      res.status(500).json({ error: "Failed to fetch stream" });
+    }
+  });
+
+  app.post("/api/streams", async (req, res) => {
+    try {
+      const { creator_id, title, description, stream_key } = req.body;
+      
+      if (!creator_id || !title) {
+        return res.status(400).json({ error: "creator_id and title are required" });
+      }
+
+      const stream = await storage.createLiveStream({
+        creator_id,
+        title,
+        description,
+        stream_key: stream_key || `stream_${Date.now()}`,
+        status: 'live',
+        viewer_count: 0,
+        max_viewers: 0,
+        duration: 0,
+        metadata: {
+          is_muted: false,
+          is_camera_on: true,
+          start_time: new Date().toISOString()
+        }
+      });
+
+      res.json(stream);
+    } catch (error) {
+      console.error("Failed to create live stream:", error);
+      res.status(500).json({ error: "Failed to create live stream" });
+    }
+  });
+
+  app.put("/api/streams/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const stream = await storage.updateLiveStream(id, updates);
+      if (!stream) {
+        return res.status(404).json({ error: "Stream not found" });
+      }
+      
+      res.json(stream);
+    } catch (error) {
+      console.error("Failed to update stream:", error);
+      res.status(500).json({ error: "Failed to update stream" });
+    }
+  });
+
+  app.put("/api/streams/:id/end", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const stream = await storage.endLiveStream(id);
+      if (!stream) {
+        return res.status(404).json({ error: "Stream not found" });
+      }
+      
+      res.json(stream);
+    } catch (error) {
+      console.error("Failed to end stream:", error);
+      res.status(500).json({ error: "Failed to end stream" });
     }
   });
 

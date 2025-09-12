@@ -20,8 +20,11 @@ export async function chatWithAI(
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage }
       ],
-      temperature: 0.8,
+      temperature: 0.9,
       max_tokens: 500,
+      top_p: 0.95,
+      frequency_penalty: 0.1,
+      presence_penalty: 0.1,
     });
 
     return response.choices[0]?.message?.content || "Sorry, I couldn't process that message.";
