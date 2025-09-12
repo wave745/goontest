@@ -1,9 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Use hardcoded values for now (in production, these should be environment variables)
-const supabaseUrl = 'https://rjgpjuxrxtsdlssdrqby.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqZ3BqdXhyeHRzZGxzc2RycWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3NTM2MzgsImV4cCI6MjA3MjMyOTYzOH0.Tni2CEx6bXGLvJhJkkH_51PRGg3-hhyDxOndg5CaUxQ';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqZ3BqdXhyeHRzZGxzc2RycWJ5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njc1MzYzOCwiZXhwIjoyMDcyMzI5NjM4fQ.0HCcJo8H1mtwwHzjvQVo6I6fYaHGLH-Ldj16PpieJew';
+// Get Supabase configuration from environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
+
+// Validate required environment variables
+if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+  throw new Error('Missing required Supabase environment variables. Please check your .env file.');
+}
 
 // Create Supabase client with service role key for uploads
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
