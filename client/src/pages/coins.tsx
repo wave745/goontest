@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Connection, Transaction, PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -156,7 +156,7 @@ export default function Coins() {
       const response = await fetch('/api/tokens/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, symbol, description, imageUrl })
+        body: JSON.stringify({ name, symbol, description: description || '', imageUrl })
       });
       
       if (response.ok) {
@@ -247,7 +247,7 @@ export default function Coins() {
                       <div className="flex items-center gap-3">
                         <Wallet className="h-6 w-6 md:h-8 md:w-8 text-accent" />
                         <div>
-                          <p className="text-xl md:text-2xl font-bold text-foreground">{tokenBalances || [].length}</p>
+                          <p className="text-xl md:text-2xl font-bold text-foreground">{(tokenBalances || []).length}</p>
                           <p className="text-xs md:text-sm text-muted-foreground">Tokens Owned</p>
                         </div>
                       </div>
@@ -260,7 +260,7 @@ export default function Coins() {
                         <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
                         <div>
                           <p className="text-xl md:text-2xl font-bold text-foreground">
-                            ${tokenBalances || [].reduce((total, token) => total + (token.balance * token.price), 0).toFixed(2)}
+                            ${(tokenBalances || []).reduce((total, token) => total + (token.balance * token.price), 0).toFixed(2)}
                           </p>
                           <p className="text-xs md:text-sm text-muted-foreground">Total Value</p>
                         </div>
@@ -274,7 +274,7 @@ export default function Coins() {
                         <Star className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
                         <div>
                           <p className="text-xl md:text-2xl font-bold text-foreground">
-                            {tokenBalances || [].reduce((total, token) => total + token.balance, 0).toLocaleString()}
+                            {(tokenBalances || []).reduce((total, token) => total + token.balance, 0).toLocaleString()}
                           </p>
                           <p className="text-xs md:text-sm text-muted-foreground">Total Tokens</p>
                         </div>
@@ -289,7 +289,7 @@ export default function Coins() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {tokenBalances || [].map((token) => (
+                      {(tokenBalances || []).map((token) => (
                         <div key={token.mint} className="flex items-center justify-between p-4 border border-border rounded-lg">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent to-accent-2 flex items-center justify-center">
@@ -353,7 +353,7 @@ export default function Coins() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {transactions || [].map((tx) => (
+                      {(transactions || []).map((tx) => (
                         <div key={tx.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
                           <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${

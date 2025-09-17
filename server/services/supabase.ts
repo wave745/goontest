@@ -11,7 +11,6 @@ let db: any = null;
 
 export async function initializeDatabase() {
   if (!process.env.DATABASE_URL) {
-    console.warn("DATABASE_URL not provided, using in-memory storage");
     return null;
   }
 
@@ -24,10 +23,8 @@ export async function initializeDatabase() {
     // await client.connect();
     // db = drizzle(client, { schema });
     
-    console.log("Database connected successfully (mocked)");
     return db;
   } catch (error) {
-    console.error("Failed to connect to database:", error);
     return null;
   }
 }
@@ -43,7 +40,7 @@ export async function createUser(userData: schema.InsertUser) {
   // TODO: Re-enable when drizzle-orm is properly installed
   // const [user] = await db.insert(schema.users).values(userData).returning();
   // return user;
-  return { ...userData, created_at: new Date() };
+  throw new Error("Database not properly configured");
 }
 
 export async function getUserByHandle(handle: string) {
@@ -52,7 +49,7 @@ export async function getUserByHandle(handle: string) {
   // TODO: Re-enable when drizzle-orm is properly installed
   // const [user] = await db.select().from(schema.users).where(eq(schema.users.handle, handle));
   // return user;
-  return null;
+  throw new Error("Database not properly configured");
 }
 
 export async function createPost(postData: schema.InsertPost) {
@@ -61,7 +58,7 @@ export async function createPost(postData: schema.InsertPost) {
   // TODO: Re-enable when drizzle-orm is properly installed
   // const [post] = await db.insert(schema.posts).values(postData).returning();
   // return post;
-  return { ...postData, id: 'mock-id', views: 0, likes: 0, created_at: new Date() };
+  throw new Error("Database not properly configured");
 }
 
 export async function getPostsWithCreators() {
@@ -73,7 +70,7 @@ export async function getPostsWithCreators() {
   //   .from(schema.posts)
   //   .leftJoin(schema.users, eq(schema.posts.creator_id, schema.users.id))
   //   .where(eq(schema.posts.status, 'published'));
-  return [];
+  throw new Error("Database not properly configured");
 }
 
 // File upload utilities for DigitalOcean Spaces
@@ -83,7 +80,7 @@ export async function generatePresignedUploadUrl(
 ): Promise<string> {
   // TODO: Implement DigitalOcean Spaces presigned URL generation
   // This would use AWS SDK v3 with DigitalOcean Spaces endpoint
-  return `https://your-space.fra1.digitaloceanspaces.com/uploads/${fileName}`;
+  throw new Error("File upload not properly configured");
 }
 
 export async function uploadToSpaces(
@@ -92,6 +89,5 @@ export async function uploadToSpaces(
   contentType: string
 ): Promise<string> {
   // TODO: Implement actual file upload to DigitalOcean Spaces
-  // For now, return a mock URL
-  return `https://your-space.fra1.digitaloceanspaces.com/uploads/${fileName}`;
+  throw new Error("File upload not properly configured");
 }

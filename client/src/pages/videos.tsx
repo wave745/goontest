@@ -137,7 +137,7 @@ export default function Videos() {
     try {
       // Upload file to storage service
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', file as File);
       formData.append('type', 'video');
       
       const uploadResponse = await fetch('/api/upload', {

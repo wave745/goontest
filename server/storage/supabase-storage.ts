@@ -75,17 +75,36 @@ export class SupabaseStorage implements IStorage {
     };
   }
 
+  async getUserByGoonUsername(goonUsername: string): Promise<User | undefined> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('goon_username', goonUsername)
+      .single();
+
+    if (error || !data) return undefined;
+    
+    return {
+      ...data,
+      created_at: new Date(data.created_at)
+    };
+  }
+
   async createUser(user: InsertUser): Promise<User> {
     const { data, error } = await supabase
       .from('users')
       .insert({
         id: user.id,
+        goon_username: user.goon_username,
         handle: user.handle,
         avatar_url: user.avatar_url,
         banner_url: user.banner_url,
         bio: user.bio,
         age_verified: user.age_verified,
-        is_creator: user.is_creator
+        is_creator: user.is_creator,
+        solana_address: user.solana_address,
+        created_at: user.created_at,
+        last_active: user.last_active
       })
       .select()
       .single();
@@ -102,6 +121,38 @@ export class SupabaseStorage implements IStorage {
     const { data, error } = await supabase
       .from('users')
       .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) return undefined;
+    
+    return {
+      ...data,
+      created_at: new Date(data.created_at)
+    };
+  }
+
+  async updateUserSolanaAddress(id: string, solanaAddress: string): Promise<User | undefined> {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ solana_address: solanaAddress })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) return undefined;
+    
+    return {
+      ...data,
+      created_at: new Date(data.created_at)
+    };
+  }
+
+  async updateUserLastActive(id: string): Promise<User | undefined> {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ last_active: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();

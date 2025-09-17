@@ -3,11 +3,132 @@ import type { Multer } from "multer";
 import { createServer, type Server } from "http";
 import { storage } from "./storage/index.js";
 import { z } from "zod";
-import { insertPostSchema, insertTokenSchema, insertChatMessageSchema, insertPurchaseSchema, insertTipSchema } from "@shared/schema";
+import { insertPostSchema, insertTokenSchema, insertChatMessageSchema, insertPurchaseSchema, insertTipSchema, createGoonUserSchema, insertUserSchema } from "@shared/schema";
 import { generateGoonToken } from "./services/solana";
 import { chatWithAI } from "./services/xai";
+import { uploadToDigitalOcean } from "./services/upload-real";
 
 export async function registerRoutes(app: Express, upload?: Multer): Promise<Server> {
+  // ===== USER MANAGEMENT ENDPOINTS =====
+  
+  // Create or get goon user
+  app.post("/api/users/goon", async (req, res) => {
+    try {
+      const { goon_username, solana_address } = createGoonUserSchema.parse(req.body);
+      
+      // Check if goon username already exists
+      const existingUser = await storage.getUserByGoonUsername(goon_username);
+      if (existingUser) {
+        return res.json(existingUser);
+      }
+      
+      // Create new goon user
+      const userData = insertUserSchema.parse({
+        id: `goon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        goon_username,
+        solana_address,
+        is_creator: false,
+        age_verified: false,
+        created_at: new Date().toISOString(),
+        last_active: new Date().toISOString(),
+      });
+      
+      const user = await storage.createUser(userData);
+      res.json(user);
+    } catch (error) {
+      console.error("Failed to create/get goon user:", error);
+      res.status(400).json({ error: "Invalid user data", details: (error as Error).message });
+    }
+  });
+
+  // Get user by goon username
+  app.get("/api/users/goon/:username", async (req, res) => {
+    try {
+      const user = await storage.getUserByGoonUsername(req.params.username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+      res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
+
+  // Update user solana address
+  app.put("/api/users/:id/solana", async (req, res) => {
+    try {
+      const { solana_address } = req.body;
+      if (!solana_address) {
+        return res.status(400).json({ error: "Solana address is required" });
+      }
+      
+      const user = await storage.updateUserSolanaAddress(req.params.id, solana_address);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Failed to update solana address:", error);
+      res.status(500).json({ error: "Failed to update solana address" });
+    }
+  });
+
+  // Update user last active
+  app.put("/api/users/:id/active", async (req, res) => {
+    try {
+      const user = await storage.updateUserLastActive(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Failed to update last active:", error);
+      res.status(500).json({ error: "Failed to update last active" });
+    }
+  });
+
+  // ===== CONTENT ENDPOINTS =====
+  
+  // Get real-time content feed
+  app.get("/api/feed", async (req, res) => {
+    try {
+      const { type, limit = 20, offset = 0 } = req.query;
+      const limitNum = Math.min(parseInt(limit as string) || 20, 100);
+      const offsetNum = parseInt(offset as string) || 0;
+      
+      const posts = await storage.getPosts({
+        type: type as string,
+        sort: 'latest'
+      });
+      
+      // Apply pagination
+      const paginatedPosts = posts.slice(offsetNum, offsetNum + limitNum);
+      
+      // Add creator info to each post
+      const postsWithCreators = await Promise.all(
+        paginatedPosts.map(async (post) => {
+          const creator = await storage.getUser(post.creator_id);
+          return { ...post, creator };
+        })
+      );
+      
+      res.json({
+        posts: postsWithCreators,
+        pagination: {
+          limit: limitNum,
+          offset: offsetNum,
+          total: posts.length,
+          hasMore: offsetNum + limitNum < posts.length
+        }
+      });
+    } catch (error) {
+      console.error("Failed to fetch feed:", error);
+      res.status(500).json({ error: "Failed to fetch feed" });
+    }
+  });
+  
   // Get posts with optional filtering
   app.get("/api/posts", async (req, res) => {
     try {
@@ -147,7 +268,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         
         if (req.file) {
           // Upload to storage service (S3, Cloudinary, etc.)
-          const uploadResult = await uploadToStorage(req.file, 'posts');
+          const uploadResult = await uploadToDigitalOcean(req.file, 'posts');
           mediaUrl = uploadResult.url;
           thumbUrl = uploadResult.thumbnail || uploadResult.url;
         } else {
@@ -161,7 +282,9 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
           caption: caption || '',
           price_lamports: parseInt(price_lamports) || 0,
           visibility: visibility || 'public',
-          tags: tags ? JSON.parse(tags) : []
+          tags: tags ? JSON.parse(tags) : [],
+          solana_address: req.body.solana_address || null,
+          is_live: req.body.is_live || false
         };
       } else {
         // Handle JSON data
@@ -173,7 +296,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       res.json(post);
     } catch (error) {
       console.error("Failed to create post:", error);
-      res.status(400).json({ error: "Invalid post data" });
+      res.status(400).json({ error: "Invalid post data", details: (error as Error).message });
     }
   });
 
@@ -190,6 +313,49 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     } catch (error) {
       console.error("Failed to fetch user posts:", error);
       res.status(500).json({ error: "Failed to fetch posts" });
+    }
+  });
+
+  // Get content analytics
+  app.get("/api/analytics/content", async (req, res) => {
+    try {
+      const { creatorId, timeframe = '7d' } = req.query;
+      
+      if (!creatorId) {
+        return res.status(400).json({ error: "Creator ID required" });
+      }
+
+      const posts = await storage.getPosts({ creatorId: creatorId as string });
+      
+      // Calculate analytics
+      const totalViews = posts.reduce((sum, post) => sum + post.views, 0);
+      const totalLikes = posts.reduce((sum, post) => sum + post.likes, 0);
+      const totalPosts = posts.length;
+      
+      // Calculate engagement rate
+      const engagementRate = totalViews > 0 ? (totalLikes / totalViews) * 100 : 0;
+      
+      // Get recent posts (last 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const recentPosts = posts.filter(post => 
+        new Date(post.created_at) > sevenDaysAgo
+      );
+      
+      res.json({
+        totalViews,
+        totalLikes,
+        totalPosts,
+        engagementRate: Math.round(engagementRate * 100) / 100,
+        recentPosts: recentPosts.length,
+        topPost: posts.length > 0 ? posts.reduce((top, post) => 
+          post.views > top.views ? post : top
+        ) : null
+      });
+    } catch (error) {
+      console.error("Failed to fetch content analytics:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
     }
   });
 
@@ -351,6 +517,8 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     }
   });
 
+  // ===== SOLANA TIP SYSTEM =====
+  
   // Send tip to creator
   app.post("/api/tips/send", async (req, res) => {
     try {
@@ -360,6 +528,79 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     } catch (error) {
       console.error("Failed to send tip:", error);
       res.status(400).json({ error: "Invalid tip data" });
+    }
+  });
+
+  // Get tip history for a user
+  app.get("/api/tips/history", async (req, res) => {
+    try {
+      const { userId, type = 'all' } = req.query;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      const tips = await storage.getTips(userId as string);
+      
+      // Filter by type if specified
+      let filteredTips = tips;
+      if (type === 'sent') {
+        filteredTips = tips.filter(tip => tip.from_user === userId);
+      } else if (type === 'received') {
+        filteredTips = tips.filter(tip => tip.to_user === userId);
+      }
+      
+      res.json(filteredTips);
+    } catch (error) {
+      console.error("Failed to fetch tip history:", error);
+      res.status(500).json({ error: "Failed to fetch tip history" });
+    }
+  });
+
+  // Get tip statistics for a user
+  app.get("/api/tips/stats/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const tips = await storage.getTips(userId);
+      
+      const stats = {
+        totalReceived: tips.filter(tip => tip.to_user === userId)
+          .reduce((sum, tip) => sum + tip.amount_lamports, 0),
+        totalSent: tips.filter(tip => tip.from_user === userId)
+          .reduce((sum, tip) => sum + tip.amount_lamports, 0),
+        totalTips: tips.length,
+        recentTips: tips.slice(0, 10)
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error("Failed to fetch tip stats:", error);
+      res.status(500).json({ error: "Failed to fetch tip stats" });
+    }
+  });
+
+  // Verify Solana transaction (placeholder for now)
+  app.post("/api/tips/verify", async (req, res) => {
+    try {
+      const { transactionSignature, fromAddress, toAddress, amount } = req.body;
+      
+      // TODO: Implement actual Solana transaction verification
+      // For now, we'll simulate successful verification
+      
+      const verification = {
+        verified: true,
+        transactionSignature,
+        fromAddress,
+        toAddress,
+        amount,
+        timestamp: new Date().toISOString()
+      };
+      
+      res.json(verification);
+    } catch (error) {
+      console.error("Failed to verify transaction:", error);
+      res.status(500).json({ error: "Failed to verify transaction" });
     }
   });
 
@@ -486,24 +727,31 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     }
   });
 
+  // AI Chat endpoint for direct AI responses
+  app.post("/api/chat/ai", async (req, res) => {
+    try {
+      const { message, systemPrompt } = req.body;
+      
+      if (!message || !systemPrompt) {
+        return res.status(400).json({ error: "Missing message or systemPrompt" });
+      }
+
+      // Get AI response using xAI
+      const aiResponse = await chatWithAI(message, systemPrompt);
+      
+      res.json({ response: aiResponse });
+    } catch (error) {
+      console.error("Failed to get AI response:", error);
+      res.status(500).json({ error: "Failed to get AI response" });
+    }
+  });
+
   // Get user's subscriptions
   app.get("/api/subscriptions", async (req, res) => {
     try {
       // TODO: Implement actual subscription logic
-      const sampleCreators = [
-        {
-          id: 'creator1',
-          handle: 'sarah_creates',
-          avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
-          bio: 'Premium creator',
-          age_verified: true,
-          is_creator: true,
-          created_at: new Date(),
-        }
-      ];
-      res.json(sampleCreators);
+      res.json([]);
     } catch (error) {
-      console.error("Failed to fetch subscriptions:", error);
       res.status(500).json({ error: "Failed to fetch subscriptions" });
     }
   });
@@ -536,6 +784,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         // Create new user if doesn't exist
         user = await storage.createUser({
           id: walletAddress,
+          goon_username: `User${walletAddress.slice(0, 8)}`,
           handle: undefined,
           avatar_url: undefined,
           banner_url: undefined,
@@ -586,6 +835,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         // Create new user if doesn't exist
         user = await storage.createUser({
           id: walletAddress,
+          goon_username: `User${walletAddress.slice(0, 8)}`,
           handle: updates.handle || undefined,
           avatar_url: updates.avatar_url || undefined,
           banner_url: updates.banner_url || undefined,
@@ -611,12 +861,8 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
   app.post("/api/profile/avatar", async (req, res) => {
     try {
       // TODO: Implement file upload handling
-      res.json({ 
-        success: true, 
-        avatar_url: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop" 
-      });
+      res.status(501).json({ error: "File upload not implemented" });
     } catch (error) {
-      console.error("Failed to upload avatar:", error);
       res.status(500).json({ error: "Failed to upload avatar" });
     }
   });
@@ -719,6 +965,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       
       const user = await storage.createUser({
         id: id || `test_${Date.now()}`,
+        goon_username: name || `TestUser${Date.now()}`,
         handle: handle || `testuser_${Date.now()}`,
         bio: bio || "Test bio",
         avatar_url: avatar || null,
@@ -733,20 +980,31 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     }
   });
 
-  // Search endpoints
+  // ===== SEARCH AND DISCOVERY API =====
+  
+  // Enhanced search endpoint
   app.get("/api/search", async (req, res) => {
     try {
-      const { q: query, type, limit = 10 } = req.query;
+      const { q: query, type, limit = 10, offset = 0 } = req.query;
       
       if (!query || typeof query !== 'string') {
         return res.status(400).json({ error: "Search query is required" });
       }
 
       const searchLimit = Math.min(parseInt(limit as string) || 10, 50); // Max 50 results
+      const searchOffset = parseInt(offset as string) || 0;
 
       if (type === 'users') {
         const users = await storage.searchUsers(query, searchLimit);
-        res.json({ users });
+        res.json({ 
+          users,
+          pagination: {
+            limit: searchLimit,
+            offset: searchOffset,
+            total: users.length,
+            hasMore: users.length === searchLimit
+          }
+        });
       } else if (type === 'posts') {
         const posts = await storage.searchPosts(query, searchLimit);
         
@@ -758,7 +1016,15 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
           })
         );
         
-        res.json({ posts: postsWithCreators });
+        res.json({ 
+          posts: postsWithCreators,
+          pagination: {
+            limit: searchLimit,
+            offset: searchOffset,
+            total: posts.length,
+            hasMore: posts.length === searchLimit
+          }
+        });
       } else {
         // Search all types
         const results = await storage.searchAll(query, searchLimit);
@@ -774,7 +1040,13 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         res.json({
           users: results.users,
           posts: postsWithCreators,
-          tokens: results.tokens
+          tokens: results.tokens,
+          pagination: {
+            limit: searchLimit,
+            offset: searchOffset,
+            total: results.users.length + results.posts.length + results.tokens.length,
+            hasMore: (results.users.length + results.posts.length + results.tokens.length) === searchLimit
+          }
         });
       }
     } catch (error) {
@@ -804,7 +1076,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         ...users.map(user => ({
           type: 'user',
           id: user.id,
-          title: user.handle || user.id,
+          title: user.goon_username || user.handle || user.id,
           subtitle: user.bio,
           avatar: user.avatar_url
         })),
@@ -821,6 +1093,103 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     } catch (error) {
       console.error("Failed to get search suggestions:", error);
       res.status(500).json({ error: "Failed to get search suggestions" });
+    }
+  });
+
+  // Trending content endpoint
+  app.get("/api/trending", async (req, res) => {
+    try {
+      const { type = 'all', timeframe = '24h', limit = 20 } = req.query;
+      const searchLimit = Math.min(parseInt(limit as string) || 20, 100);
+      
+      // Get trending posts based on engagement
+      const posts = await storage.getPosts({ sort: 'trending' });
+      
+      // Filter by type if specified
+      let filteredPosts = posts;
+      if (type === 'videos') {
+        filteredPosts = posts.filter(post => 
+          post.media_url.includes('.mp4') || post.media_url.includes('.webm') || post.media_url.includes('.mov')
+        );
+      } else if (type === 'photos') {
+        filteredPosts = posts.filter(post => 
+          post.media_url.includes('.jpg') || post.media_url.includes('.jpeg') || post.media_url.includes('.png') || 
+          post.media_url.includes('.gif') || post.media_url.includes('.webp')
+        );
+      } else if (type === 'live') {
+        filteredPosts = posts.filter(post => 
+          post.tags?.includes('live') || post.tags?.includes('streaming') || post.is_live
+        );
+      }
+      
+      // Apply limit
+      const trendingPosts = filteredPosts.slice(0, searchLimit);
+      
+      // Add creator info
+      const postsWithCreators = await Promise.all(
+        trendingPosts.map(async (post) => {
+          const creator = await storage.getUser(post.creator_id);
+          return { ...post, creator };
+        })
+      );
+      
+      res.json({
+        posts: postsWithCreators,
+        timeframe,
+        type,
+        total: filteredPosts.length
+      });
+    } catch (error) {
+      console.error("Failed to fetch trending content:", error);
+      res.status(500).json({ error: "Failed to fetch trending content" });
+    }
+  });
+
+  // Discovery feed endpoint
+  app.get("/api/discover", async (req, res) => {
+    try {
+      const { userId, limit = 20, offset = 0 } = req.query;
+      const searchLimit = Math.min(parseInt(limit as string) || 20, 100);
+      const searchOffset = parseInt(offset as string) || 0;
+      
+      // Get diverse content for discovery
+      const [trendingPosts, recentPosts, liveStreams] = await Promise.all([
+        storage.getPosts({ sort: 'trending' }),
+        storage.getPosts({ sort: 'latest' }),
+        storage.getActiveStreams()
+      ]);
+      
+      // Mix content types for discovery
+      const discoveryContent = [
+        ...trendingPosts.slice(0, 5),
+        ...recentPosts.slice(0, 5),
+        ...liveStreams.slice(0, 3)
+      ];
+      
+      // Shuffle and apply pagination
+      const shuffled = discoveryContent.sort(() => Math.random() - 0.5);
+      const paginatedContent = shuffled.slice(searchOffset, searchOffset + searchLimit);
+      
+      // Add creator info
+      const contentWithCreators = await Promise.all(
+        paginatedContent.map(async (item) => {
+          const creator = await storage.getUser(item.creator_id);
+          return { ...item, creator };
+        })
+      );
+      
+      res.json({
+        content: contentWithCreators,
+        pagination: {
+          limit: searchLimit,
+          offset: searchOffset,
+          total: shuffled.length,
+          hasMore: searchOffset + searchLimit < shuffled.length
+        }
+      });
+    } catch (error) {
+      console.error("Failed to fetch discovery content:", error);
+      res.status(500).json({ error: "Failed to fetch discovery content" });
     }
   });
 
@@ -898,12 +1267,37 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     }
   });
 
-  // Live Stream endpoints
+  // ===== LIVE STREAMING ENDPOINTS =====
+  
+  // Get all live streams
   app.get("/api/streams", async (req, res) => {
     try {
-      const { creatorId, status } = req.query;
+      const { creatorId, status, limit = 20, offset = 0 } = req.query;
+      const limitNum = Math.min(parseInt(limit as string) || 20, 100);
+      const offsetNum = parseInt(offset as string) || 0;
+      
       const streams = await storage.getLiveStreams(creatorId as string, status as string);
-      res.json(streams);
+      
+      // Apply pagination
+      const paginatedStreams = streams.slice(offsetNum, offsetNum + limitNum);
+      
+      // Add creator info to each stream
+      const streamsWithCreators = await Promise.all(
+        paginatedStreams.map(async (stream) => {
+          const creator = await storage.getUser(stream.creator_id);
+          return { ...stream, creator };
+        })
+      );
+      
+      res.json({
+        streams: streamsWithCreators,
+        pagination: {
+          limit: limitNum,
+          offset: offsetNum,
+          total: streams.length,
+          hasMore: offsetNum + limitNum < streams.length
+        }
+      });
     } catch (error) {
       console.error("Failed to fetch live streams:", error);
       res.status(500).json({ error: "Failed to fetch live streams" });
@@ -994,6 +1388,129 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     } catch (error) {
       console.error("Failed to end stream:", error);
       res.status(500).json({ error: "Failed to end stream" });
+    }
+  });
+
+  // ===== LIVE CHAT ENDPOINTS =====
+  
+  // Get live chat messages for a stream
+  app.get("/api/chat/live/:streamId", async (req, res) => {
+    try {
+      const { streamId } = req.params;
+      const { limit = 50, offset = 0 } = req.query;
+      const limitNum = Math.min(parseInt(limit as string) || 50, 100);
+      const offsetNum = parseInt(offset as string) || 0;
+      
+      const messages = await storage.getLiveChatMessages(streamId, limitNum, offsetNum);
+      
+      // Add user info to messages
+      const messagesWithUsers = await Promise.all(
+        messages.map(async (msg) => {
+          const user = await storage.getUser(msg.user_id);
+          return { ...msg, user };
+        })
+      );
+      
+      res.json({
+        messages: messagesWithUsers,
+        pagination: {
+          limit: limitNum,
+          offset: offsetNum,
+          hasMore: messages.length === limitNum
+        }
+      });
+    } catch (error) {
+      console.error("Failed to fetch live chat messages:", error);
+      res.status(500).json({ error: "Failed to fetch live chat messages" });
+    }
+  });
+
+  // Send live chat message
+  app.post("/api/chat/live/:streamId", async (req, res) => {
+    try {
+      const { streamId } = req.params;
+      const { userId, message, type = 'message' } = req.body;
+      
+      if (!userId || !message) {
+        return res.status(400).json({ error: "User ID and message are required" });
+      }
+
+      // Create live chat message
+      const chatMessage = await storage.createLiveChatMessage({
+        stream_id: streamId,
+        user_id: userId,
+        message,
+        type: type as 'message' | 'tip' | 'reaction',
+        metadata: req.body.metadata || {}
+      });
+
+      // Add user info
+      const user = await storage.getUser(userId);
+      const messageWithUser = { ...chatMessage, user };
+
+      res.json(messageWithUser);
+    } catch (error) {
+      console.error("Failed to send live chat message:", error);
+      res.status(500).json({ error: "Failed to send live chat message" });
+    }
+  });
+
+  // Update stream viewer count
+  app.put("/api/streams/:id/viewers", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { viewerCount } = req.body;
+      
+      if (typeof viewerCount !== 'number') {
+        return res.status(400).json({ error: "Viewer count must be a number" });
+      }
+
+      const stream = await storage.updateStreamViewerCount(id, viewerCount);
+      if (!stream) {
+        return res.status(404).json({ error: "Stream not found" });
+      }
+      
+      res.json(stream);
+    } catch (error) {
+      console.error("Failed to update viewer count:", error);
+      res.status(500).json({ error: "Failed to update viewer count" });
+    }
+  });
+
+  // File upload endpoint with DigitalOcean Spaces
+  app.post("/api/upload", upload?.single('file') || ((req, res, next) => next()), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { type } = req.body;
+      
+      // Simple mock upload for development
+      const fileExtension = req.file.originalname.split('.').pop() || '';
+      const filename = `${type || 'posts'}/${Date.now()}.${fileExtension}`;
+      
+      // Generate placeholder URL based on file type
+      let placeholderUrl: string;
+      if (req.file.mimetype.startsWith('image/')) {
+        placeholderUrl = `https://via.placeholder.com/800x600/4f46e5/ffffff?text=${encodeURIComponent(req.file.originalname)}`;
+      } else if (req.file.mimetype.startsWith('video/')) {
+        placeholderUrl = `https://via.placeholder.com/800x600/059669/ffffff?text=${encodeURIComponent(req.file.originalname)}`;
+      } else {
+        placeholderUrl = `https://via.placeholder.com/800x600/6b7280/ffffff?text=${encodeURIComponent(req.file.originalname)}`;
+      }
+      
+      res.json({
+        success: true,
+        mediaUrl: placeholderUrl,
+        thumbUrl: placeholderUrl,
+        filename: filename,
+        size: req.file.size,
+        mimeType: req.file.mimetype
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ error: "Failed to upload file" });
     }
   });
 

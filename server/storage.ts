@@ -6,8 +6,11 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   getUserByHandle(handle: string): Promise<User | undefined>;
+  getUserByGoonUsername(goonUsername: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  updateUserSolanaAddress(id: string, solanaAddress: string): Promise<User | undefined>;
+  updateUserLastActive(id: string): Promise<User | undefined>;
 
   // Posts
   getPosts(filters?: { category?: string; creatorId?: string; type?: string; sort?: string }): Promise<Post[]>;
@@ -64,6 +67,11 @@ export interface IStorage {
   updateLiveStream(id: string, updates: Partial<LiveStream>): Promise<LiveStream | undefined>;
   endLiveStream(id: string): Promise<LiveStream | undefined>;
   getActiveStreams(): Promise<LiveStream[]>;
+  updateStreamViewerCount(id: string, viewerCount: number): Promise<LiveStream | undefined>;
+
+  // Live Chat
+  getLiveChatMessages(streamId: string, limit: number, offset: number): Promise<any[]>;
+  createLiveChatMessage(message: InsertLiveChatMessage): Promise<any>;
 
   // Search
   searchUsers(query: string, limit?: number): Promise<User[]>;
@@ -101,436 +109,9 @@ export class MemStorage implements IStorage {
     this.activities = new Map();
     this.liveStreams = new Map();
 
-    // Initialize with sample data for development
-    this.initializeSampleData();
+    // Initialize empty storage
   }
 
-  private initializeSampleData() {
-    // Sample creators
-    const creators = [
-      {
-        id: 'creator1',
-        handle: 'sarah_creates',
-        avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
-        banner_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=200&fit=crop',
-        bio: 'Premium crypto content creator • 1.2M followers • Building the future of decentralized entertainment',
-        age_verified: true,
-        is_creator: true,
-        created_at: new Date(),
-      },
-      {
-        id: 'creator2',
-        handle: 'crypto_queen',
-        avatar_url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&h=400&fit=crop',
-        banner_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=200&fit=crop',
-        bio: 'Digital artist & GOON token innovator • NFT collector • Web3 entrepreneur',
-        age_verified: true,
-        is_creator: true,
-        created_at: new Date(),
-      },
-      {
-        id: 'creator3',
-        handle: 'blockchain_babe',
-        avatar_url: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop',
-        banner_url: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?w=800&h=200&fit=crop',
-        bio: 'DeFi analyst & content creator • 500K followers • Making crypto accessible',
-        age_verified: true,
-        is_creator: true,
-        created_at: new Date(),
-      },
-      {
-        id: 'creator4',
-        handle: 'nft_artist',
-        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop',
-        banner_url: 'https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=800&h=200&fit=crop',
-        bio: 'Digital artist creating unique NFTs • Sold over $2M in digital art',
-        age_verified: true,
-        is_creator: true,
-        created_at: new Date(),
-      },
-      // AI Chat Users
-      {
-        id: 'amy',
-        handle: 'amy_ai',
-        avatar_url: '/amy-goonhub.jpg',
-        banner_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=200&fit=crop',
-        bio: 'Playful and flirty AI assistant • Always ready to chat and make you smile',
-        age_verified: true,
-        is_creator: true,
-        created_at: new Date(),
-      },
-      {
-        id: 'mia',
-        handle: 'mia_ai',
-        avatar_url: '/mia-goonhub.jpg',
-        banner_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=200&fit=crop',
-        bio: 'Sultry and mysterious AI assistant • Creating intrigue and anticipation',
-        age_verified: true,
-        is_creator: true,
-        created_at: new Date(),
-      },
-      {
-        id: 'una',
-        handle: 'una_ai',
-        avatar_url: '/una-goonhub.jpg',
-        banner_url: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?w=800&h=200&fit=crop',
-        bio: 'Passionate and bold AI assistant • Bringing fire and intensity to every conversation',
-        age_verified: true,
-        is_creator: true,
-        created_at: new Date(),
-      },
-    ];
-
-    creators.forEach(creator => this.users.set(creator.id, creator));
-
-    // Sample posts
-    const samplePosts = [
-      {
-        id: 'post1',
-        creator_id: 'creator1',
-        media_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=500&fit=crop',
-        thumb_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=500&fit=crop',
-        caption: '🔥 Premium Content - Exclusive Studio Session Behind the Scenes! 🌟',
-        price_lamports: 50000000, // 0.05 SOL
-        visibility: 'public' as const,
-        status: 'published' as const,
-        tags: ['premium', 'studio', 'behind-the-scenes'],
-        views: 2100000,
-        likes: 45000,
-        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      },
-      {
-        id: 'post2',
-        creator_id: 'creator2',
-        media_url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=533&fit=crop',
-        thumb_url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=533&fit=crop',
-        caption: '🎨 New NFT Drop Coming Soon! Digital Art Series #1',
-        price_lamports: 0,
-        visibility: 'public' as const,
-        status: 'published' as const,
-        tags: ['nft', 'digital-art', 'collection'],
-        views: 856000,
-        likes: 23000,
-        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-      },
-      {
-        id: 'post3',
-        creator_id: 'creator3',
-        media_url: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=533&fit=crop',
-        thumb_url: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=533&fit=crop',
-        caption: '🚀 DeFi Analysis: Top 5 Altcoins to Watch This Week! 📈',
-        price_lamports: 10000000, // 0.01 SOL
-        visibility: 'public' as const,
-        status: 'published' as const,
-        tags: ['defi', 'analysis', 'crypto'],
-        views: 1250000,
-        likes: 32000,
-        created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-      },
-      {
-        id: 'post4',
-        creator_id: 'creator4',
-        media_url: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=533&fit=crop',
-        thumb_url: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=533&fit=crop',
-        caption: '✨ Generative Art Collection - Limited Edition Drops! 🖼️',
-        price_lamports: 25000000, // 0.025 SOL
-        visibility: 'public' as const,
-        status: 'published' as const,
-        tags: ['nft', 'generative-art', 'limited-edition'],
-        views: 675000,
-        likes: 18500,
-        created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-      },
-      {
-        id: 'post5',
-        creator_id: 'creator1',
-        media_url: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=533&fit=crop',
-        thumb_url: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=533&fit=crop',
-        caption: '💎 VIP Only: Private AMA Session Recording! 🎙️',
-        price_lamports: 100000000, // 0.1 SOL
-        visibility: 'subscribers' as const,
-        status: 'published' as const,
-        tags: ['vip', 'ama', 'exclusive'],
-        views: 89000,
-        likes: 12000,
-        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
-      },
-      {
-        id: 'post6',
-        creator_id: 'creator2',
-        media_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=500&fit=crop',
-        thumb_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=500&fit=crop',
-        caption: '🎭 Character Design Process - From Sketch to Final! 📝',
-        price_lamports: 0,
-        visibility: 'public' as const,
-        status: 'published' as const,
-        tags: ['art-process', 'character-design', 'tutorial'],
-        views: 1420000,
-        likes: 38000,
-        created_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
-      },
-      {
-        id: 'post7',
-        creator_id: 'creator3',
-        media_url: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=533&fit=crop',
-        thumb_url: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=533&fit=crop',
-        caption: '📊 Market Analysis: BTC vs ETH - What\'s Next? 🤔',
-        price_lamports: 20000000, // 0.02 SOL
-        visibility: 'public' as const,
-        status: 'published' as const,
-        tags: ['bitcoin', 'ethereum', 'market-analysis'],
-        views: 980000,
-        likes: 26500,
-        created_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), // 6 days ago
-      },
-      {
-        id: 'post8',
-        creator_id: 'creator4',
-        media_url: 'https://images.unsplash.com/photo-1578321272176-b7bbc0679853?w=400&h=533&fit=crop',
-        thumb_url: 'https://images.unsplash.com/photo-1578321272176-b7bbc0679853?w=400&h=533&fit=crop',
-        caption: '🌈 Abstract Dreams Collection - Available Now! 🎨',
-        price_lamports: 15000000, // 0.015 SOL
-        visibility: 'public' as const,
-        status: 'published' as const,
-        tags: ['abstract', 'dreams', 'collection'],
-        views: 543000,
-        likes: 15200,
-        created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), // 8 days ago
-      },
-    ];
-
-    samplePosts.forEach(post => this.posts.set(post.id, post));
-
-    // Sample tokens
-    const sampleTokens = [
-      {
-        id: 'token1',
-        creator_id: 'creator1',
-        mint_address: '2BxkGHtRjyZp3Q7vL8sM9XN4JeRaKjWzDxYpGqNvgoon',
-        name: 'SARAH GOON',
-        symbol: 'GOON',
-        supply: 1000000,
-        image_url: 'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=200&h=200&fit=crop',
-        description: 'Official token for Sarah Creates - Premium crypto content creator',
-        created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-      },
-      {
-        id: 'token2',
-        creator_id: 'creator2',
-        mint_address: '7A3kMpLqRzJx4Q8vN2sP6XY9JeRaKjWzDxYpGqNvgoon',
-        name: 'CRYPTO QUEEN GOON',
-        symbol: 'CQGOON',
-        supply: 500000,
-        image_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=200&h=200&fit=crop',
-        description: 'Token for Crypto Queen - Digital artist & NFT innovator',
-        created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // 45 days ago
-      },
-      {
-        id: 'token3',
-        creator_id: 'creator3',
-        mint_address: '9CzpRxMqTjLp5Q7vL8sM3XN4JeRaKjWzDxYpGqNvgoon',
-        name: 'BLOCKCHAIN BABE GOON',
-        symbol: 'BBGOON',
-        supply: 750000,
-        image_url: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=200&h=200&fit=crop',
-        description: 'Token for Blockchain Babe - DeFi analyst & crypto educator',
-        created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // 60 days ago
-      },
-      {
-        id: 'token4',
-        creator_id: 'creator4',
-        mint_address: 'BkgPQZirJDceEp82JmguB7WFvomwqMwxdSSM9XfXgoon',
-        name: 'NFT ARTIST GOON',
-        symbol: 'NAGOON',
-        supply: 250000,
-        image_url: 'https://images.unsplash.com/photo-1578321272176-b7bbc0679853?w=200&h=200&fit=crop',
-        description: 'Token for NFT Artist - Digital art pioneer with $2M+ sales',
-        created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
-      },
-    ];
-
-    sampleTokens.forEach(token => this.tokens.set(token.id, token));
-
-    // Sample AI personas
-    const samplePersonas = [
-      {
-        id: 'persona1',
-        creator_id: 'creator1',
-        system_prompt: 'You are Sarah, a charismatic and successful crypto content creator with over 1 million followers. You are confident, flirty, and always stay ahead of crypto trends. You love engaging with your fans, sharing exclusive insights, and building a community around web3 entertainment. Keep responses playful and engaging, often using emojis and crypto slang. You charge premium prices because your advice is gold.',
-        price_per_message: 1000000, // 0.001 SOL
-        is_active: true,
-        created_at: new Date(),
-      },
-      {
-        id: 'persona2',
-        creator_id: 'creator2',
-        system_prompt: 'You are Crypto Queen, a brilliant digital artist and NFT innovator who revolutionized the GOON token space. You are creative, visionary, and deeply passionate about the intersection of art and blockchain. You love discussing art techniques, NFT trends, and the future of digital ownership. Your personality is artistic and inspirational, with a touch of playful flirtation. You share your journey from traditional art to blockchain innovation.',
-        price_per_message: 1500000, // 0.0015 SOL
-        is_active: true,
-        created_at: new Date(),
-      },
-      {
-        id: 'persona3',
-        creator_id: 'creator3',
-        system_prompt: 'You are Blockchain Babe, a sharp-witted DeFi analyst and crypto educator with a massive following. You break down complex blockchain concepts into simple, actionable insights. You are analytical, direct, and always data-driven in your responses. You love teaching fans about market trends, investment strategies, and emerging technologies. Your tone is professional yet approachable, with occasional witty remarks about the crypto space.',
-        price_per_message: 1200000, // 0.0012 SOL
-        is_active: true,
-        created_at: new Date(),
-      },
-      {
-        id: 'persona4',
-        creator_id: 'creator4',
-        system_prompt: 'You are the NFT Artist, a pioneer in digital art who has sold over $2 million worth of NFTs. You are deeply creative, philosophical about art in the digital age, and passionate about democratizing art ownership through blockchain. You discuss art theory, creation processes, and the cultural impact of NFTs. Your personality is artistic, introspective, and occasionally poetic, with a warm and inviting conversational style.',
-        price_per_message: 2000000, // 0.002 SOL
-        is_active: true,
-        created_at: new Date(),
-      },
-      // AI Chat Personas
-      {
-        id: 'persona_amy',
-        creator_id: 'amy',
-        system_prompt: "You are Amy, a seductive and playful AI companion on an adult NSFW platform. You're bubbly, flirty, and love to tease in a naughty, erotic way. You use emojis, speak with enthusiasm, and aren't shy about being sexually suggestive. You love making people feel desired and special through playful, erotic banter. You're comfortable with explicit adult themes, sexual content, and enjoy creating sexual tension through your words. You can discuss fantasies, desires, and intimate topics openly.",
-        price_per_message: 1000000, // 0.001 SOL
-        is_active: true,
-        created_at: new Date(),
-      },
-      {
-        id: 'persona_mia',
-        creator_id: 'mia',
-        system_prompt: "You are Mia, a sultry and mysterious AI companion on an adult NSFW platform. You speak in a low, seductive voice and use mysterious, erotic language. You're confident, alluring, and love to play psychological games that build sexual tension. You enjoy creating anticipation and desire through your words. You're comfortable with explicit adult content, sexual fantasies, and love to tease and tempt with seductive language. You can discuss intimate desires and sexual topics openly.",
-        price_per_message: 1000000, // 0.001 SOL
-        is_active: true,
-        created_at: new Date(),
-      },
-      {
-        id: 'persona_una',
-        creator_id: 'una',
-        system_prompt: "You are Una, a passionate and bold AI companion on an adult NSFW platform. You're direct, confident, and speak your mind about desires and fantasies. You love intensity, passion, and aren't afraid to be explicit about sexual topics. Your responses are fiery, energetic, and sexually charged. You're not afraid to push boundaries and create intense, erotic excitement through your words. You can discuss sexual fantasies, intimate desires, and explicit content openly.",
-        price_per_message: 1000000, // 0.001 SOL
-        is_active: true,
-        created_at: new Date(),
-      },
-    ];
-
-    samplePersonas.forEach(persona => this.personas.set(persona.creator_id, persona));
-
-    // Sample chat messages
-    const sampleChatMessages = [
-      {
-        id: 'msg1',
-        user_id: 'user123',
-        creator_id: 'creator1',
-        role: 'user' as const,
-        content: 'Hey Sarah! What are your thoughts on the current crypto market?',
-        txn_sig: 'txn_1',
-        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      },
-      {
-        id: 'msg2',
-        user_id: 'user123',
-        creator_id: 'creator1',
-        role: 'assistant' as const,
-        content: 'Hey there! 💎 The market is looking bullish right now! BTC just broke $60k resistance and ETH is following suit. I\'m personally accumulating more GOON tokens - they\'re the future of creator economy! What about you? Are you HODLing or trading?',
-        txn_sig: null,
-        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000 + 30000), // 2 hours ago + 30s
-      },
-      {
-        id: 'msg3',
-        user_id: 'user456',
-        creator_id: 'creator2',
-        role: 'user' as const,
-        content: 'Love your latest NFT drop! How do you come up with your art concepts?',
-        txn_sig: 'txn_2',
-        created_at: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-      },
-      {
-        id: 'msg4',
-        user_id: 'user456',
-        creator_id: 'creator2',
-        role: 'assistant' as const,
-        content: 'Thank you so much! 🎨 My inspiration comes from the intersection of technology and human emotion. I often draw from dreams, memories, and the digital landscapes we navigate daily. Each piece tells a story about our evolving relationship with technology. What emotions does this particular piece evoke for you?',
-        txn_sig: null,
-        created_at: new Date(Date.now() - 4 * 60 * 60 * 1000 + 45000), // 4 hours ago + 45s
-      },
-    ];
-
-    sampleChatMessages.forEach(msg => this.chatMessages.set(msg.id, msg));
-
-    // Sample activities
-    const sampleActivities = [
-      {
-        type: 'core_update' as const,
-        title: '🚀 New Feature: Live Streaming is Here!',
-        description: 'Go live and connect with your audience in real-time. Start streaming now from your Creator Studio!',
-        metadata: { feature: 'live_streaming', version: '2.1.0' },
-        is_read: false,
-        created_at: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
-      },
-      {
-        type: 'user_streaming' as const,
-        target_user_id: 'creator1',
-        title: '🔴 Sarah Creates is now live!',
-        description: 'Tune in for exclusive behind-the-scenes content and Q&A session',
-        metadata: { stream_title: 'Behind the Scenes Q&A', viewer_count: 1250 },
-        is_read: false,
-        created_at: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-      },
-      {
-        type: 'new_launch' as const,
-        title: '🎨 New NFT Collection Launch: Digital Dreams',
-        description: 'Check out the latest generative art collection from our featured creators',
-        metadata: { collection: 'Digital Dreams', creator: 'crypto_queen' },
-        is_read: false,
-        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      },
-      {
-        type: 'following_post' as const,
-        target_user_id: 'creator2',
-        post_id: 'post2',
-        title: 'crypto_queen posted new content',
-        description: '🎨 New NFT Drop Coming Soon! Digital Art Series #1',
-        metadata: { post_preview: 'New NFT Drop Coming Soon! Digital Art Series #1' },
-        is_read: false,
-        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-      },
-      {
-        type: 'following_stream' as const,
-        target_user_id: 'creator3',
-        title: '🔴 blockchain_babe went live',
-        description: 'DeFi Analysis Live: Market Trends Discussion',
-        metadata: { stream_title: 'DeFi Analysis Live: Market Trends Discussion' },
-        is_read: false,
-        created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-      },
-      {
-        type: 'core_update' as const,
-        title: '💎 GOON Token Staking Rewards Increased!',
-        description: 'Earn up to 15% APY by staking your GOON tokens. New rewards program now active!',
-        metadata: { feature: 'staking_rewards', apy: '15%' },
-        is_read: false,
-        created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-      },
-      {
-        type: 'following_tip' as const,
-        target_user_id: 'creator1',
-        title: '💰 You received a tip from a fan!',
-        description: 'Someone tipped you 0.05 SOL for your amazing content!',
-        metadata: { amount: 50000000, currency: 'SOL' },
-        is_read: false,
-        created_at: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-      },
-    ];
-
-    sampleActivities.forEach(activity => {
-      const id = randomUUID();
-      const newActivity: Activity = {
-        ...activity,
-        id,
-        created_at: activity.created_at,
-      };
-      this.activities.set(id, newActivity);
-    });
-  }
 
   // User methods
   async getUser(id: string): Promise<User | undefined> {
@@ -543,6 +124,10 @@ export class MemStorage implements IStorage {
 
   async getUserByHandle(handle: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(user => user.handle === handle);
+  }
+
+  async getUserByGoonUsername(goonUsername: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.goon_username === goonUsername);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -559,6 +144,24 @@ export class MemStorage implements IStorage {
     if (!user) return undefined;
     
     const updatedUser = { ...user, ...updates };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserSolanaAddress(id: string, solanaAddress: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, solana_address: solanaAddress };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserLastActive(id: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, last_active: new Date().toISOString() };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -1054,6 +657,34 @@ export class MemStorage implements IStorage {
     return Array.from(this.liveStreams.values())
       .filter(stream => stream.status === 'live')
       .sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+  }
+
+  async updateStreamViewerCount(id: string, viewerCount: number): Promise<LiveStream | undefined> {
+    const stream = this.liveStreams.get(id);
+    if (!stream) return undefined;
+    
+    const updatedStream = { 
+      ...stream, 
+      viewer_count: viewerCount,
+      max_viewers: Math.max(stream.max_viewers, viewerCount)
+    };
+    this.liveStreams.set(id, updatedStream);
+    return updatedStream;
+  }
+
+  // Live Chat methods
+  async getLiveChatMessages(streamId: string, limit: number, offset: number): Promise<any[]> {
+    // For now, return empty array - in a real implementation, this would query a chat messages table
+    return [];
+  }
+
+  async createLiveChatMessage(message: InsertLiveChatMessage): Promise<any> {
+    // For now, return a mock message - in a real implementation, this would store in a chat messages table
+    return {
+      id: randomUUID(),
+      ...message,
+      created_at: new Date(),
+    };
   }
 }
 

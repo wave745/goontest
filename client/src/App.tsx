@@ -3,22 +3,24 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { WalletProvider } from "@/components/WalletProvider";
-import Home from "@/pages/home";
-import Recent from "@/pages/recent";
+import Home from "@/pages/home-new";
+import Recent from "@/pages/recent-real";
 import Videos from "@/pages/videos";
 import Photos from "@/pages/photos";
 import CreatorProfile from "@/pages/creator-profile";
 import PostDetail from "@/pages/post-detail";
-import Studio from "@/pages/studio";
+import Studio from "@/pages/studio-real";
 import Chat from "@/pages/chat";
 import ChatWithHandle from "@/pages/chat-with-handle";
 import Coins from "@/pages/coins";
-import Profile from "@/pages/profile";
+import Profile from "@/pages/profile-real";
 import NotFound from "@/pages/not-found";
-import Creators from "@/pages/creators";
+import Creators from "@/pages/creators-real";
 import Search from "@/pages/search";
 import AIProfile from "@/pages/ai-profile";
+import Upload from "@/pages/upload";
+import Live from "@/pages/live-real";
+import StreamDetail from "@/pages/stream-detail";
 
 function Router() {
   return (
@@ -37,6 +39,9 @@ function Router() {
       <Route path="/chat/:handle" component={ChatWithHandle} />
       <Route path="/coins" component={Coins} />
       <Route path="/profile" component={Profile} />
+      <Route path="/upload" component={Upload} />
+      <Route path="/live" component={Live} />
+      <Route path="/live/:streamId" component={StreamDetail} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -45,14 +50,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <TooltipProvider>
-          <div className="min-h-screen bg-background text-foreground">
-            <Toaster />
-            <Router />
-          </div>
-        </TooltipProvider>
-      </WalletProvider>
+      <TooltipProvider>
+        <div className="min-h-screen bg-background text-foreground">
+          <Toaster />
+          <Router />
+        </div>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

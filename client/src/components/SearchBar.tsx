@@ -138,7 +138,7 @@ export default function SearchBar({
             </div>
           ) : suggestions.length > 0 ? (
             <div className="py-2">
-              {suggestions.map((suggestion) => (
+              {suggestions.map((suggestion: any) => (
                 <button
                   key={`${suggestion.type}-${suggestion.id}`}
                   onClick={() => handleSuggestionClick(suggestion)}

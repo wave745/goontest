@@ -1,8 +1,6 @@
 'use client';
 import { Button } from '@/components/ui/button';
 import { Bot, Heart, Sparkles, Flame, User } from 'lucide-react';
-import { useImageLoader } from '@/hooks/useImageLoader';
-import { useImagePreloader } from '@/hooks/useImagePreloader';
 
 interface ChatSelectorProps {
   activeAI: string;
@@ -38,24 +36,12 @@ export default function ChatSelector({ activeAI, setActiveAI, personas }: ChatSe
     },
   ];
 
-  // Preload all AI images to prevent flickering (non-blocking)
-  const imageUrls = ais.map(ai => ai.image);
-  const { preloadedImages } = useImagePreloader(imageUrls);
-
   return (
     <div className="flex flex-col sm:flex-row gap-2 mb-4">
       {ais.map((ai) => {
         const IconComponent = ai.icon;
         const isActive = activeAI === ai.id;
         
-        // Use preloaded image if available, otherwise fallback to loader
-        const isPreloaded = preloadedImages[ai.image];
-        const { imageSrc, isLoading, hasError } = useImageLoader(ai.image, {
-          enableCacheBusting: !isPreloaded
-        });
-        
-        // Use preloaded image if available, otherwise use loader result
-        const finalImageSrc = isPreloaded || imageSrc;
         
         return (
           <Button
@@ -69,28 +55,27 @@ export default function ChatSelector({ activeAI, setActiveAI, personas }: ChatSe
           >
             {/* AI Image */}
             <div className="relative">
-              {!hasError && finalImageSrc && (
-                <img 
-                  src={finalImageSrc}
-                  alt={ai.name}
-                  className={`w-8 h-8 rounded-full object-cover border-2 transition-all duration-300 ${
-                    isActive ? 'border-black shadow-lg' : 'border-border group-hover:border-accent/50'
-                  }`}
-                  style={{ 
-                    opacity: !isPreloaded ? 0.7 : 1,
-                    transition: 'opacity 0.2s ease-in-out'
-                  }}
-                />
-              )}
-              {(hasError || (isLoading && !isPreloaded)) && (
-                <div 
-                  className={`w-8 h-8 rounded-full bg-muted border-2 flex items-center justify-center ${
-                    isActive ? 'border-black' : 'border-border'
-                  }`}
-                >
-                  <User className="h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
+              <img 
+                src={ai.image}
+                alt={ai.name}
+                className={`w-8 h-8 rounded-full object-cover border-2 transition-all duration-300 ${
+                  isActive ? 'border-black shadow-lg' : 'border-border group-hover:border-accent/50'
+                }`}
+                onError={(e) => {
+                  // Fallback to icon if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
+              />
+              <div 
+                className={`w-8 h-8 rounded-full bg-muted border-2 flex items-center justify-center hidden ${
+                  isActive ? 'border-black' : 'border-border'
+                }`}
+              >
+                <User className="h-4 w-4 text-muted-foreground" />
+              </div>
               {/* Online indicator */}
               <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 ${
                 isActive ? 'border-black bg-success' : 'border-card bg-success'

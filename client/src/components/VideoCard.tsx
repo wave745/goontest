@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { Heart, Eye, MessageCircle, Share2, MoreVertical, Coins, Check, Play } from 'lucide-react';
+import { Eye, Share2, MoreVertical, Check, Play, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { toast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
+import { useMutation } from '@tanstack/react-query';
+import ReactionButtons from './ReactionButtons';
+import { getCurrentUser } from '@/lib/userManager';
 
 interface VideoCardProps {
   id: string;
@@ -27,6 +27,7 @@ interface VideoCardProps {
   isGated: boolean;
   isVerified: boolean;
   tags: string[];
+  solanaAddress?: string;
   onClick?: () => void;
 }
 
@@ -42,71 +43,68 @@ export default function VideoCard({
   isGated,
   isVerified,
   tags,
+  solanaAddress,
   onClick
 }: VideoCardProps) {
-  const { connected, publicKey } = useWallet();
-  const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState(false);
-
-  // Check if user has liked this post
-  const { data: likeStatus } = useQuery({
-    queryKey: ['/api/posts', id, 'like'],
-    queryFn: async () => {
-      if (!connected || !publicKey) return false;
-      const response = await fetch(`/api/posts/${id}/like?userId=${publicKey.toBase58()}`);
-      if (!response.ok) return false;
-      const data = await response.json();
-      return data.isLiked || false;
-    },
-    enabled: connected && !!publicKey,
-  });
-
-  // Like mutation
-  const likeMutation = useMutation({
-    mutationFn: async () => {
-      if (!connected || !publicKey) throw new Error('Please connect your wallet');
-      const response = await fetch(`/api/posts/${id}/like`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: publicKey.toBase58() }),
-      });
-      if (!response.ok) throw new Error('Failed to like post');
-      return response.json();
-    },
-    onSuccess: () => {
-      setIsLiked(!isLiked);
-      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
-      toast({
-        title: isLiked ? "Post unliked" : "Post liked!",
-        description: isLiked ? "You unliked this post" : "You liked this post",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const [currentLikes, setCurrentLikes] = useState(likes);
+  const [currentUser] = useState(getCurrentUser());
 
   // View mutation
   const viewMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/posts/${id}/view`, {
+      const response = await fetch(`http://localhost:5000/api/posts/${id}/view`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to record view');
       return response.json();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('View tracking error:', error);
     },
   });
 
-  const handleLike = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    likeMutation.mutate();
+  const handleLike = async (postId: string) => {
+    if (!currentUser) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/posts/${postId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id }),
+      });
+      
+      if (response.ok) {
+        setIsLiked(!isLiked);
+        setCurrentLikes(prev => isLiked ? prev - 1 : prev + 1);
+      }
+    } catch (error) {
+      console.error('Failed to like post:', error);
+    }
+  };
+
+  const handleTip = async (postId: string, amount: number) => {
+    if (!currentUser) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/tips/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from_user: currentUser.id,
+          to_user: creator.id,
+          amount_lamports: Math.round(amount * 1e9), // Convert SOL to lamports
+          message: `Tip for ${title}`,
+          txn_sig: `tip_${Date.now()}`,
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('Tip sent successfully');
+      }
+    } catch (error) {
+      console.error('Failed to send tip:', error);
+    }
   };
 
   const handleView = () => {
@@ -169,15 +167,6 @@ export default function VideoCard({
           {/* Action Buttons */}
           <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white border-0"
-                onClick={handleLike}
-                disabled={likeMutation.isPending}
-              >
-                <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-              </Button>
               <Button
                 size="sm"
                 variant="secondary"
@@ -246,22 +235,22 @@ export default function VideoCard({
             </div>
           )}
 
-          {/* Stats */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-3">
+          {/* Stats and Reaction Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Eye className="h-3 w-3" />
                 {formatNumber(views)}
               </div>
-              <div className="flex items-center gap-1">
-                <Heart className="h-3 w-3" />
-                {formatNumber(likes)}
-              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <MessageCircle className="h-3 w-3" />
-              <span>0</span>
-            </div>
+            <ReactionButtons
+              postId={id}
+              likes={currentLikes}
+              isLiked={isLiked}
+              solanaAddress={solanaAddress}
+              onLike={handleLike}
+              onTip={handleTip}
+            />
           </div>
         </div>
       </CardContent>

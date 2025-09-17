@@ -5,12 +5,21 @@ import { z } from "zod";
 
 export const insertUserSchema = z.object({
   id: z.string(),
+  goon_username: z.string(),
   handle: z.string().optional(),
   avatar_url: z.string().optional(),
   banner_url: z.string().optional(),
   bio: z.string().optional(),
   age_verified: z.boolean().default(false),
   is_creator: z.boolean().default(false),
+  solana_address: z.string().optional(),
+  created_at: z.string().optional(),
+  last_active: z.string().optional(),
+});
+
+export const createGoonUserSchema = z.object({
+  goon_username: z.string(),
+  solana_address: z.string().optional(),
 });
 
 export const insertPostSchema = z.object({
@@ -22,6 +31,8 @@ export const insertPostSchema = z.object({
   visibility: z.enum(["public", "subscribers", "goon"]).default("public"),
   status: z.enum(["draft", "published", "hidden"]).default("published"),
   tags: z.array(z.string()).optional(),
+  solana_address: z.string().optional(),
+  is_live: z.boolean().default(false),
 });
 
 export const insertTokenSchema = z.object({
@@ -92,8 +103,17 @@ export const insertLiveStreamSchema = z.object({
   metadata: z.record(z.any()).optional(), // Additional stream data
 });
 
+export const insertLiveChatMessageSchema = z.object({
+  stream_id: z.string(),
+  user_id: z.string(),
+  message: z.string(),
+  type: z.enum(["message", "tip", "reaction"]).default("message"),
+  metadata: z.record(z.any()).optional(),
+});
+
 // TypeScript types
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type CreateGoonUser = z.infer<typeof createGoonUserSchema>;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type InsertToken = z.infer<typeof insertTokenSchema>;
 export type InsertPurchase = z.infer<typeof insertPurchaseSchema>;
@@ -103,6 +123,7 @@ export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type InsertLiveStream = z.infer<typeof insertLiveStreamSchema>;
+export type InsertLiveChatMessage = z.infer<typeof insertLiveChatMessageSchema>;
 
 export type User = InsertUser & {
   created_at: Date;

@@ -247,10 +247,10 @@ export default function CreatorProfile() {
                   id={post.id}
                   thumb={post.thumb_url}
                   title={post.caption}
-                  creator={creator.handle}
+                  creator={creator}
                   creatorAvatar={creator.avatar_url}
-                  views={`${(post.views / 1000).toFixed(1)}K`}
-                  likes={`${(post.likes / 1000).toFixed(1)}K`}
+                  views={Math.floor(post.views / 1000)}
+                  likes={Math.floor(post.likes / 1000)}
                   price={post.price_lamports}
                   isGated={post.price_lamports > 0}
                   isVerified={creator.is_creator}

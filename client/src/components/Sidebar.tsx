@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Clock, Video, Image, Coins, MessageCircle, ChevronLeft, ChevronRight, User as UserIcon } from 'lucide-react';
+import { Home, Video, Image, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { User } from '@shared/schema';
 
@@ -15,14 +15,12 @@ export default function Sidebar() {
 
   const navItems = [
     { icon: Home, label: 'Home', href: '/' },
-    { icon: Clock, label: 'Recent', href: '/recent' },
   ];
 
   const categoryItems = [
     { icon: Image, label: 'Photos', href: '/photos' },
     { icon: Video, label: 'Videos', href: '/videos' },
-    { icon: Coins, label: 'GOON Coins', href: '/coins' },
-    { icon: MessageCircle, label: 'AI Chat', href: '/chat' },
+    { icon: Play, label: 'Live', href: '/live' },
   ];
 
   return (
@@ -81,21 +79,6 @@ export default function Sidebar() {
           </nav>
         </div>
 
-        {/* Profile Link - Under AI Chat but not in categories */}
-        <div>
-          <nav className="space-y-2">
-            <Link href="/profile">
-              <a className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                location === '/profile'
-                  ? 'text-accent bg-accent/10 border border-accent/20' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/10'
-              }`} data-testid="link-profile">
-                <UserIcon className="h-4 w-4" />
-                {!isCollapsed && 'Profile'}
-              </a>
-            </Link>
-          </nav>
-        </div>
 
         {!isCollapsed && subscriptions && (
           <div>

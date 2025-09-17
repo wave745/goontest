@@ -156,7 +156,7 @@ export default function AIProfile() {
                   className="w-24 h-24 rounded-full border-4 border-background"
                 />
                 <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-r from-accent to-accent-2 flex items-center justify-center border-2 border-background">
-                  {getPersonalityIcon(creator.handle)}
+                  {getPersonalityIcon(creator.handle || '')}
                 </div>
               </div>
             </div>
@@ -197,7 +197,7 @@ export default function AIProfile() {
 
             {/* AI Persona Info */}
             {persona && (
-              <Card className={`mb-6 bg-gradient-to-br ${getPersonalityColor(creator.handle)}`}>
+              <Card className={`mb-6 bg-gradient-to-br ${getPersonalityColor(creator.handle || '')}`}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Wand2 className="h-5 w-5" />
@@ -295,10 +295,10 @@ export default function AIProfile() {
                   id={post.id}
                   thumb={post.thumb_url}
                   title={post.caption}
-                  creator={creator.handle}
+                  creator={creator}
                   creatorAvatar={creator.avatar_url}
-                  views={`${(post.views / 1000).toFixed(1)}K`}
-                  likes={`${(post.likes / 1000).toFixed(1)}K`}
+                  views={Math.floor(post.views / 1000)}
+                  likes={Math.floor(post.likes / 1000)}
                   price={post.price_lamports}
                   isGated={post.price_lamports > 0}
                   isVerified={creator.is_creator}

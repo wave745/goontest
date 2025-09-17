@@ -16,7 +16,7 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-export default function Chat() {
+export default function ChatSimple() {
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -97,51 +97,18 @@ export default function Chat() {
     setMessage('');
     setIsTyping(true);
 
-    try {
-      // Send message to AI API
-      const response = await fetch('http://localhost:5000/api/chat/ai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: message,
-          systemPrompt: `You are ${currentPersona.name}, a ${currentPersona.personality} AI assistant. ${currentPersona.personality === 'Playful & Flirty' ? 'Respond with playful, flirty messages and use emojis. Be sweet and engaging.' : currentPersona.personality === 'Sultry & Mysterious' ? 'Respond with mysterious, sultry messages. Be intriguing and alluring.' : 'Respond with passionate, bold messages. Be energetic and enthusiastic.'}`
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const aiResponse: ChatMessage = {
-          id: `ai_${Date.now()}`,
-          role: 'assistant',
-          content: data.response,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, aiResponse]);
-      } else {
-        // Fallback to local responses if API fails
-        const aiResponse: ChatMessage = {
-          id: `ai_${Date.now()}`,
-          role: 'assistant',
-          content: currentPersona.responses[Math.floor(Math.random() * currentPersona.responses.length)],
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, aiResponse]);
-      }
-    } catch (error) {
-      console.error('Failed to get AI response:', error);
-      // Fallback to local responses
+    // Simulate AI response after a short delay
+    setTimeout(() => {
       const aiResponse: ChatMessage = {
         id: `ai_${Date.now()}`,
         role: 'assistant',
         content: currentPersona.responses[Math.floor(Math.random() * currentPersona.responses.length)],
         timestamp: new Date()
       };
+
       setMessages(prev => [...prev, aiResponse]);
-    } finally {
       setIsTyping(false);
-    }
+    }, 1000);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -354,3 +321,8 @@ export default function Chat() {
     </div>
   );
 }
+
+
+
+
+

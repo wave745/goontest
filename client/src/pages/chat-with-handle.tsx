@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'wouter';
-import { useWallet } from '@solana/wallet-adapter-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -13,13 +12,13 @@ import { Send, Bot, User, Coins, Heart, Sparkles, Zap, Flame, Star, Crown, Gem, 
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import SystemBadge from '@/components/SystemBadge';
+import { getCurrentUser, getOrCreateUser } from '@/lib/userManager';
 import type { ChatMessage, User as UserType, AiPersona } from '@shared/schema';
 
 type ChatMessageWithUser = ChatMessage & { user: UserType };
 
 export default function ChatWithHandle() {
   const { handle } = useParams<{ handle: string }>();
-  const { connected, publicKey } = useWallet();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -28,6 +27,15 @@ export default function ChatWithHandle() {
   const [isTyping, setIsTyping] = useState(false);
   const [customPersona, setCustomPersona] = useState('');
   const [showPersonaEditor, setShowPersonaEditor] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const initializeUser = async () => {
+      const user = await getOrCreateUser();
+      setCurrentUser(user);
+    };
+    initializeUser();
+  }, []);
   const [isSavingPersona, setIsSavingPersona] = useState(false);
 
   const { data: creator } = useQuery<UserType>({
@@ -57,13 +65,13 @@ export default function ChatWithHandle() {
   const { data: messages } = useQuery<ChatMessageWithUser[]>({
     queryKey: ['/api/chat/messages', handle],
     queryFn: async () => {
-      const response = await fetch(`/api/chat/messages/${handle}?userId=${publicKey?.toBase58()}`);
+      const response = await fetch(`/api/chat/messages/${handle}?userId=${currentUser?.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch messages');
       }
       return response.json();
     },
-    enabled: connected && !!creator && !!publicKey,
+    enabled: !!currentUser && !!creator,
   });
 
   const sendMessageMutation = useMutation({
@@ -71,7 +79,7 @@ export default function ChatWithHandle() {
       const response = await apiRequest('POST', '/api/chat/send', {
         creatorId: creator?.id,
         content,
-        userPubkey: publicKey?.toBase58(),
+        userPubkey: currentUser?.id,
       });
       return response.json();
     },
@@ -114,7 +122,7 @@ export default function ChatWithHandle() {
   });
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !connected || !creator) return;
+    if (!message.trim() || !currentUser || !creator) return;
 
     setIsTyping(true);
     await sendMessageMutation.mutateAsync(message);
@@ -138,7 +146,7 @@ export default function ChatWithHandle() {
     }
   }, [persona]);
 
-  if (!connected) {
+  if (!currentUser) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -147,8 +155,7 @@ export default function ChatWithHandle() {
           <main className="flex-1 p-4">
             <div className="text-center py-12">
               <h1 className="text-2xl font-bold text-foreground mb-4">AI Chat with @{handle}</h1>
-              <p className="text-muted-foreground mb-6">Connect your wallet to start chatting with this creator</p>
-              <Button className="btn-goon">Connect Wallet</Button>
+              <p className="text-muted-foreground mb-6">Loading your goon profile...</p>
             </div>
           </main>
         </div>

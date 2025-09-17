@@ -1,14 +1,14 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useWallet } from '@solana/wallet-adapter-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Image, Video, Upload, X, Plus } from 'lucide-react';
+import { Image, Video, Upload, X, Wallet } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { getCurrentUser, updateUserSolanaAddress } from '@/lib/userManager';
 
 interface UploadDialogProps {
   open: boolean;
@@ -16,19 +16,20 @@ interface UploadDialogProps {
 }
 
 export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
-  const { connected, publicKey } = useWallet();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('photo');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
-  const [uploadPrice, setUploadPrice] = useState('');
+  const [uploadTags, setUploadTags] = useState('');
+  const [solanaAddress, setSolanaAddress] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentUser = getCurrentUser();
 
   const uploadMutation = useMutation({
     mutationFn: async (postData: any) => {
-      const response = await fetch('/api/posts', {
+      const response = await fetch('http://localhost:5000/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(postData),
@@ -47,7 +48,8 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       setUploadFile(null);
       setUploadTitle('');
       setUploadDescription('');
-      setUploadPrice('');
+      setUploadTags('');
+      setSolanaAddress('');
       onOpenChange(false);
     },
     onError: (error) => {
@@ -71,19 +73,44 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       } else if (isVideo && activeTab === 'video') {
         setUploadFile(file);
       } else {
-        alert(`Please select a valid ${activeTab} file`);
+        toast({
+          title: "Invalid file type",
+          description: `Please select a valid ${activeTab} file`,
+          variant: "destructive",
+        });
       }
     }
   };
 
+  const isValidSolanaAddress = (address: string): boolean => {
+    return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
+  };
+
   const handleUpload = async () => {
-    if (!uploadFile || !uploadTitle.trim()) {
-      alert(`Please select a ${activeTab} file and enter a title`);
+    if (!currentUser) {
+      toast({
+        title: "User not found",
+        description: "Please refresh the page and try again",
+        variant: "destructive",
+      });
       return;
     }
 
-    if (!connected || !publicKey) {
-      alert('Please connect your wallet first');
+    if (!uploadFile || !uploadTitle.trim()) {
+      toast({
+        title: "Missing information",
+        description: `Please select a ${activeTab} file and enter a title`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (solanaAddress && !isValidSolanaAddress(solanaAddress)) {
+      toast({
+        title: "Invalid Solana address",
+        description: "Please enter a valid Solana wallet address",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -92,10 +119,10 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
     try {
       // Upload file to storage service
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', uploadFile);
       formData.append('type', activeTab);
       
-      const uploadResponse = await fetch('/api/upload', {
+      const uploadResponse = await fetch('http://localhost:5000/api/upload', {
         method: 'POST',
         body: formData
       });
@@ -106,14 +133,23 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       
       const { mediaUrl, thumbUrl } = await uploadResponse.json();
 
+      // Save Solana address if provided
+      if (solanaAddress) {
+        updateUserSolanaAddress(solanaAddress);
+      }
+
+      const tags = uploadTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+
       const postData = {
-        creator_id: publicKey.toBase58(),
+        creator_id: currentUser.id,
+        creator_handle: currentUser.goon_username,
+        solana_address: solanaAddress,
         media_url: mediaUrl,
         thumb_url: thumbUrl,
         caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
-        price_lamports: parseFloat(uploadPrice || '0') * 1000000,
         visibility: 'public',
-        tags: [activeTab, 'uploaded']
+        status: 'published',
+        tags: [activeTab, ...tags],
       };
 
       await uploadMutation.mutateAsync(postData);
@@ -138,6 +174,21 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       fileInputRef.current.value = '';
     }
   };
+
+  if (!currentUser) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Loading...</DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Please wait while we set up your account.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -256,18 +307,33 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
               rows={3}
             />
           </div>
+
+          <div>
+            <Label htmlFor="tags">Tags (comma-separated)</Label>
+            <Input
+              id="tags"
+              value={uploadTags}
+              onChange={(e) => setUploadTags(e.target.value)}
+              placeholder="nature, landscape, art"
+              className="mt-1"
+            />
+          </div>
           
           <div>
-            <Label htmlFor="price">Price (GOON Coins)</Label>
-            <Input
-              id="price"
-              type="number"
-              value={uploadPrice}
-              onChange={(e) => setUploadPrice(e.target.value)}
-              placeholder="0 (free) or enter amount"
-              className="mt-1"
-              min="0"
-            />
+            <Label htmlFor="solana-address">Solana Address (for tips)</Label>
+            <div className="relative mt-1">
+              <Wallet className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="solana-address"
+                value={solanaAddress}
+                onChange={(e) => setSolanaAddress(e.target.value)}
+                placeholder="Enter your Solana wallet address for tips"
+                className="pl-10"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Optional: Add your Solana address to receive tips from viewers
+            </p>
           </div>
           
           <div className="flex gap-2 pt-4">

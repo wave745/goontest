@@ -318,25 +318,7 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECU
 CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON posts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_ai_personas_updated_at BEFORE UPDATE ON ai_personas FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Insert sample data
-INSERT INTO users (id, handle, avatar_url, bio, age_verified, is_creator) VALUES
-  ('creator1', 'sarah_creates', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop', 'Premium crypto content creator • 1.2M followers • Building the future of decentralized entertainment', true, true),
-  ('creator2', 'crypto_queen', 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&h=400&fit=crop', 'Digital artist & GOON token innovator • NFT collector • Web3 entrepreneur', true, true),
-  ('creator3', 'blockchain_babe', 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop', 'DeFi analyst & content creator • 500K followers • Making crypto accessible', true, true),
-  ('creator4', 'nft_artist', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop', 'Digital artist creating unique NFTs • Sold over $2M in digital art', true, true),
-  ('amy', 'amy_ai', '/amy-goonhub.jpg', 'Your seductive AI companion with a playful personality', true, true),
-  ('mia', 'mia_ai', '/mia-goonhub.jpg', 'Your mysterious AI companion with an alluring charm', true, true),
-  ('una', 'una_ai', '/una-goonhub.jpg', 'Your energetic AI companion with a wild side', true, true)
-ON CONFLICT (id) DO NOTHING;
-
--- Create sample follows
-INSERT INTO follows (follower_id, following_id) VALUES
-  ('creator1', 'creator2'),
-  ('creator1', 'creator3'),
-  ('creator2', 'creator1'),
-  ('creator3', 'creator1'),
-  ('creator4', 'creator1')
-ON CONFLICT (follower_id, following_id) DO NOTHING;
+-- Sample data removed - database will start empty
 
 -- Verify tables were created
 SELECT 

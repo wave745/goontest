@@ -1,93 +1,52 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 interface UseImageLoaderOptions {
-  retries?: number;
-  retryDelay?: number;
   enableCacheBusting?: boolean;
 }
 
 export function useImageLoader(src: string, options: UseImageLoaderOptions = {}) {
-  const { retries = 3, retryDelay = 1000, enableCacheBusting = true } = options;
-  const [imageSrc, setImageSrc] = useState<string>('');
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const currentAttemptRef = useRef<number>(0);
 
   useEffect(() => {
     if (!src) {
-      setImageSrc('');
       setIsLoading(false);
-      setHasError(false);
+      setHasError(true);
       return;
     }
 
-    // Cancel any ongoing requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Reset state
     setIsLoading(true);
     setHasError(false);
-    setRetryCount(0);
-    currentAttemptRef.current = 0;
+    setImageSrc(null);
 
-    const loadImage = (attemptSrc: string, attempt: number = 0) => {
-      // Create new abort controller for this attempt
-      abortControllerRef.current = new AbortController();
-      const signal = abortControllerRef.current.signal;
+    const img = new Image();
+    
+    const finalSrc = options.enableCacheBusting 
+      ? `${src}?t=${Date.now()}` 
+      : src;
 
-      const img = new Image();
-      
-      img.onload = () => {
-        // Check if this request was aborted
-        if (signal.aborted) return;
-        
-        setImageSrc(attemptSrc);
-        setIsLoading(false);
-        setHasError(false);
-        console.log(`✅ Image loaded successfully: ${src} (attempt ${attempt + 1})`);
-      };
-
-      img.onerror = () => {
-        // Check if this request was aborted
-        if (signal.aborted) return;
-        
-        console.error(`❌ Image load failed: ${src} (attempt ${attempt + 1})`);
-        
-        if (attempt < retries) {
-          setTimeout(() => {
-            // Check if component is still mounted and not aborted
-            if (signal.aborted) return;
-            
-            setRetryCount(attempt + 1);
-            currentAttemptRef.current = attempt + 1;
-            loadImage(attemptSrc, attempt + 1);
-          }, retryDelay);
-        } else {
-          setHasError(true);
-          setIsLoading(false);
-        }
-      };
-
-      // Add abort signal to image loading
-      if (signal.aborted) return;
-      img.src = attemptSrc;
+    img.onload = () => {
+      setImageSrc(finalSrc);
+      setIsLoading(false);
     };
 
-    // Create cache-busted URL only once per effect
-    const baseSrc = enableCacheBusting ? `${src}?v=${Date.now()}` : src;
-    loadImage(baseSrc);
+    img.onerror = () => {
+      setHasError(true);
+      setIsLoading(false);
+    };
 
-    // Cleanup function
+    img.src = finalSrc;
+
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      img.onload = null;
+      img.onerror = null;
     };
-  }, [src, retries, retryDelay, enableCacheBusting]);
+  }, [src, options.enableCacheBusting]);
 
-  return { imageSrc, isLoading, hasError, retryCount };
+  return {
+    imageSrc,
+    isLoading,
+    hasError,
+  };
 }

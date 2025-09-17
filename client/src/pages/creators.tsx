@@ -47,7 +47,7 @@ export default function Creators() {
   const pagination = creatorsData?.pagination;
 
   const filteredCreators = creators?.filter(creator => {
-    const matchesSearch = creator.handle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = creator.handle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          creator.bio?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'All' ||
                            (selectedCategory === 'Verified' && creator.is_creator) ||
