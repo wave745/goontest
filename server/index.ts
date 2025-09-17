@@ -25,6 +25,9 @@ const upload = multer({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Serve uploaded files as static assets
+app.use('/uploads', express.static('uploads'));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
