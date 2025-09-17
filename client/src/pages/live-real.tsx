@@ -83,7 +83,7 @@ export default function Live() {
         setIsLoading(true);
         
         // Get live streams from API
-        const response = await fetch('http://localhost:5000/api/streams');
+        const response = await fetch('/api/streams');
         const data = await response.json();
         const liveStreams = data.streams || [];
         
@@ -226,7 +226,7 @@ export default function Live() {
     
     try {
       // Send message to backend
-      const response = await fetch(`http://localhost:5000/api/chat/live/global`, {
+      const response = await fetch(`/api/chat/live/global`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

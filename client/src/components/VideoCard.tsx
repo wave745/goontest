@@ -53,7 +53,7 @@ export default function VideoCard({
   // View mutation
   const viewMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`http://localhost:5000/api/posts/${id}/view`, {
+      const response = await fetch(`/api/posts/${id}/view`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to record view');
@@ -68,7 +68,7 @@ export default function VideoCard({
     if (!currentUser) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/posts/${postId}/like`, {
+      const response = await fetch(`/api/posts/${postId}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUser.id }),
@@ -87,7 +87,7 @@ export default function VideoCard({
     if (!currentUser) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/tips/send`, {
+      const response = await fetch(`/api/tips/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

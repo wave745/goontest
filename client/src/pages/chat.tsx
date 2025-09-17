@@ -99,7 +99,7 @@ export default function Chat() {
 
     try {
       // Send message to AI API
-      const response = await fetch('http://localhost:5000/api/chat/ai', {
+      const response = await fetch('/api/chat/ai', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -7,7 +7,7 @@ export interface GoonUser {
   last_active?: string;
 }
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = `${window.location.origin}/api`;
 
 // Generate a unique goon username
 export function generateGoonUsername(): string {
@@ -39,14 +39,16 @@ export async function getOrCreateUser(): Promise<GoonUser> {
   if (stored) {
     try {
       const user = JSON.parse(stored);
-      // Update last active on backend
-      try {
-        await fetch(`${API_BASE}/users/${user.id}/active`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-        });
-      } catch (error) {
-        console.warn('Failed to update last active:', error);
+      // Update last active on backend (skip for local users)
+      if (!user.id.startsWith('local_')) {
+        try {
+          await fetch(`${API_BASE}/users/${user.id}/active`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+          });
+        } catch (error) {
+          console.warn('Failed to update last active:', error);
+        }
       }
       return user;
     } catch (error) {
@@ -87,20 +89,23 @@ export async function updateUserSolanaAddress(address: string): Promise<boolean>
   const user = getCurrentUser();
   if (!user) return false;
 
-  try {
-    const response = await fetch(`${API_BASE}/users/${user.id}/solana`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ solana_address: address }),
-    });
+  // Skip backend update for local users
+  if (!user.id.startsWith('local_')) {
+    try {
+      const response = await fetch(`${API_BASE}/users/${user.id}/solana`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ solana_address: address }),
+      });
 
-    if (response.ok) {
-      const updatedUser = await response.json();
-      localStorage.setItem('goonUser', JSON.stringify(updatedUser));
-      return true;
+      if (response.ok) {
+        const updatedUser = await response.json();
+        localStorage.setItem('goonUser', JSON.stringify(updatedUser));
+        return true;
+      }
+    } catch (error) {
+      console.warn('Failed to update solana address on backend:', error);
     }
-  } catch (error) {
-    console.warn('Failed to update solana address on backend:', error);
   }
 
   // Fallback to local storage

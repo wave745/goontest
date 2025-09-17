@@ -104,7 +104,7 @@ export default function UploadPage() {
       formData.append('file', uploadFile);
       formData.append('type', contentType);
 
-      const uploadResponse = await fetch('http://localhost:5000/api/upload', {
+      const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -123,7 +123,7 @@ export default function UploadPage() {
       }
 
       // Create post using our API
-      const postResponse = await fetch('http://localhost:5000/api/posts', {
+      const postResponse = await fetch('/api/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ export default function UploadPage() {
       }
 
       // Create live stream post
-      const streamResponse = await fetch('http://localhost:5000/api/posts', {
+      const streamResponse = await fetch('/api/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

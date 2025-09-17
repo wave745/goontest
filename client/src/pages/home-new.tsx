@@ -41,13 +41,13 @@ export default function Home() {
         setIsLoading(true);
         
         // Determine API endpoint based on category
-        let apiUrl = 'http://localhost:5000/api/feed';
+        let apiUrl = '/api/feed';
         if (selectedCategory === 'Videos') {
           apiUrl += '?type=video';
         } else if (selectedCategory === 'Photos') {
           apiUrl += '?type=photo';
         } else if (selectedCategory === 'Live') {
-          apiUrl = 'http://localhost:5000/api/posts?type=live';
+          apiUrl = '/api/posts?type=live';
         }
         
         const response = await fetch(apiUrl);
@@ -82,13 +82,13 @@ export default function Home() {
       // Refresh content every 30 seconds
       const fetchData = async () => {
         try {
-          let apiUrl = 'http://localhost:5000/api/feed';
+          let apiUrl = '/api/feed';
           if (selectedCategory === 'Videos') {
             apiUrl += '?type=video';
           } else if (selectedCategory === 'Photos') {
             apiUrl += '?type=photo';
           } else if (selectedCategory === 'Live') {
-            apiUrl = 'http://localhost:5000/api/posts?type=live';
+            apiUrl = '/api/posts?type=live';
           }
           
           const response = await fetch(apiUrl);

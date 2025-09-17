@@ -29,7 +29,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
 
   const uploadMutation = useMutation({
     mutationFn: async (postData: any) => {
-      const response = await fetch('http://localhost:5000/api/posts', {
+      const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(postData),
@@ -122,7 +122,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       formData.append('file', uploadFile);
       formData.append('type', activeTab);
       
-      const uploadResponse = await fetch('http://localhost:5000/api/upload', {
+      const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
         body: formData
       });

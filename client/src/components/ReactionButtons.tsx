@@ -94,7 +94,7 @@ export default function ReactionButtons({
       });
 
       // Record tip in backend
-      const response = await fetch('http://localhost:5000/api/tips/send', {
+      const response = await fetch('/api/tips/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

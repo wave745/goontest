@@ -53,7 +53,7 @@ export class SolanaService {
       const mockTransactionSignature = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Verify the transaction with our backend
-      const verificationResponse = await fetch('http://localhost:5000/api/tips/verify', {
+      const verificationResponse = await fetch('/api/tips/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
