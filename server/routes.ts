@@ -1486,27 +1486,17 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
 
       const { type } = req.body;
       
-      // Simple mock upload for development
-      const fileExtension = req.file.originalname.split('.').pop() || '';
-      const filename = `${type || 'posts'}/${Date.now()}.${fileExtension}`;
-      
-      // Generate placeholder URL based on file type
-      let placeholderUrl: string;
-      if (req.file.mimetype.startsWith('image/')) {
-        placeholderUrl = `https://via.placeholder.com/800x600/4f46e5/ffffff?text=${encodeURIComponent(req.file.originalname)}`;
-      } else if (req.file.mimetype.startsWith('video/')) {
-        placeholderUrl = `https://via.placeholder.com/800x600/059669/ffffff?text=${encodeURIComponent(req.file.originalname)}`;
-      } else {
-        placeholderUrl = `https://via.placeholder.com/800x600/6b7280/ffffff?text=${encodeURIComponent(req.file.originalname)}`;
-      }
+      // Use the real upload service instead of mock
+      const uploadResult = await uploadToDigitalOcean(req.file, type || 'posts');
+      console.log('Upload completed successfully:', uploadResult.url);
       
       res.json({
         success: true,
-        mediaUrl: placeholderUrl,
-        thumbUrl: placeholderUrl,
-        filename: filename,
-        size: req.file.size,
-        mimeType: req.file.mimetype
+        mediaUrl: uploadResult.url,
+        thumbUrl: uploadResult.thumbnail || uploadResult.url,
+        filename: uploadResult.filename,
+        size: uploadResult.size,
+        mimeType: uploadResult.mimeType
       });
     } catch (error) {
       console.error("Upload error:", error);
