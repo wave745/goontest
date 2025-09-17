@@ -3,6 +3,12 @@
 # Start both frontend and backend development servers
 echo "🚀 Starting GoonHub Development Servers..."
 
+# Install dependencies if node_modules is missing or incomplete
+if [ ! -d "node_modules" ] || [ ! -f "node_modules/.package-lock.json" ]; then
+    echo "📦 Installing dependencies..."
+    npm ci
+fi
+
 # Start backend server in background
 echo "📡 Starting backend server on port 5000..."
 npm run dev &
