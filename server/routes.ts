@@ -35,18 +35,25 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
   // Create or get goon user
   app.post("/api/users/goon", async (req, res) => {
     try {
-      // Generate username if not provided
-      if (!req.body.goon_username) {
-        req.body.goon_username = generateGoonUsername();
+      // Always generate a unique username for new users
+      let goon_username = req.body.goon_username || generateGoonUsername();
+      
+      // Ensure username is unique by checking and regenerating if needed
+      let attempts = 0;
+      while (attempts < 10) {
+        const existingUser = await storage.getUserByGoonUsername(goon_username);
+        if (!existingUser) {
+          break; // Username is unique
+        }
+        goon_username = generateGoonUsername(); // Generate new username
+        attempts++;
       }
       
-      const { goon_username, solana_address } = createGoonUserSchema.parse(req.body);
-      
-      // Check if goon username already exists
-      const existingUser = await storage.getUserByGoonUsername(goon_username);
-      if (existingUser) {
-        return res.json(existingUser);
+      if (attempts >= 10) {
+        return res.status(500).json({ error: "Could not generate unique username" });
       }
+      
+      const { solana_address } = createGoonUserSchema.parse({ goon_username, solana_address: req.body.solana_address });
       
       // Create new goon user
       const userData = insertUserSchema.parse({
