@@ -176,7 +176,7 @@ export class MemStorage implements IStorage {
       } else if (filters.type === 'video') {
         posts = posts.filter(post => {
           const url = post.media_url.toLowerCase();
-          return url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') || url.includes('.avi') || post.tags.includes('video');
+          return url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') || url.includes('.avi');
         });
       }
     }

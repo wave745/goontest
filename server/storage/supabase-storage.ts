@@ -180,7 +180,7 @@ export class SupabaseStorage implements IStorage {
       if (filters.type === 'photo') {
         query = query.or('media_url.like.%.jpg%,media_url.like.%.jpeg%,media_url.like.%.png%,media_url.like.%.gif%,media_url.like.%.webp%');
       } else if (filters.type === 'video') {
-        query = query.or('media_url.like.%.mp4%,media_url.like.%.webm%,media_url.like.%.mov%,media_url.like.%.avi%,tags.cs.{video}');
+        query = query.or('media_url.like.%.mp4%,media_url.like.%.webm%,media_url.like.%.mov%,media_url.like.%.avi%');
       }
     }
 
@@ -236,7 +236,6 @@ export class SupabaseStorage implements IStorage {
         price_lamports: post.price_lamports,
         visibility: post.visibility,
         status: post.status,
-        tags: post.tags
       })
       .select()
       .single();

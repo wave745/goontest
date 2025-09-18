@@ -317,7 +317,6 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
           caption: caption || '',
           price_lamports: parseInt(price_lamports) || 0,
           visibility: visibility || 'public',
-          tags: tags ? JSON.parse(tags) : [],
           solana_address: req.body.solana_address || null,
           is_live: req.body.is_live || false
         };

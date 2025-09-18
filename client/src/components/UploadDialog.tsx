@@ -138,7 +138,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
         updateUserSolanaAddress(solanaAddress);
       }
 
-      const tags = uploadTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
 
       const postData = {
         creator_id: currentUser.id,
@@ -149,7 +148,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
         caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
         visibility: 'public',
         status: 'published',
-        tags: [activeTab, ...tags],
       };
 
       await uploadMutation.mutateAsync(postData);

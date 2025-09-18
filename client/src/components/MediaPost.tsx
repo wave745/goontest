@@ -183,15 +183,6 @@ export default function MediaPost({ post, creator, onTip }: MediaPostProps) {
         {post.caption && (
           <div className="p-4">
             <p className="text-sm">{post.caption}</p>
-            {post.tags && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {post.tags.map((tag, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
