@@ -17,7 +17,7 @@ function generateGoonUsername(): string {
   ];
   
   const nouns = [
-    'Goon', 'Beast', 'Titan', 'Phoenix', 'Dragon', 'Tiger', 'Lion', 'Wolf',
+    'Beast', 'Titan', 'Phoenix', 'Dragon', 'Tiger', 'Lion', 'Wolf',
     'Eagle', 'Hawk', 'Falcon', 'Shark', 'Whale', 'Bear', 'Fox', 'Cat',
     'Dog', 'Bull', 'Horse', 'Deer', 'Rabbit', 'Squirrel', 'Owl', 'Crow'
   ];
@@ -26,7 +26,7 @@ function generateGoonUsername(): string {
   const noun = nouns[Math.floor(Math.random() * nouns.length)];
   const number = Math.floor(Math.random() * 9999) + 1;
   
-  return `${adjective}${noun}${number}`;
+  return `goon${adjective}${noun}${number}`;
 }
 
 export async function registerRoutes(app: Express, upload?: Multer): Promise<Server> {

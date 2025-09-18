@@ -19,7 +19,7 @@ export function generateGoonUsername(): string {
   ];
   
   const nouns = [
-    'Goon', 'Beast', 'Titan', 'Phoenix', 'Dragon', 'Tiger', 'Lion', 'Wolf',
+    'Beast', 'Titan', 'Phoenix', 'Dragon', 'Tiger', 'Lion', 'Wolf',
     'Eagle', 'Hawk', 'Falcon', 'Shark', 'Whale', 'Bear', 'Fox', 'Cat',
     'Dog', 'Bull', 'Horse', 'Deer', 'Rabbit', 'Squirrel', 'Owl', 'Crow',
     'Raven', 'Swan', 'Dove', 'Peacock', 'Flamingo', 'Penguin', 'Panda'
@@ -29,7 +29,7 @@ export function generateGoonUsername(): string {
   const noun = nouns[Math.floor(Math.random() * nouns.length)];
   const number = Math.floor(Math.random() * 9999) + 1;
   
-  return `${adjective}${noun}${number}`;
+  return `goon${adjective}${noun}${number}`;
 }
 
 // Get or create user from backend

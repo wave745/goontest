@@ -117,7 +117,7 @@ export default function Live() {
           ...stream,
           marketCap: Math.floor(Math.random() * 20000000) + 1000000,
           allTimeHigh: Math.floor(Math.random() * 30000000) + 2000000,
-          tokenSymbol: stream.creator?.handle?.toUpperCase() || 'TOKEN'
+          tokenSymbol: ((stream.creator as any)?.goon_username || stream.creator?.handle)?.toUpperCase() || 'TOKEN'
         })) || [];
         
         setStreams(streamsWithData);
@@ -399,16 +399,16 @@ export default function Live() {
                         {/* Creator Info with Market Data */}
                         <div className="flex items-center gap-3 mb-4">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={stream.creator?.avatar_url} alt={stream.creator?.handle || 'Creator'} />
+                            <AvatarImage src={stream.creator?.avatar_url} alt={(stream.creator as any)?.goon_username || stream.creator?.handle || 'Creator'} />
                             <AvatarFallback>
-                              {stream.creator?.handle?.charAt(0).toUpperCase() || 'C'}
+                              {((stream.creator as any)?.goon_username || stream.creator?.handle)?.charAt(0).toUpperCase() || 'C'}
                             </AvatarFallback>
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold text-foreground truncate">
-                                {stream.creator?.handle || 'Unknown Creator'}
+                                @{(stream.creator as any)?.goon_username || stream.creator?.handle || 'Unknown Creator'}
                               </h4>
                               {stream.creator?.age_verified && (
                                 <Badge variant="secondary" className="text-xs">
