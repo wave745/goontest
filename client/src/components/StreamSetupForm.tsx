@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Play, User, MessageSquare, Wallet } from 'lucide-react';
+import { Loader2, Play, User, MessageSquare, Wallet, Image } from 'lucide-react';
 
 // Extend the schema with Solana address validation
 const streamSetupFormSchema = insertStreamSetupSchema.extend({
@@ -39,6 +39,7 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
       name: '',
       title: '',
       description: '',
+      avatar_url: '',
       solana_address: ''
     }
   });
@@ -58,6 +59,7 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
           is_live: true,
           metadata: {
             streamer_name: data.name,
+            streamer_avatar: data.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`,
             solana_address: data.solana_address,
             stream_title: data.title,
             stream_description: data.description,
@@ -168,6 +170,32 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
                   </FormControl>
                   <FormDescription className="text-muted-foreground">
                     A catchy title that describes what you're streaming
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Streaming Avatar Field */}
+            <FormField
+              control={form.control}
+              name="avatar_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2 text-foreground">
+                    <Image className="h-4 w-4 text-accent" />
+                    Streaming Avatar (Optional)
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="https://example.com/your-avatar.jpg"
+                      className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                      data-testid="input-avatar-url"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-muted-foreground">
+                    Add an image URL for your streaming icon that appears above the chat. If left empty, we'll generate one from your name.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
