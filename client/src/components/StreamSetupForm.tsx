@@ -45,19 +45,25 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
 
   const createStreamMutation = useMutation({
     mutationFn: async (data: StreamSetupFormData) => {
-      const response = await fetch('/api/streams', {
+      // Create a live post that represents the stream
+      const response = await fetch('/api/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: data.title,
-          description: data.description,
+          media_url: '', // Will be filled by actual video stream
+          thumb_url: '',
+          caption: data.description || data.title,
+          is_live: true,
           metadata: {
             streamer_name: data.name,
             solana_address: data.solana_address,
+            stream_title: data.title,
+            stream_description: data.description,
             is_setup_complete: true,
-            start_time: new Date().toISOString()
+            start_time: new Date().toISOString(),
+            viewer_count: 0
           }
         }),
       });
@@ -71,7 +77,7 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
     onSuccess: (stream) => {
       toast({
         title: "Stream started successfully!",
-        description: `Your stream "${stream.title}" is now live`,
+        description: `Your stream "${stream.metadata?.stream_title || 'stream'}" is now live`,
       });
       
       // Navigate to the live stream or call success callback

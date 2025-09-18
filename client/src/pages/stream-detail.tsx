@@ -5,6 +5,9 @@ import { useRoute } from 'wouter';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
+import VideoStreamer from '@/components/VideoStreamer';
+import LiveChat from '@/components/LiveChat';
+import TipButton from '@/components/TipButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,17 +32,33 @@ import {
   Gift,
   Send,
   Lock,
-  ArrowLeft
+  ArrowLeft,
+  ThumbsUp
 } from 'lucide-react';
-import { supabase, type Post, type User } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 
-type StreamWithCreator = Post & { 
-  creator: User;
-  donations?: DonationData;
-  marketCap?: number;
-  allTimeHigh?: number;
-  tokenSymbol?: string;
+type StreamData = {
+  id: string;
+  title: string;
+  description?: string;
+  media_url: string;
+  thumb_url: string;
+  caption: string;
+  views: number;
+  likes: number;
+  created_at: Date;
+  is_live: boolean;
+  metadata?: {
+    streamer_name?: string;
+    solana_address?: string;
+    start_time?: string;
+    viewer_count?: number;
+  };
+  creator: {
+    id: string;
+    handle: string;
+    is_creator: boolean;
+  };
 };
 
 type DonationData = {
@@ -52,25 +71,15 @@ type DonationData = {
   }>;
 };
 
-type ChatMessage = {
-  id: string;
-  username: string;
-  message: string;
-  timestamp: string;
-  avatar?: string;
-};
-
 export default function StreamDetail() {
   const { connected, publicKey } = useWallet();
   const [, params] = useRoute('/live/:streamId');
-  const [stream, setStream] = useState<StreamWithCreator | null>(null);
+  const [stream, setStream] = useState<StreamData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStreamingLive, setIsStreamingLive] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [donationData, setDonationData] = useState<DonationData | null>(null);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isSendingMessage, setIsSendingMessage] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [isLiked, setIsLiked] = useState(false);
 
   const streamId = params?.streamId;
 
@@ -81,44 +90,26 @@ export default function StreamDetail() {
       try {
         setIsLoading(true);
         
-        // Fetch stream data
-        const response = await fetch(`/api/posts/${streamId}`);
+        // Fetch stream data from API
+        const response = await fetch(`/api/streams/${streamId}`);
         if (!response.ok) throw new Error('Stream not found');
         
         const streamData = await response.json();
+        setStream(streamData);
         
-        // Generate mock donation data
+        // Generate mock donation data for demo
         const donations: DonationData = {
           totalDonated: Math.floor(Math.random() * 100000) + 10000,
           streamersSupported: Math.floor(Math.random() * 200) + 50,
-          topDonors: Array.from({ length: 20 }, (_, i) => ({
-            name: `Donor${i + 1}`,
-            amount: Math.floor(Math.random() * 5000) + 100,
+          topDonors: Array.from({ length: 10 }, (_, i) => ({
+            name: `Supporter${i + 1}`,
+            amount: Math.floor(Math.random() * 2000) + 100,
             rank: i + 1
           })).sort((a, b) => b.amount - a.amount)
         };
         
-        // Generate mock market data
-        const streamWithData = {
-          ...streamData,
-          marketCap: Math.floor(Math.random() * 20000000) + 1000000,
-          allTimeHigh: Math.floor(Math.random() * 30000000) + 2000000,
-          tokenSymbol: ((streamData.creator as any)?.goon_username || streamData.creator?.handle)?.toUpperCase() || 'TOKEN'
-        };
-        
-        setStream(streamWithData);
         setDonationData(donations);
-        setViewerCount(Math.floor(Math.random() * 1000) + 10);
-        
-        // Generate mock chat messages
-        const mockMessages: ChatMessage[] = Array.from({ length: 10 }, (_, i) => ({
-          id: `msg-${i}`,
-          username: `User${i + 1}`,
-          message: `This is message ${i + 1} in the chat`,
-          timestamp: new Date(Date.now() - i * 60000).toLocaleTimeString(),
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`
-        }));
-        setChatMessages(mockMessages);
+        setViewerCount(streamData.metadata?.viewer_count || Math.floor(Math.random() * 500) + 50);
         
       } catch (error) {
         console.error('Error fetching stream:', error);
@@ -135,42 +126,46 @@ export default function StreamDetail() {
     fetchStream();
   }, [streamId]);
 
-  // Simulate viewer count updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setViewerCount(prev => {
-        const change = Math.floor(Math.random() * 20) - 10;
-        return Math.max(0, prev + change);
+  // Handle stream actions
+  const handleStreamStart = () => {
+    setIsStreamingLive(true);
+    toast({
+      title: "Stream started",
+      description: "You are now live!",
+    });
+  };
+
+  const handleStreamEnd = () => {
+    setIsStreamingLive(false);
+    toast({
+      title: "Stream ended",
+      description: "Your stream has ended",
+    });
+  };
+
+  const handleLike = async () => {
+    try {
+      const response = await fetch(`/api/posts/${streamId}/like`, {
+        method: 'POST',
       });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Auto-scroll chat to bottom
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
-
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || isSendingMessage) return;
-    
-    setIsSendingMessage(true);
-    
-    // Simulate sending message
-    setTimeout(() => {
-      const newMsg: ChatMessage = {
-        id: `msg-${Date.now()}`,
-        username: publicKey?.toBase58().slice(0, 8) || 'Anonymous',
-        message: newMessage,
-        timestamp: new Date().toLocaleTimeString(),
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`
-      };
       
-      setChatMessages(prev => [...prev, newMsg]);
-      setNewMessage('');
-      setIsSendingMessage(false);
-    }, 1000);
+      if (response.ok) {
+        setIsLiked(!isLiked);
+        setStream(prev => prev ? {
+          ...prev,
+          likes: prev.likes + (isLiked ? -1 : 1)
+        } : null);
+      }
+    } catch (error) {
+      console.error('Error liking stream:', error);
+    }
+  };
+
+  const handleTipSent = (amount: number, signature: string) => {
+    toast({
+      title: "Tip sent successfully! 🎉",
+      description: `Sent ${amount} SOL to ${stream?.metadata?.streamer_name || 'streamer'}`,
+    });
   };
 
   const formatCurrency = (amount: number) => {
@@ -247,7 +242,7 @@ export default function StreamDetail() {
                       <Wifi className="h-5 w-5 text-red-500" />
                     </div>
                     <div>
-                      <h1 className="text-xl font-bold text-foreground">{stream.tokenSymbol || 'STREAMERCOIN'}</h1>
+                      <h1 className="text-xl font-bold text-foreground">{stream.title}</h1>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">LIVE</span>
                         <Badge variant="destructive" className="animate-pulse text-xs">
@@ -272,34 +267,14 @@ export default function StreamDetail() {
               {/* Stream Content */}
               <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 lg:p-6">
                 {/* Left Side - Video Player and Controls */}
-                <div className="flex-1 lg:max-w-2xl">
-                  {/* Video Player - Small Size */}
-                  <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg overflow-hidden relative mb-4">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-3 mx-auto">
-                          <Play className="h-8 w-8 text-red-500" data-testid="button-play-video" />
-                        </div>
-                        <p className="text-white/80 text-lg">Live Stream</p>
-                      </div>
-                    </div>
-                    
-                    {/* Live Badge */}
-                    <div className="absolute top-3 left-3">
-                      <Badge variant="destructive" className="animate-pulse" data-testid="badge-live-status">
-                        <Wifi className="h-3 w-3 mr-1" />
-                        LIVE
-                      </Badge>
-                    </div>
-                    
-                    {/* Viewer Count */}
-                    <div className="absolute top-3 right-3">
-                      <div className="flex items-center gap-1 bg-black/70 text-white px-2 py-1 rounded text-sm" data-testid="display-viewer-count">
-                        <Users className="h-4 w-4" />
-                        {formatViewerCount(viewerCount)}
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex-1 lg:max-w-3xl">
+                  {/* Video Streamer Component */}
+                  <VideoStreamer 
+                    streamId={streamId}
+                    onStreamStart={handleStreamStart}
+                    onStreamEnd={handleStreamEnd}
+                    className="mb-4"
+                  />
                   
                   {/* Stream Controls */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-card border border-border rounded-lg p-4 mb-4 gap-4 sm:gap-0">
@@ -307,8 +282,9 @@ export default function StreamDetail() {
                       {/* Like Button */}
                       <Button
                         variant="ghost"
+                        onClick={handleLike}
                         size="sm"
-                        className="flex items-center gap-2 text-accent hover:text-accent hover:bg-accent/10"
+                        className={`flex items-center gap-2 hover:bg-accent/10 ${isLiked ? "text-red-500" : "text-accent hover:text-accent"}`}
                         data-testid="button-like-stream"
                       >
                         <Heart className="h-5 w-5" />
@@ -316,15 +292,12 @@ export default function StreamDetail() {
                       </Button>
                       
                       {/* Tip Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex items-center gap-2 text-accent hover:text-accent hover:bg-accent/10"
-                        data-testid="button-tip-stream"
-                      >
-                        <DollarSign className="h-5 w-5" />
-                        <span className="font-semibold">Tip</span>
-                      </Button>
+                      <TipButton
+                        streamerId={streamId}
+                        streamerAddress={stream.metadata?.solana_address}
+                        streamerName={stream.metadata?.streamer_name || 'Anonymous'}
+                        onTipSent={handleTipSent}
+                      />
                       
                       {/* Views Count */}
                       <div className="flex items-center gap-2 text-muted-foreground" data-testid="display-views-count">
@@ -360,8 +333,8 @@ export default function StreamDetail() {
                           <p className="text-sm text-muted-foreground">{stream.caption || 'Live streaming now'}</p>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm text-muted-foreground">Market Cap</div>
-                          <div className="font-semibold text-accent">{formatMarketCap(stream.marketCap || 0)}</div>
+                          <div className="text-sm text-muted-foreground">Streamer</div>
+                          <div className="font-semibold text-accent">{stream.metadata?.streamer_name || 'Anonymous'}</div>
                         </div>
                       </div>
                     </CardContent>
@@ -371,7 +344,7 @@ export default function StreamDetail() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-center text-lg">
-                        {stream.tokenSymbol || 'STREAMERCOIN'} DONATION LEADERBOARD
+                        DONATION LEADERBOARD
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -406,85 +379,13 @@ export default function StreamDetail() {
                   </Card>
                 </div>
 
-                {/* Right Side - Live Chat Card */}
+                {/* Right Side - Live Chat */}
                 <div className="w-full lg:w-80">
-                  <Card className="h-[400px] lg:h-[600px] flex flex-col">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2">
-                        <MessageCircle className="h-5 w-5 text-accent" />
-                        <span>Live Global Chat</span>
-                        <Badge variant="outline" className="ml-auto" data-testid="badge-chat-users">
-                          {chatMessages.length} online
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    
-                    {/* Chat Messages */}
-                    <CardContent className="flex-1 overflow-y-auto p-4 pt-0 space-y-3">
-                      {chatMessages.map((message) => (
-                        <div key={message.id} className="flex gap-2" data-testid={`chat-message-${message.id}`}>
-                          <Avatar className="h-7 w-7 flex-shrink-0">
-                            <AvatarImage src={message.avatar} alt={message.username} />
-                            <AvatarFallback className="text-xs">
-                              {message.username.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-accent truncate">
-                                {message.username}
-                              </span>
-                              <span className="text-xs text-muted-foreground flex-shrink-0">
-                                {message.timestamp}
-                              </span>
-                            </div>
-                            <p className="text-sm text-foreground mt-1 break-words">{message.message}</p>
-                          </div>
-                        </div>
-                      ))}
-                      <div ref={chatEndRef} />
-                    </CardContent>
-                    
-                    {/* Chat Input */}
-                    <CardContent className="pt-0">
-                      {connected ? (
-                        <div className="flex gap-2">
-                          <Input
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="Type a message..."
-                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                            disabled={isSendingMessage}
-                            className="flex-1"
-                            data-testid="input-chat-message"
-                          />
-                          <Button
-                            onClick={handleSendMessage}
-                            disabled={!newMessage.trim() || isSendingMessage}
-                            size="icon"
-                            className="bg-accent hover:bg-accent/90"
-                            data-testid="button-send-message"
-                          >
-                            {isSendingMessage ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Send className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="text-center py-3">
-                          <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
-                            <Lock className="h-4 w-4" />
-                            <span className="text-sm">Connect wallet to chat</span>
-                          </div>
-                          <Button size="sm" className="w-full bg-accent hover:bg-accent/90" data-testid="button-connect-wallet">
-                            Connect Wallet
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                  <LiveChat 
+                    streamId={streamId!}
+                    streamTitle={stream.title}
+                    className="h-[400px] lg:h-[600px]"
+                  />
                 </div>
               </div>
             </div>

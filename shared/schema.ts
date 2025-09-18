@@ -14,6 +14,7 @@ export const insertPostSchema = z.object({
   status: z.enum(["draft", "published", "hidden"]).default("published"),
   solana_address: z.string().optional(),
   is_live: z.boolean().default(false),
+  metadata: z.record(z.any()).optional(), // Stream metadata, tips, etc.
 });
 
 export const insertTokenSchema = z.object({
@@ -32,9 +33,11 @@ export const insertPurchaseSchema = z.object({
 });
 
 export const insertTipSchema = z.object({
+  post_id: z.string(), // Stream/post being tipped
   amount_lamports: z.number(),
   message: z.string().optional(),
   txn_sig: z.string(),
+  sender_address: z.string().optional(),
 });
 
 export const insertAiPersonaSchema = z.object({
@@ -59,16 +62,7 @@ export const insertActivitySchema = z.object({
   is_read: z.boolean().default(false),
 });
 
-export const insertLiveStreamSchema = z.object({
-  title: z.string(),
-  description: z.string().optional(),
-  status: z.enum(["live", "ended", "scheduled"]).default("live"),
-  stream_key: z.string().optional(),
-  viewer_count: z.number().default(0),
-  max_viewers: z.number().default(0),
-  duration: z.number().default(0), // in seconds
-  metadata: z.record(z.any()).optional(), // Additional stream data
-});
+// Removed insertLiveStreamSchema - using Post with is_live: true instead
 
 export const insertStreamSetupSchema = z.object({
   name: z.string().min(1, "Streamer name is required").max(50, "Name must be 50 characters or less"),
@@ -78,9 +72,11 @@ export const insertStreamSetupSchema = z.object({
 });
 
 export const insertLiveChatMessageSchema = z.object({
-  stream_id: z.string(),
+  post_id: z.string(), // Stream post ID
+  username: z.string(),
   message: z.string(),
-  type: z.enum(["message", "tip", "reaction"]).default("message"),
+  type: z.enum(["message", "tip", "reaction", "system"]).default("message"),
+  sender_address: z.string().optional(), // Solana wallet address
   metadata: z.record(z.any()).optional(),
 });
 
@@ -92,7 +88,7 @@ export type InsertTip = z.infer<typeof insertTipSchema>;
 export type InsertAiPersona = z.infer<typeof insertAiPersonaSchema>;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
-export type InsertLiveStream = z.infer<typeof insertLiveStreamSchema>;
+// Removed InsertLiveStream type - using Post with is_live: true instead
 export type InsertStreamSetup = z.infer<typeof insertStreamSetupSchema>;
 export type InsertLiveChatMessage = z.infer<typeof insertLiveChatMessageSchema>;
 
@@ -102,6 +98,7 @@ export type Post = InsertPost & {
   views: number;
   likes: number;
   created_at: Date;
+  ended_at?: Date; // For live streams
 };
 
 // Client-safe Post type with sensitive data stripped for API responses
@@ -144,8 +141,9 @@ export type Activity = InsertActivity & {
   created_at: Date;
 };
 
-export type LiveStream = InsertLiveStream & {
+// Removed LiveStream type - using Post with is_live: true instead
+
+export type LiveChatMessage = InsertLiveChatMessage & {
   id: string;
   created_at: Date;
-  ended_at?: Date;
 };

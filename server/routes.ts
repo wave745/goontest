@@ -19,6 +19,63 @@ function createAnonymousPost(post: Post) {
 
 export async function registerRoutes(app: Express, upload?: Multer): Promise<Server> {
 
+  // ===== LIVE STREAMING ENDPOINTS =====
+  
+  // Get all live streams
+  app.get("/api/streams", async (req, res) => {
+    try {
+      const { status = 'live' } = req.query;
+      const posts = await storage.getPosts({ sort: 'latest' });
+      
+      // Filter for live streams
+      const liveStreams = posts.filter(post => post.is_live);
+      
+      // Strip sensitive data and add anonymous creator info
+      const streamsWithCreators = liveStreams.map(createAnonymousPost);
+      
+      res.json(streamsWithCreators);
+    } catch (error) {
+      console.error("Failed to fetch streams:", error);
+      res.status(500).json({ error: "Failed to fetch streams" });
+    }
+  });
+
+  // Get single stream by ID
+  app.get("/api/streams/:id", async (req, res) => {
+    try {
+      const post = await storage.getPost(req.params.id);
+      if (!post || !post.is_live) {
+        return res.status(404).json({ error: "Stream not found" });
+      }
+      
+      res.json(createAnonymousPost(post));
+    } catch (error) {
+      console.error("Failed to fetch stream:", error);
+      res.status(500).json({ error: "Failed to fetch stream" });
+    }
+  });
+
+  // Like/unlike stream endpoints
+  app.post("/api/posts/:id/like", async (req, res) => {
+    try {
+      const success = await storage.likePost(req.params.id);
+      res.json({ success });
+    } catch (error) {
+      console.error("Failed to like post:", error);
+      res.status(500).json({ error: "Failed to like post" });
+    }
+  });
+
+  app.delete("/api/posts/:id/like", async (req, res) => {
+    try {
+      const success = await storage.unlikePost(req.params.id);
+      res.json({ success });
+    } catch (error) {
+      console.error("Failed to unlike post:", error);
+      res.status(500).json({ error: "Failed to unlike post" });
+    }
+  });
+
   // ===== CONTENT ENDPOINTS =====
   
   // Get real-time content feed

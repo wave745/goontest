@@ -1,4 +1,4 @@
-import { type Post, type InsertPost, type Token, type InsertToken, type Activity, type InsertActivity, type LiveStream, type InsertLiveStream } from "@shared/schema";
+import { type Post, type InsertPost, type Token, type InsertToken, type Activity, type InsertActivity, type Tip, type InsertTip, type LiveChatMessage, type InsertLiveChatMessage } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -20,18 +20,18 @@ export interface IStorage {
   getActivities(limit?: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
 
-  // Live Streams
-  getLiveStreams(status?: string): Promise<LiveStream[]>;
-  getLiveStream(id: string): Promise<LiveStream | undefined>;
-  createLiveStream(stream: InsertLiveStream): Promise<LiveStream>;
-  updateLiveStream(id: string, updates: Partial<LiveStream>): Promise<LiveStream | undefined>;
-  endLiveStream(id: string): Promise<LiveStream | undefined>;
-  getActiveStreams(): Promise<LiveStream[]>;
-  updateStreamViewerCount(id: string, viewerCount: number): Promise<LiveStream | undefined>;
+  // Tips
+  getTips(postId?: string): Promise<Tip[]>;
+  createTip(tip: InsertTip): Promise<Tip>;
 
-  // Live Chat
-  getLiveChatMessages(streamId: string, limit: number, offset: number): Promise<any[]>;
-  createLiveChatMessage(message: any): Promise<any>;
+  // Live Chat (for streams)
+  getLiveChatMessages(postId: string, limit?: number, offset?: number): Promise<LiveChatMessage[]>;
+  createLiveChatMessage(message: InsertLiveChatMessage): Promise<LiveChatMessage>;
+
+  // Stream helpers (using Post with is_live: true)
+  getLiveStreams(): Promise<Post[]>;
+  endLiveStream(postId: string): Promise<Post | undefined>;
+  updateStreamViewerCount(postId: string, viewerCount: number): Promise<Post | undefined>;
 
 }
 
@@ -40,14 +40,16 @@ export class MemStorage implements IStorage {
   private tokens: Map<string, Token>;
   private likes: Map<string, { postId: string; created_at: Date }>;
   private activities: Map<string, Activity>;
-  private liveStreams: Map<string, LiveStream>;
+  private tips: Map<string, Tip>;
+  private chatMessages: Map<string, LiveChatMessage>;
 
   constructor() {
     this.posts = new Map();
     this.tokens = new Map();
     this.likes = new Map();
     this.activities = new Map();
-    this.liveStreams = new Map();
+    this.tips = new Map();
+    this.chatMessages = new Map();
 
     // Initialize empty storage
   }
@@ -210,90 +212,86 @@ export class MemStorage implements IStorage {
   }
 
 
-  // Live Stream methods
-  async getLiveStreams(status?: string): Promise<LiveStream[]> {
-    let streams = Array.from(this.liveStreams.values());
+  // Tips methods
+  async getTips(postId?: string): Promise<Tip[]> {
+    let tips = Array.from(this.tips.values());
     
-    if (status) {
-      streams = streams.filter(stream => stream.status === status);
+    if (postId) {
+      tips = tips.filter(tip => tip.post_id === postId);
     }
     
     // Sort by creation date (newest first)
-    streams.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+    tips.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
     
-    return streams;
+    return tips;
   }
 
-  async getLiveStream(id: string): Promise<LiveStream | undefined> {
-    return this.liveStreams.get(id);
-  }
-
-  async createLiveStream(insertStream: InsertLiveStream): Promise<LiveStream> {
+  async createTip(insertTip: InsertTip): Promise<Tip> {
     const id = randomUUID();
-    const stream: LiveStream = {
-      ...insertStream,
+    const tip: Tip = {
+      ...insertTip,
       id,
       created_at: new Date(),
     };
-    this.liveStreams.set(id, stream);
-    return stream;
+    this.tips.set(id, tip);
+    return tip;
   }
 
-  async updateLiveStream(id: string, updates: Partial<LiveStream>): Promise<LiveStream | undefined> {
-    const stream = this.liveStreams.get(id);
-    if (!stream) return undefined;
+  // Live Chat methods (using post_id for streams)
+  async getLiveChatMessages(postId: string, limit: number = 50, offset: number = 0): Promise<LiveChatMessage[]> {
+    let messages = Array.from(this.chatMessages.values())
+      .filter(msg => msg.post_id === postId);
     
-    const updatedStream = { ...stream, ...updates };
-    this.liveStreams.set(id, updatedStream);
-    return updatedStream;
+    // Sort by creation date (oldest first for chat)
+    messages.sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
+    
+    // Apply pagination
+    return messages.slice(offset, offset + limit);
   }
 
-  async endLiveStream(id: string): Promise<LiveStream | undefined> {
-    const stream = this.liveStreams.get(id);
-    if (!stream) return undefined;
-    
-    const endedStream: LiveStream = {
-      ...stream,
-      status: 'ended',
-      ended_at: new Date(),
+  async createLiveChatMessage(insertMessage: InsertLiveChatMessage): Promise<LiveChatMessage> {
+    const id = randomUUID();
+    const message: LiveChatMessage = {
+      ...insertMessage,
+      id,
+      created_at: new Date(),
     };
-    this.liveStreams.set(id, endedStream);
-    return endedStream;
+    this.chatMessages.set(id, message);
+    return message;
   }
 
-  async getActiveStreams(): Promise<LiveStream[]> {
-    return Array.from(this.liveStreams.values())
-      .filter(stream => stream.status === 'live')
+  // Stream helper methods (using Post with is_live: true)
+  async getLiveStreams(): Promise<Post[]> {
+    return Array.from(this.posts.values())
+      .filter(post => post.is_live && !post.ended_at)
       .sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
   }
 
-  async updateStreamViewerCount(id: string, viewerCount: number): Promise<LiveStream | undefined> {
-    const stream = this.liveStreams.get(id);
-    if (!stream) return undefined;
+  async endLiveStream(postId: string): Promise<Post | undefined> {
+    const post = this.posts.get(postId);
+    if (!post || !post.is_live) return undefined;
     
-    const updatedStream = { 
-      ...stream, 
-      viewer_count: viewerCount,
-      max_viewers: Math.max(stream.max_viewers, viewerCount)
-    };
-    this.liveStreams.set(id, updatedStream);
-    return updatedStream;
+    const endedPost = { ...post, ended_at: new Date() };
+    this.posts.set(postId, endedPost);
+    return endedPost;
   }
 
-  // Live Chat methods
-  async getLiveChatMessages(streamId: string, limit: number, offset: number): Promise<any[]> {
-    // For now, return empty array - in a real implementation, this would query a chat messages table
-    return [];
-  }
-
-  async createLiveChatMessage(message: any): Promise<any> {
-    // For now, return a mock message - in a real implementation, this would store in a chat messages table
-    return {
-      id: randomUUID(),
-      ...message,
-      created_at: new Date(),
+  async updateStreamViewerCount(postId: string, viewerCount: number): Promise<Post | undefined> {
+    const post = this.posts.get(postId);
+    if (!post || !post.is_live) return undefined;
+    
+    const currentMetadata = post.metadata || {};
+    const updatedPost = { 
+      ...post, 
+      metadata: {
+        ...currentMetadata,
+        viewer_count: viewerCount,
+        max_viewers: Math.max(currentMetadata.max_viewers || 0, viewerCount)
+      }
     };
+    this.posts.set(postId, updatedPost);
+    return updatedPost;
   }
 }
 
-export const storage = new MemStorage();
+// Remove singleton - will be imported from index.ts
