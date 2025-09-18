@@ -5,7 +5,7 @@ interface CategoryChipsProps {
   onCategoryChange?: (category: string) => void;
 }
 
-export function CategoryChips({ categories = ['All', 'Videos', 'Photos', 'Live'], onCategoryChange }: CategoryChipsProps) {
+export function CategoryChips({ categories = ['All', 'Photos', 'Videos', 'Live'], onCategoryChange }: CategoryChipsProps) {
   const [activeCategory, setActiveCategory] = useState('All');
 
   const handleCategoryClick = (category: string) => {
