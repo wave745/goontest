@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'wouter';
 import { useMutation } from '@tanstack/react-query';
 import ReactionButtons from './ReactionButtons';
+import ContentModal from './modals/ContentModal';
 import { getCurrentUser } from '@/lib/userManager';
 
 interface VideoCardProps {
@@ -48,6 +49,7 @@ export default function VideoCard({
   const [isLiked, setIsLiked] = useState(false);
   const [currentLikes, setCurrentLikes] = useState(likes);
   const [currentUser] = useState(getCurrentUser());
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // View mutation
   const viewMutation = useMutation({
@@ -89,6 +91,7 @@ export default function VideoCard({
 
   const handleView = () => {
     viewMutation.mutate();
+    setIsModalOpen(true);
     onClick?.();
   };
 
@@ -104,10 +107,12 @@ export default function VideoCard({
   };
 
   return (
-    <Card 
-      className="group cursor-pointer overflow-hidden bg-card border-border hover:border-accent/50 transition-all duration-300 hover:shadow-lg"
-      onClick={handleView}
-    >
+    <>
+      <Card 
+        className="group cursor-pointer overflow-hidden bg-card border-border hover:border-accent/50 transition-all duration-300 hover:shadow-lg"
+        onClick={handleView}
+        data-testid={`video-card-${id}`}
+      >
       <CardContent className="p-0">
         {/* Video Thumbnail Container */}
         <div className="relative aspect-video overflow-hidden">
@@ -225,5 +230,12 @@ export default function VideoCard({
         </div>
       </CardContent>
     </Card>
+
+    <ContentModal
+      postId={id}
+      isOpen={isModalOpen}
+      onClose={() => setIsModalOpen(false)}
+    />
+    </>
   );
 }
