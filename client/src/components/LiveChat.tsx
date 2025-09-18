@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useUsername } from '@/hooks/useUsername';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ interface LiveChatProps {
 
 export default function LiveChat({ streamId, streamTitle, className }: LiveChatProps) {
   const { connected, publicKey } = useWallet();
+  const { displayName } = useUsername();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -196,9 +198,7 @@ export default function LiveChat({ streamId, streamTitle, className }: LiveChatP
     setIsSending(true);
     
     try {
-      const username = connected 
-        ? publicKey?.toBase58().slice(0, 4) || 'Anonymous'
-        : 'Anonymous';
+      const username = displayName;
       
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         // Send via WebSocket for real-time chat

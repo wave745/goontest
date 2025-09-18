@@ -81,6 +81,20 @@ export const insertLiveChatMessageSchema = z.object({
   metadata: z.record(z.any()).optional(),
 });
 
+// Anonymous username validation schema
+const RESERVED_WORDS = ['admin', 'mod', 'support', 'goonhub', 'wallet', 'sol'];
+
+export const anonymousUsernameSchema = z.string()
+  .min(3, "Username must be at least 3 characters")
+  .max(20, "Username must be 20 characters or less")
+  .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, "Username must start with a letter and contain only letters, numbers, and underscores")
+  .regex(/^(?!.*__)/, "Username cannot contain consecutive underscores")
+  .refine((username) => 
+    !RESERVED_WORDS.includes(username.toLowerCase()), 
+    "This username is reserved and cannot be used"
+  )
+  .transform((username) => username.toLowerCase());
+
 // TypeScript types
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type InsertToken = z.infer<typeof insertTokenSchema>;

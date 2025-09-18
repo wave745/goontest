@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useMutation } from '@tanstack/react-query';
 import ReactionButtons from './ReactionButtons';
 import ContentModal from './modals/ContentModal';
+import { useUsername } from '@/hooks/useUsername';
 
 interface PhotoCardProps {
   id: string;
@@ -42,6 +43,7 @@ export default function PhotoCard({
   const [isLiked, setIsLiked] = useState(false);
   const [currentLikes, setCurrentLikes] = useState(likes);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { displayName } = useUsername();
 
   // View mutation
   const viewMutation = useMutation({
@@ -138,14 +140,16 @@ export default function PhotoCard({
 
         {/* Content */}
         <div className="p-3 space-y-2">
-          {/* Anonymous Creator Info */}
+          {/* Creator Info */}
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-              <span className="text-xs text-muted-foreground">A</span>
+              <span className="text-xs text-muted-foreground">
+                {creator.handle ? creator.handle.slice(0, 1).toUpperCase() : 'A'}
+              </span>
             </div>
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium text-muted-foreground">
-                Anonymous Creator
+                {creator.handle || "Anonymous Creator"}
               </span>
             </div>
           </div>
