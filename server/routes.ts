@@ -60,7 +60,6 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       const { category, creator, type, sort } = req.query;
       const posts = await storage.getPosts({
         category: category as string,
-        creatorId: creator as string,
         type: type as string, // 'photo' or 'video'
         sort: sort as string, // 'latest', 'trending'
       });
@@ -129,7 +128,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
           caption: caption || '',
           price_lamports: 0,
           visibility: 'public',
-          solana_address: solana_address || null,
+          solana_address: 'anonymous',
           is_live: false
         };
       } else {
@@ -142,7 +141,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
           caption: caption || '',
           price_lamports: 0,
           visibility: 'public',
-          solana_address: solana_address || null,
+          solana_address: 'anonymous',
           is_live: is_live || false
         };
       }
@@ -220,7 +219,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         );
       } else if (type === 'live') {
         filteredPosts = posts.filter(post => 
-          post.tags?.includes('live') || post.tags?.includes('streaming') || post.is_live
+          post.is_live
         );
       }
       
@@ -267,8 +266,8 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       const shuffled = discoveryContent.sort(() => Math.random() - 0.5);
       const paginatedContent = shuffled.slice(searchOffset, searchOffset + searchLimit);
       
-      // Strip sensitive data and add anonymous creator info
-      const contentWithCreators = paginatedContent.map(createAnonymousPost);
+      // Strip sensitive data and add anonymous creator info - filter out non-post types first
+      const contentWithCreators = paginatedContent.filter((item): item is Post => 'media_url' in item).map(createAnonymousPost);
       
       res.json({
         content: contentWithCreators,
@@ -319,7 +318,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       const limitNum = Math.min(parseInt(limit as string) || 20, 100);
       const offsetNum = parseInt(offset as string) || 0;
       
-      const streams = await storage.getLiveStreams(creatorId as string, status as string);
+      const streams = await storage.getLiveStreams(status as string);
       
       // Apply pagination
       const paginatedStreams = streams.slice(offsetNum, offsetNum + limitNum);
@@ -377,7 +376,6 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       }
 
       const stream = await storage.createLiveStream({
-        creator_id: 'anonymous',
         title,
         description,
         stream_key: stream_key || `stream_${Date.now()}`,
