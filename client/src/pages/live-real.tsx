@@ -233,7 +233,7 @@ export default function Live() {
                   <Link href="/live/setup">
                     <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" data-testid="button-start-streaming">
                       <Video className="h-4 w-4 mr-2" />
-                      Start Streaming
+                      Start Gooning
                     </Button>
                   </Link>
                 </div>

@@ -149,15 +149,6 @@ export default function ActivityFeed({
               )}
             </Button>
             
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => refetch()}
-              className="text-xs"
-            >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Refresh
-            </Button>
           </div>
         </div>
       )}

@@ -428,9 +428,9 @@ export default function Studio() {
                         </div>
                         
                         <div className="p-4 bg-muted/50 rounded-lg">
-                          <h4 className="font-semibold mb-2">Step 3: Start Streaming</h4>
+                          <h4 className="font-semibold mb-2">Step 3: Start Gooning</h4>
                           <p className="text-sm text-muted-foreground">
-                            Click "Start Streaming" in OBS, then click "Start Stream" above
+                            Click "Start Gooning" in OBS, then click "Start Gooning" above
                           </p>
                         </div>
                       </div>
