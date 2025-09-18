@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
@@ -46,7 +46,7 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
 
   // Fetch post data
   const { data: post, isLoading } = useQuery<PostWithCreator>({
-    queryKey: ['/api/posts', postId],
+    queryKey: [`/api/posts/${postId}`],
     enabled: !!postId && isOpen,
   });
 
