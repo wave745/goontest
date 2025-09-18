@@ -1,9 +1,10 @@
 import type { Express } from "express";
 import type { Multer } from "multer";
 import { createServer, type Server } from "http";
+import { WebSocket, WebSocketServer } from "ws";
 import { storage } from "./storage/index.js";
 import { z } from "zod";
-import { insertPostSchema, type Post } from "@shared/schema";
+import { insertPostSchema, insertTipSchema, insertLiveChatMessageSchema, type Post } from "@shared/schema";
 import { chatWithAI } from "./services/xai";
 import { uploadToDigitalOcean } from "./services/upload-real";
 
@@ -24,11 +25,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
   // Get all live streams
   app.get("/api/streams", async (req, res) => {
     try {
-      const { status = 'live' } = req.query;
-      const posts = await storage.getPosts({ sort: 'latest' });
-      
-      // Filter for live streams
-      const liveStreams = posts.filter(post => post.is_live);
+      const liveStreams = await storage.getLiveStreams();
       
       // Strip sensitive data and add anonymous creator info
       const streamsWithCreators = liveStreams.map(createAnonymousPost);
@@ -205,6 +202,22 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
 
       const validatedData = insertPostSchema.parse(postData);
       const post = await storage.createPost(validatedData);
+      
+      // If this is a live stream, create activity
+      if (post.is_live && post.metadata) {
+        await storage.createActivity({
+          type: 'core_update',
+          title: `🔴 Live Stream Started`,
+          description: post.metadata.stream_title || post.caption || 'New live stream',
+          is_read: false,
+          metadata: {
+            post_id: post.id,
+            stream_title: post.metadata.stream_title,
+            streamer_name: post.metadata.streamer_name
+          }
+        });
+      }
+      
       res.json(post);
     } catch (error) {
       console.error("Failed to create post:", error);
@@ -309,7 +322,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       const [trendingPosts, recentPosts, liveStreams] = await Promise.all([
         storage.getPosts({ sort: 'trending' }),
         storage.getPosts({ sort: 'latest' }),
-        storage.getActiveStreams()
+        storage.getLiveStreams()
       ]);
       
       // Mix content types for discovery
@@ -368,205 +381,26 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
 
   // ===== LIVE STREAMING ENDPOINTS =====
   
-  // Get all live streams
-  app.get("/api/streams", async (req, res) => {
-    try {
-      const { creatorId, status, limit = 20, offset = 0 } = req.query;
-      const limitNum = Math.min(parseInt(limit as string) || 20, 100);
-      const offsetNum = parseInt(offset as string) || 0;
-      
-      const streams = await storage.getLiveStreams(status as string);
-      
-      // Apply pagination
-      const paginatedStreams = streams.slice(offsetNum, offsetNum + limitNum);
-      
-      // Add anonymous creator info to each stream
-      const streamsWithCreators = paginatedStreams.map((stream) => {
-        return { ...stream, creator: { id: 'anonymous', handle: 'Anonymous', is_creator: false } };
-      });
-      
-      res.json({
-        streams: streamsWithCreators,
-        pagination: {
-          limit: limitNum,
-          offset: offsetNum,
-          total: streams.length,
-          hasMore: offsetNum + limitNum < streams.length
-        }
-      });
-    } catch (error) {
-      console.error("Failed to fetch live streams:", error);
-      res.status(500).json({ error: "Failed to fetch live streams" });
-    }
-  });
+  // Remove duplicate - using existing /api/streams endpoint
 
-  app.get("/api/streams/active", async (req, res) => {
-    try {
-      const streams = await storage.getActiveStreams();
-      res.json(streams);
-    } catch (error) {
-      console.error("Failed to fetch active streams:", error);
-      res.status(500).json({ error: "Failed to fetch active streams" });
-    }
-  });
+  // Remove - using unified /api/streams endpoint
 
-  app.get("/api/streams/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const stream = await storage.getLiveStream(id);
-      if (!stream) {
-        return res.status(404).json({ error: "Stream not found" });
-      }
-      res.json(stream);
-    } catch (error) {
-      console.error("Failed to fetch stream:", error);
-      res.status(500).json({ error: "Failed to fetch stream" });
-    }
-  });
+  // Remove duplicate - using existing /api/streams/:id endpoint
 
-  app.post("/api/streams", async (req, res) => {
-    try {
-      const { creator_id, title, description, stream_key } = req.body;
-      
-      if (!title) {
-        return res.status(400).json({ error: "title is required" });
-      }
+  // Remove - using unified /api/posts endpoint for stream creation
 
-      const stream = await storage.createLiveStream({
-        title,
-        description,
-        stream_key: stream_key || `stream_${Date.now()}`,
-        status: 'live',
-        viewer_count: 0,
-        max_viewers: 0,
-        duration: 0,
-        metadata: {
-          is_muted: false,
-          is_camera_on: true,
-          start_time: new Date().toISOString()
-        }
-      });
+  // Remove - using unified post update approach
 
-      res.json(stream);
-    } catch (error) {
-      console.error("Failed to create live stream:", error);
-      res.status(500).json({ error: "Failed to create live stream" });
-    }
-  });
-
-  app.put("/api/streams/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updates = req.body;
-      
-      const stream = await storage.updateLiveStream(id, updates);
-      if (!stream) {
-        return res.status(404).json({ error: "Stream not found" });
-      }
-      
-      res.json(stream);
-    } catch (error) {
-      console.error("Failed to update stream:", error);
-      res.status(500).json({ error: "Failed to update stream" });
-    }
-  });
-
-  app.put("/api/streams/:id/end", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const stream = await storage.endLiveStream(id);
-      if (!stream) {
-        return res.status(404).json({ error: "Stream not found" });
-      }
-      
-      res.json(stream);
-    } catch (error) {
-      console.error("Failed to end stream:", error);
-      res.status(500).json({ error: "Failed to end stream" });
-    }
-  });
+  // Remove duplicate - moved to end of file
 
   // ===== LIVE CHAT ENDPOINTS =====
   
-  // Get live chat messages for a stream
-  app.get("/api/chat/live/:streamId", async (req, res) => {
-    try {
-      const { streamId } = req.params;
-      const { limit = 50, offset = 0 } = req.query;
-      const limitNum = Math.min(parseInt(limit as string) || 50, 100);
-      const offsetNum = parseInt(offset as string) || 0;
-      
-      const messages = await storage.getLiveChatMessages(streamId, limitNum, offsetNum);
-      
-      // Add anonymous user info to messages
-      const messagesWithUsers = messages.map((msg) => {
-        return { ...msg, user: { id: 'anonymous', handle: 'Anonymous', is_creator: false } };
-      });
-      
-      res.json({
-        messages: messagesWithUsers,
-        pagination: {
-          limit: limitNum,
-          offset: offsetNum,
-          hasMore: messages.length === limitNum
-        }
-      });
-    } catch (error) {
-      console.error("Failed to fetch live chat messages:", error);
-      res.status(500).json({ error: "Failed to fetch live chat messages" });
-    }
-  });
+  // Remove - replaced with /api/chat/:postId
 
   // Send live chat message
-  app.post("/api/chat/live/:streamId", async (req, res) => {
-    try {
-      const { streamId } = req.params;
-      const { message, type = 'message' } = req.body;
-      
-      if (!message) {
-        return res.status(400).json({ error: "Message is required" });
-      }
+  // Remove - replaced with /api/chat/:postId
 
-      // Create live chat message
-      const chatMessage = await storage.createLiveChatMessage({
-        stream_id: streamId,
-        user_id: 'anonymous',
-        message,
-        type: type as 'message' | 'tip' | 'reaction',
-        metadata: req.body.metadata || {}
-      });
-
-      // Add anonymous user info
-      const messageWithUser = { ...chatMessage, user: { id: 'anonymous', handle: 'Anonymous', is_creator: false } };
-
-      res.json(messageWithUser);
-    } catch (error) {
-      console.error("Failed to send live chat message:", error);
-      res.status(500).json({ error: "Failed to send live chat message" });
-    }
-  });
-
-  // Update stream viewer count
-  app.put("/api/streams/:id/viewers", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { viewerCount } = req.body;
-      
-      if (typeof viewerCount !== 'number') {
-        return res.status(400).json({ error: "Viewer count must be a number" });
-      }
-
-      const stream = await storage.updateStreamViewerCount(id, viewerCount);
-      if (!stream) {
-        return res.status(404).json({ error: "Stream not found" });
-      }
-      
-      res.json(stream);
-    } catch (error) {
-      console.error("Failed to update viewer count:", error);
-      res.status(500).json({ error: "Failed to update viewer count" });
-    }
-  });
+  // Remove duplicate - moved to end of file
 
   // File upload endpoint with DigitalOcean Spaces
   app.post("/api/upload", upload?.single('file') || ((req, res, next) => next()), async (req, res) => {
@@ -595,6 +429,179 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     }
   });
 
+  // ===== WEBSOCKET CHAT SUPPORT =====
+  
+  // Add tip endpoint
+  app.post("/api/tips", async (req, res) => {
+    try {
+      const tipData = insertTipSchema.parse(req.body);
+      const tip = await storage.createTip(tipData);
+      
+      // Create activity for tip
+      await storage.createActivity({
+        type: 'core_update',
+        title: `💰 New Tip Received`,
+        description: `${tip.amount_lamports / 1000000000} SOL tip ${tip.message ? '- ' + tip.message : ''}`,
+        is_read: false,
+        metadata: {
+          post_id: tip.post_id,
+          tip_amount: tip.amount_lamports,
+          tip_message: tip.message
+        }
+      });
+      
+      res.json(tip);
+    } catch (error) {
+      console.error("Failed to create tip:", error);
+      res.status(400).json({ error: "Invalid tip data", details: (error as Error).message });
+    }
+  });
+  
+  // Get tips for a stream/post
+  app.get("/api/tips/:postId", async (req, res) => {
+    try {
+      const tips = await storage.getTips(req.params.postId);
+      res.json(tips);
+    } catch (error) {
+      console.error("Failed to fetch tips:", error);
+      res.status(500).json({ error: "Failed to fetch tips" });
+    }
+  });
+  
+  // Chat endpoints
+  app.get("/api/chat/:postId", async (req, res) => {
+    try {
+      const { limit = 50, offset = 0 } = req.query;
+      const messages = await storage.getLiveChatMessages(
+        req.params.postId,
+        parseInt(limit as string),
+        parseInt(offset as string)
+      );
+      res.json(messages);
+    } catch (error) {
+      console.error("Failed to fetch chat messages:", error);
+      res.status(500).json({ error: "Failed to fetch chat messages" });
+    }
+  });
+  
+  app.post("/api/chat/:postId", async (req, res) => {
+    try {
+      const chatData = {
+        ...req.body,
+        post_id: req.params.postId
+      };
+      const validatedData = insertLiveChatMessageSchema.parse(chatData);
+      const message = await storage.createLiveChatMessage(validatedData);
+      
+      // Broadcast to WebSocket clients if connected
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'chat_message',
+              postId: req.params.postId,
+              message
+            }));
+          }
+        });
+      }
+      
+      res.json(message);
+    } catch (error) {
+      console.error("Failed to create chat message:", error);
+      res.status(400).json({ error: "Invalid message data", details: (error as Error).message });
+    }
+  });
+  
+  // End stream endpoint
+  app.post("/api/streams/:id/end", async (req, res) => {
+    try {
+      const stream = await storage.endLiveStream(req.params.id);
+      if (!stream) {
+        return res.status(404).json({ error: "Stream not found" });
+      }
+      
+      res.json(createAnonymousPost(stream));
+    } catch (error) {
+      console.error("Failed to end stream:", error);
+      res.status(500).json({ error: "Failed to end stream" });
+    }
+  });
+  
+  // Update stream viewer count
+  app.post("/api/streams/:id/viewers", async (req, res) => {
+    try {
+      const { viewer_count } = req.body;
+      if (typeof viewer_count !== 'number') {
+        return res.status(400).json({ error: "Invalid viewer count" });
+      }
+      
+      const stream = await storage.updateStreamViewerCount(req.params.id, viewer_count);
+      if (!stream) {
+        return res.status(404).json({ error: "Stream not found" });
+      }
+      
+      res.json({ success: true, viewer_count: stream.metadata?.viewer_count || 0 });
+    } catch (error) {
+      console.error("Failed to update viewer count:", error);
+      res.status(500).json({ error: "Failed to update viewer count" });
+    }
+  });
+  
   const httpServer = createServer(app);
+  
+  // Setup WebSocket server for live chat on a specific path to avoid conflicts with Vite HMR
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/chat-ws'
+  });
+  
+  wss.on('connection', (ws) => {
+    console.log('New WebSocket connection established');
+    
+    ws.on('message', async (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        if (message.type === 'join_stream') {
+          // Client joining a stream chat
+          (ws as any).streamId = message.postId;
+        } else if (message.type === 'chat_message') {
+          // Handle chat message
+          const chatData = {
+            post_id: message.postId,
+            username: message.username || 'Anonymous',
+            message: message.content,
+            type: message.messageType || 'message',
+            sender_address: message.senderAddress
+          };
+          
+          const validatedData = insertLiveChatMessageSchema.parse(chatData);
+          const savedMessage = await storage.createLiveChatMessage(validatedData);
+          
+          // Broadcast to all clients in the same stream
+          wss.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN && (client as any).streamId === message.postId) {
+              client.send(JSON.stringify({
+                type: 'chat_message',
+                message: savedMessage
+              }));
+            }
+          });
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Invalid message format'
+        }));
+      }
+    });
+    
+    ws.on('close', () => {
+      console.log('WebSocket connection closed');
+    });
+  });
+  
   return httpServer;
 }

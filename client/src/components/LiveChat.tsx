@@ -69,75 +69,103 @@ export default function LiveChat({ streamId, streamTitle, className }: LiveChatP
 
   const connectWebSocket = () => {
     try {
-      // Use WebSocket for real-time chat (fallback to mock for now)
-      const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/chat/${streamId}`;
+      // Use real WebSocket connection with specific path to avoid conflicts with Vite HMR
+      const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/chat-ws`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
       
-      // For now, simulate WebSocket with periodic updates
-      setIsConnected(true);
-      
-      // Initialize with some mock messages
-      const initialMessages: ChatMessage[] = [
-        {
-          id: '1',
-          username: 'StreamBot',
-          message: `Welcome to ${streamTitle || 'the stream'}! Chat rules: Be respectful and have fun!`,
-          timestamp: new Date().toLocaleTimeString(),
-          type: 'system'
-        },
-        {
-          id: '2',
-          username: 'Viewer123',
-          message: 'Great stream! 🔥',
-          timestamp: new Date(Date.now() - 60000).toLocaleTimeString(),
-          type: 'message',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=viewer123'
-        },
-        {
-          id: '3',
-          username: 'CryptoFan',
-          message: 'Just sent a tip! Keep up the great work!',
-          timestamp: new Date(Date.now() - 120000).toLocaleTimeString(),
-          type: 'tip',
-          amount: 0.1,
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=cryptofan'
-        }
-      ];
-      
-      setMessages(initialMessages);
-      setViewerCount(Math.floor(Math.random() * 500) + 50);
-      
-      // Simulate periodic viewer count updates
-      const viewerInterval = setInterval(() => {
-        setViewerCount(prev => {
-          const change = Math.floor(Math.random() * 20) - 10;
-          return Math.max(0, prev + change);
-        });
-      }, 5000);
-      
-      // Simulate occasional chat messages
-      const messageInterval = setInterval(() => {
-        if (Math.random() > 0.7) { // 30% chance every 10 seconds
-          const mockMessage: ChatMessage = {
-            id: `mock-${Date.now()}`,
-            username: `User${Math.floor(Math.random() * 1000)}`,
-            message: getMockMessage(),
-            timestamp: new Date().toLocaleTimeString(),
-            type: 'message',
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`
-          };
-          
-          setMessages(prev => [...prev, mockMessage]);
-        }
-      }, 10000);
-      
-      return () => {
-        clearInterval(viewerInterval);
-        clearInterval(messageInterval);
+      ws.onopen = () => {
+        console.log('WebSocket connected for stream:', streamId);
+        setIsConnected(true);
+        
+        // Join the stream chat
+        ws.send(JSON.stringify({
+          type: 'join_stream',
+          postId: streamId
+        }));
       };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'chat_message') {
+            setMessages(prev => [...prev, {
+              id: data.message.id,
+              username: data.message.username,
+              message: data.message.message,
+              timestamp: new Date(data.message.created_at).toLocaleTimeString(),
+              type: data.message.type,
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.message.username}`
+            }]);
+          }
+        } catch (error) {
+          console.error('WebSocket message parsing error:', error);
+        }
+      };
+      
+      ws.onclose = () => {
+        console.log('WebSocket disconnected');
+        setIsConnected(false);
+        
+        // Retry connection after 3 seconds
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connectWebSocket();
+        }, 3000);
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setIsConnected(false);
+      };
+      
+      // Load existing chat messages from API
+      fetch(`/api/chat/${streamId}`)
+        .then(response => response.json())
+        .then(messages => {
+          const formattedMessages = messages.map((msg: any) => ({
+            id: msg.id,
+            username: msg.username,
+            message: msg.message,
+            timestamp: new Date(msg.created_at).toLocaleTimeString(),
+            type: msg.type,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`
+          }));
+          setMessages(formattedMessages);
+        })
+        .catch(error => {
+          console.error('Failed to load chat history:', error);
+          // Add welcome message if chat history fails
+          setMessages([{
+            id: '1',
+            username: 'StreamBot',
+            message: `Welcome to ${streamTitle || 'the stream'}! Chat rules: Be respectful and have fun!`,
+            timestamp: new Date().toLocaleTimeString(),
+            type: 'system'
+          }]);
+        });
+      
+      setViewerCount(Math.floor(Math.random() * 500) + 50);
       
     } catch (error) {
       console.error('WebSocket connection error:', error);
       setIsConnected(false);
+      
+      // Fallback to periodic viewer updates and load chat history
+      fetch(`/api/chat/${streamId}`)
+        .then(response => response.json())
+        .then(messages => {
+          const formattedMessages = messages.map((msg: any) => ({
+            id: msg.id,
+            username: msg.username,
+            message: msg.message,
+            timestamp: new Date(msg.created_at).toLocaleTimeString(),
+            type: msg.type,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`
+          }));
+          setMessages(formattedMessages);
+        })
+        .catch(console.error);
       
       // Retry connection after 3 seconds
       reconnectTimeoutRef.current = setTimeout(() => {
@@ -163,29 +191,45 @@ export default function LiveChat({ streamId, streamTitle, className }: LiveChatP
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || isSending) return;
+    if (!newMessage.trim() || isSending || !isConnected) return;
     
     setIsSending(true);
     
     try {
-      // Create message object
-      const messageObj: ChatMessage = {
-        id: `msg-${Date.now()}`,
-        username: connected 
-          ? `${publicKey?.toBase58().slice(0, 4)}...${publicKey?.toBase58().slice(-4)}` 
-          : 'Anonymous',
-        message: newMessage.trim(),
-        timestamp: new Date().toLocaleTimeString(),
-        type: 'message',
-        walletAddress: connected ? publicKey?.toBase58() : undefined,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${connected ? publicKey?.toBase58() : 'anonymous'}`
-      };
-
-      // Send to backend (simulate for now)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const username = connected 
+        ? `${publicKey?.toBase58().slice(0, 4)}...${publicKey?.toBase58().slice(-4)}` 
+        : 'Anonymous';
       
-      // Add to local messages
-      setMessages(prev => [...prev, messageObj]);
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        // Send via WebSocket for real-time chat
+        wsRef.current.send(JSON.stringify({
+          type: 'chat_message',
+          postId: streamId,
+          username,
+          content: newMessage.trim(),
+          messageType: 'message',
+          senderAddress: connected ? publicKey?.toBase58() : undefined
+        }));
+      } else {
+        // Fallback to HTTP API if WebSocket is not available
+        const response = await fetch(`/api/chat/${streamId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username,
+            message: newMessage.trim(),
+            type: 'message',
+            sender_address: connected ? publicKey?.toBase58() : undefined
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to send message');
+        }
+      }
+      
       setNewMessage('');
       
       toast({
