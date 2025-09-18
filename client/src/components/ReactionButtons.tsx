@@ -32,21 +32,37 @@ export default function ReactionButtons({
     
     setIsLiking(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        throw new Error('Please refresh the page to continue');
+      }
+
+      // Make actual API call to like/unlike the post
+      const method = isLiked ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/posts/${postId}/like`, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to like post');
+      }
       
       if (onLike) {
         onLike(postId);
       }
       
       toast({
-        title: "Liked!",
-        description: "Thanks for the like!",
+        title: isLiked ? "Unliked!" : "Liked!",
+        description: isLiked ? "Removed like" : "Thanks for the like!",
       });
     } catch (error) {
+      console.error('Failed to like post:', error);
       toast({
         title: "Error",
-        description: "Failed to like post",
+        description: error instanceof Error ? error.message : "Failed to like post",
         variant: "destructive",
       });
     } finally {
