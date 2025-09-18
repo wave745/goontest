@@ -456,6 +456,19 @@ export class SupabaseStorage implements IStorage {
     }));
   }
 
+  async getAllTips(): Promise<Tip[]> {
+    const { data, error } = await supabase
+      .from('tips')
+      .select('*');
+
+    if (error) throw new Error(`Failed to get all tips: ${error.message}`);
+    
+    return (data || []).map(tip => ({
+      ...tip,
+      created_at: new Date(tip.created_at)
+    }));
+  }
+
   async createTip(tip: InsertTip): Promise<Tip> {
     const { data, error } = await supabase
       .from('tips')

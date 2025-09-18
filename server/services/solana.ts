@@ -34,12 +34,78 @@ export async function generateGoonToken(): Promise<string> {
   return vanityKeypairs[randomIndex];
 }
 
-export async function verifyTransaction(signature: string): Promise<boolean> {
+export async function verifyTransaction(
+  signature: string, 
+  expectedSender: string, 
+  expectedRecipient: string, 
+  expectedAmountLamports: number
+): Promise<boolean> {
   try {
     const transaction = await connection.getTransaction(signature, {
       commitment: 'confirmed',
     });
-    return transaction !== null;
+    
+    if (!transaction) {
+      console.error(`Transaction not found: ${signature}`);
+      return false;
+    }
+
+    // Check if transaction is confirmed
+    if (transaction.meta?.err) {
+      console.error(`Transaction failed: ${signature}`, transaction.meta.err);
+      return false;
+    }
+
+    // Find the SystemProgram transfer instruction
+    const instruction = transaction.transaction.message.instructions.find(ix => {
+      const programId = transaction.transaction.message.accountKeys[ix.programIdIndex];
+      return programId.equals(new PublicKey('11111111111111111111111111111111')); // SystemProgram ID (correct)
+    });
+
+    if (!instruction) {
+      console.error(`No SystemProgram transfer found in transaction: ${signature}`);
+      return false;
+    }
+
+    // Get account keys from transaction
+    const accountKeys = transaction.transaction.message.accountKeys;
+    const fromAccount = accountKeys[instruction.accounts[0]];
+    const toAccount = accountKeys[instruction.accounts[1]];
+
+    // Verify sender and recipient
+    if (fromAccount.toString() !== expectedSender) {
+      console.error(`Sender mismatch: expected ${expectedSender}, got ${fromAccount.toString()}`);
+      return false;
+    }
+
+    if (toAccount.toString() !== expectedRecipient) {
+      console.error(`Recipient mismatch: expected ${expectedRecipient}, got ${toAccount.toString()}`);
+      return false;
+    }
+
+    // Verify amount (check balance changes)
+    const balanceChanges = transaction.meta?.postBalances.map((post, i) => 
+      post - (transaction.meta?.preBalances[i] || 0)
+    );
+    
+    const recipientIndex = accountKeys.findIndex(key => key.toString() === expectedRecipient);
+    const senderIndex = accountKeys.findIndex(key => key.toString() === expectedSender);
+    
+    if (recipientIndex === -1 || senderIndex === -1) {
+      console.error(`Account not found in transaction: ${signature}`);
+      return false;
+    }
+
+    const recipientChange = balanceChanges[recipientIndex] || 0;
+    const senderChange = balanceChanges[senderIndex] || 0;
+
+    // Recipient should gain the expected amount, sender should lose more (due to fees)
+    if (recipientChange !== expectedAmountLamports || senderChange >= 0) {
+      console.error(`Amount mismatch: expected recipient +${expectedAmountLamports}, got +${recipientChange}`);
+      return false;
+    }
+
+    return true;
   } catch (error) {
     console.error('Failed to verify transaction:', error);
     return false;

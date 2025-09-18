@@ -83,27 +83,8 @@ export default function VideoCard({
   };
 
   const handleTip = async (postId: string, amount: number) => {
-    if (!currentUser) return;
-    
-    try {
-      const response = await fetch(`/api/tips/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from_user: currentUser.id,
-          to_user: creator.id,
-          amount_lamports: Math.round(amount * 1e9), // Convert SOL to lamports
-          message: `Tip for ${title}`,
-          txn_sig: `tip_${Date.now()}`,
-        }),
-      });
-      
-      if (response.ok) {
-        console.log('Tip sent successfully');
-      }
-    } catch (error) {
-      console.error('Failed to send tip:', error);
-    }
+    // Tip handling is now done through ReactionButtons component with real wallet transactions
+    console.log('Tip request handled by ReactionButtons:', { postId, amount });
   };
 
   const handleView = () => {

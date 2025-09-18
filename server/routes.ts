@@ -4,7 +4,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage/index.js";
 import { z } from "zod";
 import { insertPostSchema, insertTokenSchema, insertChatMessageSchema, insertPurchaseSchema, insertTipSchema, createGoonUserSchema, insertUserSchema } from "@shared/schema";
-import { generateGoonToken } from "./services/solana";
+import { generateGoonToken, verifyTransaction } from "./services/solana";
 import { chatWithAI } from "./services/xai";
 import { uploadToDigitalOcean } from "./services/upload-real";
 
@@ -523,6 +523,44 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
   app.post("/api/tips/send", async (req, res) => {
     try {
       const tipData = insertTipSchema.parse(req.body);
+      
+      // Get user records to verify addresses server-side
+      const senderUser = await storage.getUser(tipData.from_user);
+      const recipientUser = await storage.getUser(tipData.to_user);
+      
+      if (!senderUser || !recipientUser) {
+        return res.status(400).json({ error: "Invalid user IDs" });
+      }
+
+      if (!senderUser.solana_address || !recipientUser.solana_address) {
+        return res.status(400).json({ error: "Users must have registered Solana addresses" });
+      }
+
+      // Check for global duplicate signatures (prevent replay attacks)
+      const allTips = await storage.getAllTips();
+      const duplicateTip = allTips.find(tip => tip.txn_sig === tipData.txn_sig);
+      if (duplicateTip) {
+        console.error(`Duplicate transaction signature: ${tipData.txn_sig}`);
+        return res.status(400).json({ 
+          error: "This transaction has already been recorded." 
+        });
+      }
+      
+      // Verify the transaction signature with full validation
+      const isValidTransaction = await verifyTransaction(
+        tipData.txn_sig,
+        senderUser.solana_address,
+        recipientUser.solana_address, 
+        tipData.amount_lamports
+      );
+      
+      if (!isValidTransaction) {
+        console.error(`Invalid transaction: ${tipData.txn_sig}`);
+        return res.status(400).json({ 
+          error: "Transaction verification failed. Sender, recipient, or amount mismatch." 
+        });
+      }
+
       const tip = await storage.createTip(tipData);
       res.json(tip);
     } catch (error) {

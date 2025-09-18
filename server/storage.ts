@@ -34,6 +34,7 @@ export interface IStorage {
 
   // Tips
   getTips(userId: string): Promise<Tip[]>;
+  getAllTips(): Promise<Tip[]>;
   createTip(tip: InsertTip): Promise<Tip>;
 
   // AI Personas
@@ -348,6 +349,10 @@ export class MemStorage implements IStorage {
   // Tip methods
   async getTips(userId: string): Promise<Tip[]> {
     return Array.from(this.tips.values()).filter(tip => tip.from_user === userId || tip.to_user === userId);
+  }
+
+  async getAllTips(): Promise<Tip[]> {
+    return Array.from(this.tips.values());
   }
 
   async createTip(insertTip: InsertTip): Promise<Tip> {
