@@ -15,6 +15,7 @@ import NotFound from "@/pages/not-found";
 import AIProfile from "@/pages/ai-profile";
 import Upload from "@/pages/upload";
 import Live from "@/pages/live-real";
+import StreamSetup from "@/pages/stream-setup";
 import StreamDetail from "@/pages/stream-detail";
 
 function Router() {
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/coins" component={Coins} />
       <Route path="/upload" component={Upload} />
       <Route path="/live" component={Live} />
+      <Route path="/live/setup" component={StreamSetup} />
       <Route path="/live/:streamId" component={StreamDetail} />
       <Route component={NotFound} />
     </Switch>

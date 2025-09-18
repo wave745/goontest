@@ -238,7 +238,7 @@ export default function StreamDetail() {
               {/* Stream Header */}
               <div className="bg-card border-b border-border p-4">
                 <div className="flex items-center gap-4">
-                  <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+                  <Button variant="ghost" size="icon" onClick={() => window.history.back()} data-testid="button-back">
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                   
@@ -258,11 +258,11 @@ export default function StreamDetail() {
                   </div>
                   
                   <div className="flex items-center gap-2 ml-auto">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" data-testid="button-share-header">
                       <Share2 className="h-4 w-4 mr-2" />
                       Share
                     </Button>
-                    <Button variant="outline" size="icon">
+                    <Button variant="outline" size="icon" data-testid="button-favorite">
                       <Star className="h-4 w-4" />
                     </Button>
                   </div>
@@ -270,127 +270,221 @@ export default function StreamDetail() {
               </div>
 
               {/* Stream Content */}
-              <div className="flex-1 flex">
-                {/* Left Side - Stream and Donation Leaderboard */}
-                <div className="flex-1 flex flex-col">
-                  {/* Donation Leaderboard */}
-                  <div className="bg-card border-b border-border p-4">
-                    <h2 className="text-lg font-bold text-foreground mb-4 text-center">
-                      {stream.tokenSymbol || 'STREAMERCOIN'} LIVE DONATION LEADERBOARD
-                    </h2>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="bg-muted/50 rounded-lg p-4 text-center">
-                        <div className="text-green-400 font-bold text-2xl">
-                          {formatCurrency(donationData?.totalDonated || 0)}
+              <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 lg:p-6">
+                {/* Left Side - Video Player and Controls */}
+                <div className="flex-1 lg:max-w-2xl">
+                  {/* Video Player - Small Size */}
+                  <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg overflow-hidden relative mb-4">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-3 mx-auto">
+                          <Play className="h-8 w-8 text-red-500" data-testid="button-play-video" />
                         </div>
-                        <div className="text-muted-foreground text-sm">TOTAL DONATED</div>
-                      </div>
-                      <div className="bg-muted/50 rounded-lg p-4 text-center">
-                        <div className="text-blue-400 font-bold text-2xl">
-                          {donationData?.streamersSupported || 0}
-                        </div>
-                        <div className="text-muted-foreground text-sm">STREAMERS SUPPORTED</div>
+                        <p className="text-white/80 text-lg">Live Stream</p>
                       </div>
                     </div>
                     
-                    {/* Top Donors Table */}
-                    <div className="max-h-40 overflow-y-auto">
-                      <div className="text-foreground text-sm font-semibold mb-2">STREAMER AMOUNT</div>
-                      {donationData?.topDonors.slice(0, 10).map((donor, index) => (
-                        <div key={index} className="flex justify-between items-center py-1 text-sm">
-                          <span className="text-muted-foreground">#{donor.rank} {donor.name}</span>
-                          <span className="text-green-400 font-semibold">
-                            {formatCurrency(donor.amount)}
-                          </span>
-                        </div>
-                      ))}
+                    {/* Live Badge */}
+                    <div className="absolute top-3 left-3">
+                      <Badge variant="destructive" className="animate-pulse" data-testid="badge-live-status">
+                        <Wifi className="h-3 w-3 mr-1" />
+                        LIVE
+                      </Badge>
                     </div>
-                  </div>
-
-                  {/* Video Player Area */}
-                  <div className="flex-1 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mb-4 mx-auto">
-                        <Play className="h-10 w-10 text-red-500" />
-                      </div>
-                      <p className="text-white/80 text-lg">Live Stream</p>
-                      <div className="flex items-center justify-center gap-2 mt-2">
-                        <div className="flex items-center gap-1 bg-black/50 text-white px-3 py-1 rounded text-sm">
-                          <Users className="h-4 w-4" />
-                          {formatViewerCount(viewerCount)} watching
-                        </div>
+                    
+                    {/* Viewer Count */}
+                    <div className="absolute top-3 right-3">
+                      <div className="flex items-center gap-1 bg-black/70 text-white px-2 py-1 rounded text-sm" data-testid="display-viewer-count">
+                        <Users className="h-4 w-4" />
+                        {formatViewerCount(viewerCount)}
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Right Side - Live Chat */}
-                <div className="w-80 bg-card border-l border-border flex flex-col">
-                  <div className="p-4 border-b border-border">
-                    <h3 className="font-semibold text-foreground">Live Chat</h3>
                   </div>
                   
-                  {/* Chat Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                    {chatMessages.map((message) => (
-                      <div key={message.id} className="flex gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={message.avatar} alt={message.username} />
-                          <AvatarFallback className="text-xs">
-                            {message.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
+                  {/* Stream Controls */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-card border border-border rounded-lg p-4 mb-4 gap-4 sm:gap-0">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                      {/* Like Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 text-accent hover:text-accent hover:bg-accent/10"
+                        data-testid="button-like-stream"
+                      >
+                        <Heart className="h-5 w-5" />
+                        <span className="font-semibold">{stream.likes || 0}</span>
+                      </Button>
+                      
+                      {/* Tip Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-2 text-accent hover:text-accent hover:bg-accent/10"
+                        data-testid="button-tip-stream"
+                      >
+                        <DollarSign className="h-5 w-5" />
+                        <span className="font-semibold">Tip</span>
+                      </Button>
+                      
+                      {/* Views Count */}
+                      <div className="flex items-center gap-2 text-muted-foreground" data-testid="display-views-count">
+                        <Eye className="h-5 w-5" />
+                        <span className="font-semibold">{stream.views || 0} views</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {/* Share Button */}
+                      <Button variant="outline" size="sm" data-testid="button-share-stream">
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Share
+                      </Button>
+                      
+                      {/* More Options */}
+                      <Button variant="outline" size="icon" data-testid="button-more-options">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Creator Info */}
+                  <Card className="mb-4">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src="/placeholder-avatar.jpg" alt="Anonymous Creator" />
+                          <AvatarFallback>A</AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-foreground">
-                              {message.username}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {message.timestamp}
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">@Anonymous</h3>
+                          <p className="text-sm text-muted-foreground">{stream.caption || 'Live streaming now'}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-muted-foreground">Market Cap</div>
+                          <div className="font-semibold text-accent">{formatMarketCap(stream.marketCap || 0)}</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Donation Leaderboard - Compact */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-center text-lg">
+                        {stream.tokenSymbol || 'STREAMERCOIN'} DONATION LEADERBOARD
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="bg-muted/50 rounded-lg p-3 text-center">
+                          <div className="text-green-400 font-bold text-xl">
+                            {formatCurrency(donationData?.totalDonated || 0)}
+                          </div>
+                          <div className="text-muted-foreground text-sm">TOTAL DONATED</div>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-3 text-center">
+                          <div className="text-blue-400 font-bold text-xl">
+                            {donationData?.streamersSupported || 0}
+                          </div>
+                          <div className="text-muted-foreground text-sm">STREAMERS SUPPORTED</div>
+                        </div>
+                      </div>
+                      
+                      {/* Top Donors - Compact List */}
+                      <div className="max-h-32 overflow-y-auto">
+                        <div className="text-foreground text-sm font-semibold mb-2">TOP DONORS</div>
+                        {donationData?.topDonors.slice(0, 5).map((donor, index) => (
+                          <div key={index} className="flex justify-between items-center py-1 text-sm">
+                            <span className="text-muted-foreground">#{donor.rank} {donor.name}</span>
+                            <span className="text-green-400 font-semibold">
+                              {formatCurrency(donor.amount)}
                             </span>
                           </div>
-                          <p className="text-sm text-foreground mt-1">{message.message}</p>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Right Side - Live Chat Card */}
+                <div className="w-full lg:w-80">
+                  <Card className="h-[400px] lg:h-[600px] flex flex-col">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2">
+                        <MessageCircle className="h-5 w-5 text-accent" />
+                        <span>Live Global Chat</span>
+                        <Badge variant="outline" className="ml-auto" data-testid="badge-chat-users">
+                          {chatMessages.length} online
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    
+                    {/* Chat Messages */}
+                    <CardContent className="flex-1 overflow-y-auto p-4 pt-0 space-y-3">
+                      {chatMessages.map((message) => (
+                        <div key={message.id} className="flex gap-2" data-testid={`chat-message-${message.id}`}>
+                          <Avatar className="h-7 w-7 flex-shrink-0">
+                            <AvatarImage src={message.avatar} alt={message.username} />
+                            <AvatarFallback className="text-xs">
+                              {message.username.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-accent truncate">
+                                {message.username}
+                              </span>
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
+                                {message.timestamp}
+                              </span>
+                            </div>
+                            <p className="text-sm text-foreground mt-1 break-words">{message.message}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    <div ref={chatEndRef} />
-                  </div>
-                  
-                  {/* Chat Input */}
-                  <div className="p-4 border-t border-border">
-                    {connected ? (
-                      <div className="flex gap-2">
-                        <Input
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          placeholder="Type a message..."
-                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                          disabled={isSendingMessage}
-                        />
-                        <Button
-                          onClick={handleSendMessage}
-                          disabled={!newMessage.trim() || isSendingMessage}
-                          size="icon"
-                        >
-                          {isSendingMessage ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Send className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
-                          <Lock className="h-4 w-4" />
-                          <span className="text-sm">Read-only mode</span>
+                      ))}
+                      <div ref={chatEndRef} />
+                    </CardContent>
+                    
+                    {/* Chat Input */}
+                    <CardContent className="pt-0">
+                      {connected ? (
+                        <div className="flex gap-2">
+                          <Input
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder="Type a message..."
+                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                            disabled={isSendingMessage}
+                            className="flex-1"
+                            data-testid="input-chat-message"
+                          />
+                          <Button
+                            onClick={handleSendMessage}
+                            disabled={!newMessage.trim() || isSendingMessage}
+                            size="icon"
+                            className="bg-accent hover:bg-accent/90"
+                            data-testid="button-send-message"
+                          >
+                            {isSendingMessage ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
-                        <Button size="sm" className="w-full">
-                          Log in to send messages
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <div className="text-center py-3">
+                          <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
+                            <Lock className="h-4 w-4" />
+                            <span className="text-sm">Connect wallet to chat</span>
+                          </div>
+                          <Button size="sm" className="w-full bg-accent hover:bg-accent/90" data-testid="button-connect-wallet">
+                            Connect Wallet
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </div>

@@ -70,6 +70,13 @@ export const insertLiveStreamSchema = z.object({
   metadata: z.record(z.any()).optional(), // Additional stream data
 });
 
+export const insertStreamSetupSchema = z.object({
+  name: z.string().min(1, "Streamer name is required").max(50, "Name must be 50 characters or less"),
+  title: z.string().min(1, "Stream title is required").max(100, "Title must be 100 characters or less"),
+  description: z.string().max(500, "Description must be 500 characters or less").optional(),
+  solana_address: z.string().min(1, "Solana address is required"),
+});
+
 export const insertLiveChatMessageSchema = z.object({
   stream_id: z.string(),
   message: z.string(),
@@ -86,6 +93,7 @@ export type InsertAiPersona = z.infer<typeof insertAiPersonaSchema>;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type InsertLiveStream = z.infer<typeof insertLiveStreamSchema>;
+export type InsertStreamSetup = z.infer<typeof insertStreamSetupSchema>;
 export type InsertLiveChatMessage = z.infer<typeof insertLiveChatMessageSchema>;
 
 

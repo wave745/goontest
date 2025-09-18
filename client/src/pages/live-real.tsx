@@ -27,11 +27,14 @@ import {
   Clock,
   Gift,
   Send,
-  Wallet
+  Wallet,
+  Video,
+  Plus
 } from 'lucide-react';
 import { supabase, getPosts, type Post, type User } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import ReactionButtons from '@/components/ReactionButtons';
+import { Link } from 'wouter';
 
 type StreamWithCreator = Post & { 
   creator: User;
@@ -81,7 +84,7 @@ export default function Live() {
         const counts: Record<string, number> = {};
         const donations: Record<string, DonationData> = {};
         
-        liveStreams?.forEach(stream => {
+        liveStreams?.forEach((stream: Post) => {
           counts[stream.id] = Math.floor(Math.random() * 1000) + 10;
           
           // Generate mock donation data
@@ -103,7 +106,7 @@ export default function Live() {
         });
         
         // Add market cap and token data to streams
-        const streamsWithData = liveStreams?.map(stream => ({
+        const streamsWithData = liveStreams?.map((stream: Post) => ({
           ...stream,
           marketCap: Math.floor(Math.random() * 20000000) + 1000000,
           allTimeHigh: Math.floor(Math.random() * 30000000) + 2000000,
@@ -276,14 +279,22 @@ export default function Live() {
             <div className="flex-1">
               {/* Header */}
               <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-full bg-red-500/20">
-                    <Play className="h-6 w-6 text-red-500" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-red-500/20">
+                      <Play className="h-6 w-6 text-red-500" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-foreground">Live Streams</h1>
+                    <Badge variant="destructive" className="animate-pulse">
+                      LIVE
+                    </Badge>
                   </div>
-                  <h1 className="text-3xl font-bold text-foreground">Live Streams</h1>
-                  <Badge variant="destructive" className="animate-pulse">
-                    LIVE
-                  </Badge>
+                  <Link href="/live/setup">
+                    <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" data-testid="button-start-streaming">
+                      <Video className="h-4 w-4 mr-2" />
+                      Start Streaming
+                    </Button>
+                  </Link>
                 </div>
                 <p className="text-muted-foreground">
                   Watch creators go live and interact with them in real-time
@@ -460,9 +471,15 @@ export default function Live() {
                     No creators are currently live. Check back later or start your own stream!
                   </p>
                   <div className="flex gap-2 justify-center">
-                    <Button className="bg-accent hover:bg-accent/90">
+                    <Link href="/live/setup">
+                      <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" data-testid="button-go-live">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Go Live
+                      </Button>
+                    </Link>
+                    <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground" data-testid="button-refresh-streams">
                       <Play className="h-4 w-4 mr-2" />
-                      Start Streaming
+                      Refresh
                     </Button>
                   </div>
                 </CardContent>
