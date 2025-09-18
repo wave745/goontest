@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { useMutation } from '@tanstack/react-query';
 import ReactionButtons from './ReactionButtons';
 import ContentModal from './modals/ContentModal';
-import { useUsername } from '@/hooks/useUsername';
 
 interface VideoCardProps {
   id: string;
@@ -45,7 +44,6 @@ export default function VideoCard({
   const [isLiked, setIsLiked] = useState(false);
   const [currentLikes, setCurrentLikes] = useState(likes);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { displayName } = useUsername();
 
   // View mutation
   const viewMutation = useMutation({
@@ -181,10 +179,7 @@ export default function VideoCard({
               postId={id}
               likes={currentLikes}
               isLiked={isLiked}
-              solanaAddress={solanaAddress}
-              creatorId={creator.id}
               onLike={handleLike}
-              onTip={handleTip}
             />
           </div>
         </div>
