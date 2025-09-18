@@ -398,7 +398,6 @@ export default function Photos() {
                       price={post.price_lamports}
                       isGated={post.price_lamports > 0}
                       isVerified={post.creator?.is_creator || false}
-                      tags={post.tags || []}
                       onClick={() => handleCardClick(post)}
                     />
                   ))}

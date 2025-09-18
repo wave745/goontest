@@ -30,7 +30,6 @@ export const insertPostSchema = z.object({
   price_lamports: z.number().default(0),
   visibility: z.enum(["public", "subscribers", "goon"]).default("public"),
   status: z.enum(["draft", "published", "hidden"]).default("published"),
-  tags: z.array(z.string()).optional(),
   solana_address: z.string().optional(),
   is_live: z.boolean().default(false),
 });

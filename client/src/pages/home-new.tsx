@@ -61,7 +61,7 @@ export default function Home() {
             setStreams(data.posts);
           } else {
             const livePosts = data.posts.filter((post: any) => 
-              post.tags?.includes('live') || post.tags?.includes('streaming') || post.is_live
+              post.is_live
             );
             setStreams(livePosts);
           }
@@ -101,7 +101,7 @@ export default function Home() {
               setStreams(data.posts);
             } else {
               const livePosts = data.posts.filter((post: any) => 
-                post.tags?.includes('live') || post.tags?.includes('streaming') || post.is_live
+                post.is_live
               );
               setStreams(livePosts);
             }
@@ -234,7 +234,7 @@ export default function Home() {
                       price={post.price_lamports}
                       isGated={post.price_lamports > 0}
                       isVerified={post.creator?.age_verified || false}
-                      tags={post.tags || []}
+
                       solanaAddress={post.creator?.solana_address}
                     />
                   );
@@ -256,7 +256,7 @@ export default function Home() {
                       price={post.price_lamports}
                       isGated={post.price_lamports > 0}
                       isVerified={post.creator?.age_verified || false}
-                      tags={post.tags || []}
+
                       solanaAddress={post.creator?.solana_address}
                     />
                   );

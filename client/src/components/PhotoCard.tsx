@@ -25,7 +25,6 @@ interface PhotoCardProps {
   price: number;
   isGated: boolean;
   isVerified: boolean;
-  tags: string[];
   solanaAddress?: string;
   onClick?: () => void;
 }
@@ -40,7 +39,6 @@ export default function PhotoCard({
   price,
   isGated,
   isVerified,
-  tags,
   solanaAddress,
   onClick
 }: PhotoCardProps) {
@@ -184,21 +182,6 @@ export default function PhotoCard({
             {title}
           </h3>
 
-          {/* Tags */}
-          {tags && tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {tags.slice(0, 3).map((tag, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  #{tag}
-                </Badge>
-              ))}
-              {tags.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{tags.length - 3}
-                </Badge>
-              )}
-            </div>
-          )}
 
           {/* Reaction Buttons */}
           <div className="flex items-center justify-end">

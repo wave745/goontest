@@ -25,8 +25,6 @@ export default function StudioModal({ isOpen, onClose }: StudioModalProps) {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('0');
   const [visibility, setVisibility] = useState('public');
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState('');
   
   // Token form state
   const [tokenName, setTokenName] = useState('');
@@ -49,16 +47,6 @@ export default function StudioModal({ isOpen, onClose }: StudioModalProps) {
     }
   };
 
-  const handleAddTag = () => {
-    if (newTag && !tags.includes(newTag)) {
-      setTags([...tags, newTag]);
-      setNewTag('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
 
   const handleUpload = async () => {
     if (!connected || !publicKey) {
@@ -219,40 +207,6 @@ export default function StudioModal({ isOpen, onClose }: StudioModalProps) {
               />
             </div>
 
-            {/* Tags */}
-            <div>
-              <Label className="text-foreground mb-2">Tags</Label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="bg-accent/20 border border-accent/30 text-accent px-3 py-1 rounded-full text-xs flex items-center gap-1"
-                  >
-                    {tag}
-                    <button
-                      onClick={() => handleRemoveTag(tag)}
-                      className="hover:text-primary-foreground"
-                      data-testid={`button-remove-tag-${tag}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add tags..."
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                  className="bg-input border-border text-foreground"
-                  data-testid="input-new-tag"
-                />
-                <Button onClick={handleAddTag} variant="outline" size="sm">
-                  Add
-                </Button>
-              </div>
-            </div>
 
             {/* Visibility Settings */}
             <div>

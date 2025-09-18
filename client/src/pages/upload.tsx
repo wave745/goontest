@@ -135,7 +135,6 @@ export default function UploadPage() {
           caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
           visibility: 'public',
           status: 'published',
-          tags: [contentType],
         }),
       });
 
