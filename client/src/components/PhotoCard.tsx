@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, Share2, MoreVertical, Check, Coins } from 'lucide-react';
+import { Download, MoreVertical, Check, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -156,8 +156,15 @@ export default function PhotoCard({
                 size="sm"
                 variant="secondary"
                 className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white border-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const link = document.createElement('a');
+                  link.href = imageUrl;
+                  link.download = `photo-${id}`;
+                  link.click();
+                }}
               >
-                <Share2 className="h-4 w-4" />
+                <Download className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -220,14 +227,8 @@ export default function PhotoCard({
             </div>
           )}
 
-          {/* Stats and Reaction Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                {formatNumber(views)}
-              </div>
-            </div>
+          {/* Reaction Buttons */}
+          <div className="flex items-center justify-end">
             <ReactionButtons
               postId={id}
               likes={currentLikes}

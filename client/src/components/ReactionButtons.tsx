@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, Wallet, Loader2 } from 'lucide-react';
+import { Heart, Coins, Wallet, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { solanaService } from '@/lib/solana';
 import { getCurrentUser } from '@/lib/userManager';
@@ -154,23 +154,13 @@ export default function ReactionButtons({
         <Button
           variant="ghost"
           size="sm"
-          className="flex items-center gap-1 text-muted-foreground hover:text-blue-500"
+          onClick={() => setShowTipModal(true)}
+          className="flex items-center gap-1 text-muted-foreground hover:text-accent"
         >
-          <MessageCircle className="h-4 w-4" />
-          <span className="text-xs">0</span>
+          <Coins className="h-4 w-4" />
+          <span className="text-xs">Tip</span>
         </Button>
 
-        {solanaAddress && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowTipModal(true)}
-            className="flex items-center gap-1 text-muted-foreground hover:text-accent"
-          >
-            <Wallet className="h-4 w-4" />
-            <span className="text-xs">Tip</span>
-          </Button>
-        )}
       </div>
 
       {/* Tip Modal */}

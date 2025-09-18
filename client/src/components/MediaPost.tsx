@@ -7,11 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { 
   Heart, 
-  Eye, 
-  MessageCircle, 
-  Share2, 
-  MoreHorizontal, 
+  Download,
   Coins,
+  MoreHorizontal, 
   Lock,
   Users,
   Crown
@@ -205,10 +203,6 @@ export default function MediaPost({ post, creator, onTip }: MediaPostProps) {
           {/* Stats */}
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
             <div className="flex items-center gap-1">
-              <Eye className="h-4 w-4" />
-              <span>{viewCount.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center gap-1">
               <Heart className="h-4 w-4" />
               <span>{likeCount.toLocaleString()}</span>
             </div>
@@ -227,24 +221,29 @@ export default function MediaPost({ post, creator, onTip }: MediaPostProps) {
               {isLiked ? 'Liked' : 'Like'}
             </Button>
 
-            <Button variant="ghost" size="sm" className="flex-1">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Comment
-            </Button>
-
-            <Button variant="ghost" size="sm" className="flex-1">
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
+            <Button 
+              variant="ghost" 
+              size="sm" 
               onClick={handleTip}
-              className="bg-gradient-to-r from-accent to-accent-2 hover:from-accent/90 hover:to-accent-2/90"
+              className="flex-1 hover:text-accent"
             >
-              <Coins className="h-4 w-4 mr-1" />
+              <Coins className="h-4 w-4 mr-2" />
               Tip
+            </Button>
+
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex-1"
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = post.media_url;
+                link.download = `media-${post.id}`;
+                link.click();
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download
             </Button>
           </div>
         </div>
