@@ -100,9 +100,10 @@ export class MemStorage implements IStorage {
     
     // Create anonymous activity for new post
     await this.createActivity({
-      type: 'new_post',
+      type: 'content_update',
       title: 'New content posted',
       description: insertPost.caption || 'New anonymous post',
+      is_read: false,
       metadata: {
         post_id: id,
         post_preview: insertPost.caption

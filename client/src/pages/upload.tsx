@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Image, Video, Play, X, Loader2, Wallet } from 'lucide-react';
+import { Upload, Image, Video, Play, X, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export default function UploadPage() {
@@ -20,12 +20,9 @@ export default function UploadPage() {
   const [uploadDescription, setUploadDescription] = useState('');
   const [contentType, setContentType] = useState('photo');
   const [isUploading, setIsUploading] = useState(false);
-  const [solanaAddress, setSolanaAddress] = useState('');
-
   // Live streaming form
   const [streamTitle, setStreamTitle] = useState('');
   const [streamDescription, setStreamDescription] = useState('');
-  const [streamSolanaAddress, setStreamSolanaAddress] = useState('');
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -52,10 +49,6 @@ export default function UploadPage() {
     }
   };
 
-  const isValidSolanaAddress = (address: string): boolean => {
-    // Basic Solana address validation (44 characters, base58)
-    return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
-  };
 
   const handleContentUpload = async () => {
     if (!uploadFile || !uploadTitle.trim()) {
@@ -67,14 +60,6 @@ export default function UploadPage() {
       return;
     }
 
-    if (solanaAddress && !isValidSolanaAddress(solanaAddress)) {
-      toast({
-        title: "Invalid Solana address",
-        description: "Please enter a valid Solana wallet address",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setIsUploading(true);
 
@@ -103,14 +88,9 @@ export default function UploadPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          creator_id: 'anonymous',
-          creator_handle: 'Anonymous',
-          solana_address: solanaAddress,
           media_url: uploadData.mediaUrl,
           thumb_url: uploadData.thumbUrl,
           caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
-          visibility: 'public',
-          status: 'published',
         }),
       });
 
@@ -127,7 +107,6 @@ export default function UploadPage() {
       setUploadFile(null);
       setUploadTitle('');
       setUploadDescription('');
-      setSolanaAddress('');
       setLocation('/');
     } catch (error) {
       console.error('Upload error:', error);
@@ -151,14 +130,6 @@ export default function UploadPage() {
       return;
     }
 
-    if (streamSolanaAddress && !isValidSolanaAddress(streamSolanaAddress)) {
-      toast({
-        title: "Invalid Solana address",
-        description: "Please enter a valid Solana wallet address",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setIsUploading(true);
 
@@ -170,12 +141,7 @@ export default function UploadPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          creator_id: 'anonymous',
-          creator_handle: 'Anonymous',
-          solana_address: streamSolanaAddress,
           caption: streamTitle + (streamDescription ? `\n\n${streamDescription}` : ''),
-          visibility: 'public',
-          status: 'published',
           is_live: true,
           tags: ['live', 'streaming'],
         }),
@@ -195,7 +161,6 @@ export default function UploadPage() {
       // Reset form
       setStreamTitle('');
       setStreamDescription('');
-      setStreamSolanaAddress('');
       setLocation(`/live/${streamData.id}`);
     } catch (error) {
       console.error('Stream start error:', error);
@@ -328,22 +293,6 @@ export default function UploadPage() {
                   </div>
 
 
-                  <div>
-                    <Label htmlFor="solana-address">Solana Address (for tips)</Label>
-                    <div className="relative mt-1">
-                      <Wallet className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="solana-address"
-                        value={solanaAddress}
-                        onChange={(e) => setSolanaAddress(e.target.value)}
-                        placeholder="Enter your Solana wallet address for tips"
-                        className="pl-10"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Optional: Add your Solana address to receive tips from viewers
-                    </p>
-                  </div>
 
                   <Button
                     onClick={handleContentUpload}
@@ -396,29 +345,12 @@ export default function UploadPage() {
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="stream-solana-address">Solana Address (for tips)</Label>
-                    <div className="relative mt-1">
-                      <Wallet className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="stream-solana-address"
-                        value={streamSolanaAddress}
-                        onChange={(e) => setStreamSolanaAddress(e.target.value)}
-                        placeholder="Enter your Solana wallet address for tips"
-                        className="pl-10"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Optional: Add your Solana address to receive tips from viewers
-                    </p>
-                  </div>
 
                   <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
                     <h4 className="font-semibold text-accent mb-2">Live Streaming Info</h4>
                     <ul className="text-sm text-muted-foreground space-y-1">
                       <li>• Your stream will be visible to all users globally</li>
                       <li>• Viewers can interact via live chat</li>
-                      <li>• Tips will be sent directly to your Solana address</li>
                       <li>• You can end the stream anytime</li>
                     </ul>
                   </div>

@@ -1,27 +1,22 @@
-// Utility functions for consistent user display across the app
+// Utility functions for anonymous platform display
 
-interface UserLike {
-  goon_username?: string;
-  handle?: string;
+/**
+ * Gets anonymous display name for all users
+ */
+export function getAnonymousDisplayName(): string {
+  return 'Anonymous User';
 }
 
 /**
- * Gets the display username for a user, prioritizing goon_username over handle
+ * Gets anonymous profile URL (redirects to home)
  */
-export function getDisplayUsername(user: UserLike): string {
-  return user.goon_username || user.handle || 'unknown';
+export function getAnonymousProfileUrl(): string {
+  return '/';
 }
 
 /**
- * Gets the profile URL for a user
+ * Gets the avatar seed for generating anonymous placeholder avatars
  */
-export function getProfileUrl(user: UserLike): string {
-  return `/c/${getDisplayUsername(user)}`;
-}
-
-/**
- * Gets the avatar seed for generating placeholder avatars
- */
-export function getAvatarSeed(user: UserLike): string {
-  return getDisplayUsername(user);
+export function getAnonymousAvatarSeed(): string {
+  return 'anonymous';
 }

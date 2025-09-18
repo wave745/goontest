@@ -3,9 +3,18 @@ import type { Multer } from "multer";
 import { createServer, type Server } from "http";
 import { storage } from "./storage/index.js";
 import { z } from "zod";
-import { insertPostSchema } from "@shared/schema";
+import { insertPostSchema, type Post } from "@shared/schema";
 import { chatWithAI } from "./services/xai";
 import { uploadToDigitalOcean } from "./services/upload-real";
+
+// Helper function to create anonymous post responses - strips all sensitive data
+function createAnonymousPost(post: Post) {
+  const { solana_address, ...anonymousPost } = post;
+  return {
+    ...anonymousPost,
+    creator: { id: 'anonymous', handle: 'Anonymous', is_creator: false }
+  };
+}
 
 
 export async function registerRoutes(app: Express, upload?: Multer): Promise<Server> {
@@ -27,10 +36,8 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       // Apply pagination
       const paginatedPosts = posts.slice(offsetNum, offsetNum + limitNum);
       
-      // Add anonymous creator info to each post
-      const postsWithCreators = paginatedPosts.map((post) => {
-        return { ...post, creator: { id: 'anonymous', handle: 'Anonymous', is_creator: false } };
-      });
+      // Strip sensitive data and add anonymous creator info
+      const postsWithCreators = paginatedPosts.map(createAnonymousPost);
       
       res.json({
         posts: postsWithCreators,
@@ -58,10 +65,8 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         sort: sort as string, // 'latest', 'trending'
       });
       
-      // Add anonymous creator info to each post
-      const postsWithCreators = posts.map((post) => {
-        return { ...post, creator: { id: 'anonymous', handle: 'Anonymous', is_creator: false } };
-      });
+      // Strip sensitive data and add anonymous creator info
+      const postsWithCreators = posts.map(createAnonymousPost);
       
       res.json(postsWithCreators);
     } catch (error) {
@@ -78,8 +83,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         return res.status(404).json({ error: "Post not found" });
       }
       
-      const creator = { id: 'anonymous', handle: 'Anonymous', is_creator: false };
-      res.json({ ...post, creator });
+      res.json(createAnonymousPost(post));
     } catch (error) {
       console.error("Failed to fetch post:", error);
       res.status(500).json({ error: "Failed to fetch post" });
@@ -110,44 +114,37 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       
       if (req.headers['content-type']?.includes('multipart/form-data')) {
         // Handle FormData from file upload
-        const { media, creator_id, caption, price_lamports, visibility, tags } = req.body;
-        
-        console.log('FormData request:', {
-          contentType: req.headers['content-type'],
-          body: req.body,
-          file: req.file,
-          creator_id
-        });
+        const { caption, solana_address, tags } = req.body;
         
         if (!req.file) {
           return res.status(400).json({ error: "Media file is required" });
         }
 
         // Handle file upload
-        let mediaUrl, thumbUrl;
-        
-        if (req.file) {
-          // Upload to storage service (S3, Cloudinary, etc.)
-          const uploadResult = await uploadToDigitalOcean(req.file, 'posts');
-          mediaUrl = uploadResult.url;
-          thumbUrl = uploadResult.thumbnail || uploadResult.url;
-        } else {
-          return res.status(400).json({ error: "Media file is required" });
-        }
+        const uploadResult = await uploadToDigitalOcean(req.file, 'posts');
 
         postData = {
-          creator_id: 'anonymous',
-          media_url: mediaUrl,
-          thumb_url: thumbUrl,
+          media_url: uploadResult.url,
+          thumb_url: uploadResult.thumbnail || uploadResult.url,
           caption: caption || '',
           price_lamports: 0,
           visibility: 'public',
-          solana_address: null,
+          solana_address: solana_address || null,
           is_live: false
         };
       } else {
-        // Handle JSON data
-        postData = req.body;
+        // Handle JSON data - Force anonymous regardless of input
+        const { caption, solana_address, media_url, thumb_url, is_live, tags } = req.body;
+        
+        postData = {
+          media_url: media_url || '',
+          thumb_url: thumb_url || media_url || '',
+          caption: caption || '',
+          price_lamports: 0,
+          visibility: 'public',
+          solana_address: solana_address || null,
+          is_live: is_live || false
+        };
       }
 
       const validatedData = insertPostSchema.parse(postData);
@@ -230,10 +227,8 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       // Apply limit
       const trendingPosts = filteredPosts.slice(0, searchLimit);
       
-      // Add anonymous creator info
-      const postsWithCreators = trendingPosts.map((post) => {
-        return { ...post, creator: { id: 'anonymous', handle: 'Anonymous', is_creator: false } };
-      });
+      // Strip sensitive data and add anonymous creator info
+      const postsWithCreators = trendingPosts.map(createAnonymousPost);
       
       res.json({
         posts: postsWithCreators,
@@ -272,10 +267,8 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       const shuffled = discoveryContent.sort(() => Math.random() - 0.5);
       const paginatedContent = shuffled.slice(searchOffset, searchOffset + searchLimit);
       
-      // Add anonymous creator info
-      const contentWithCreators = paginatedContent.map((item) => {
-        return { ...item, creator: { id: 'anonymous', handle: 'Anonymous', is_creator: false } };
-      });
+      // Strip sensitive data and add anonymous creator info
+      const contentWithCreators = paginatedContent.map(createAnonymousPost);
       
       res.json({
         content: contentWithCreators,

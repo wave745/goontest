@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Image, Video, Upload, X, Wallet } from 'lucide-react';
+import { Image, Video, Upload, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface UploadDialogProps {
@@ -21,10 +21,8 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadTags, setUploadTags] = useState('');
-  const [solanaAddress, setSolanaAddress] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const currentUser = { id: 'anonymous', goon_username: 'Anonymous' };
 
   const uploadMutation = useMutation({
     mutationFn: async (postData: any) => {
@@ -48,7 +46,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       setUploadTitle('');
       setUploadDescription('');
       setUploadTags('');
-      setSolanaAddress('');
       onOpenChange(false);
     },
     onError: (error) => {
@@ -81,20 +78,8 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
     }
   };
 
-  const isValidSolanaAddress = (address: string): boolean => {
-    return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
-  };
 
   const handleUpload = async () => {
-    if (!currentUser) {
-      toast({
-        title: "User not found",
-        description: "Please refresh the page and try again",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!uploadFile || !uploadTitle.trim()) {
       toast({
         title: "Missing information",
@@ -104,14 +89,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       return;
     }
 
-    if (solanaAddress && !isValidSolanaAddress(solanaAddress)) {
-      toast({
-        title: "Invalid Solana address",
-        description: "Please enter a valid Solana wallet address",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setIsUploading(true);
 
@@ -132,18 +109,11 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       
       const { mediaUrl, thumbUrl } = await uploadResponse.json();
 
-      // Anonymous upload - no user address saving needed
-
-
+      // Create post data - completely anonymous upload
       const postData = {
-        creator_id: currentUser.id,
-        creator_handle: currentUser.goon_username,
-        solana_address: solanaAddress,
         media_url: mediaUrl,
         thumb_url: thumbUrl,
         caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
-        visibility: 'public',
-        status: 'published',
       };
 
       await uploadMutation.mutateAsync(postData);
@@ -299,22 +269,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
             />
           </div>
           
-          <div>
-            <Label htmlFor="solana-address">Solana Address (for tips)</Label>
-            <div className="relative mt-1">
-              <Wallet className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="solana-address"
-                value={solanaAddress}
-                onChange={(e) => setSolanaAddress(e.target.value)}
-                placeholder="Enter your Solana wallet address for tips"
-                className="pl-10"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Optional: Add your Solana address to receive tips from viewers
-            </p>
-          </div>
           
           <div className="flex gap-2 pt-4">
             <Button

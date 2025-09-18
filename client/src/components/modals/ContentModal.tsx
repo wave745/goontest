@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -20,16 +19,12 @@ import {
   Flag,
   Lock,
   Coins,
-  Check,
   Play,
   X,
 } from 'lucide-react';
-import { Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import ReactionButtons from '@/components/ReactionButtons';
-import type { Post, User } from '@shared/schema';
-
-type PostWithCreator = Post & { creator: User };
+import type { Post } from '@shared/schema';
 
 interface ContentModalProps {
   postId: string | null;
@@ -46,7 +41,7 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
   const [currentLikes, setCurrentLikes] = useState(0);
 
   // Fetch post data
-  const { data: post, isLoading } = useQuery<PostWithCreator>({
+  const { data: post, isLoading } = useQuery<Post>({
     queryKey: [`/api/posts/${postId}`],
     enabled: !!postId && isOpen,
   });
@@ -66,11 +61,11 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
     },
   });
 
-  // Unlock content mutation
+  // Unlock content mutation - Anonymous unlock
   const unlockMutation = useMutation({
     mutationFn: async () => {
-      if (!connected || !publicKey || !post) {
-        throw new Error('Please connect your wallet first');
+      if (!post) {
+        throw new Error('Post not found');
       }
 
       const response = await fetch('/api/posts/unlock', {
@@ -78,7 +73,6 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           postId: post.id,
-          userPubkey: publicKey.toBase58(),
         }),
       });
 
@@ -101,17 +95,17 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
     },
   });
 
-  // Like/Unlike mutation
+  // Like/Unlike mutation - Anonymous likes
   const likeMutation = useMutation({
     mutationFn: async () => {
-      if (!connected || !publicKey || !postId) {
-        throw new Error('Please connect your wallet first');
+      if (!postId) {
+        throw new Error('Post not found');
       }
 
       const response = await fetch(`/api/posts/${postId}/like`, {
         method: isLiked ? 'DELETE' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: publicKey.toBase58() })
+        body: JSON.stringify({})
       });
       
       if (!response.ok) throw new Error('Failed to like/unlike post');
@@ -149,9 +143,6 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
     likeMutation.mutate();
   };
 
-  const handleTip = async (postId: string, amount: number) => {
-    console.log('Tip request handled by ReactionButtons:', { postId, amount });
-  };
 
   const handleUnlock = () => {
     unlockMutation.mutate();
@@ -295,27 +286,15 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
             <div className="w-80 bg-card border-l border-border flex flex-col">
               <ScrollArea className="flex-1">
                 <div className="p-4 space-y-4">
-                  {/* Creator Info */}
+                  {/* Anonymous Creator Info */}
                   <div className="flex items-center gap-3">
-                    <Link href={`/c/${(post.creator as any)?.goon_username || post.creator?.handle || 'unknown'}`}>
-                      <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-accent/50 transition-all">
-                        <AvatarImage src={post.creator?.avatar_url} />
-                        <AvatarFallback>
-                          {((post.creator as any)?.goon_username || post.creator?.handle)?.charAt(0).toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Link>
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                      <span className="text-sm text-muted-foreground">A</span>
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Link href={`/c/${(post.creator as any)?.goon_username || post.creator?.handle || 'unknown'}`}>
-                          <h3 className="font-medium hover:text-accent transition-colors cursor-pointer truncate">
-                            @{(post.creator as any)?.goon_username || post.creator?.handle || 'unknown'}
-                          </h3>
-                        </Link>
-                        {post.creator?.is_creator && (
-                          <Check className="h-4 w-4 text-accent" />
-                        )}
-                      </div>
+                      <h3 className="font-medium text-muted-foreground">
+                        Anonymous Creator
+                      </h3>
                       <p className="text-sm text-muted-foreground">
                         {new Date(post.created_at).toLocaleDateString()}
                       </p>
@@ -372,10 +351,7 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
                     postId={post.id}
                     likes={currentLikes}
                     isLiked={isLiked}
-                    solanaAddress={post.solana_address}
-                    creatorId={post.creator_id}
                     onLike={handleLike}
-                    onTip={handleTip}
                   />
                 </div>
 

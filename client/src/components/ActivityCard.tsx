@@ -77,9 +77,8 @@ export default function ActivityCard({
   const handleAction = () => {
     if (activity.post_id && onViewPost) {
       onViewPost(activity.post_id);
-    } else if (activity.target_user_id && onViewUser) {
-      onViewUser(activity.target_user_id);
     }
+    // Removed user viewing for anonymization
   };
 
   return (
@@ -118,7 +117,7 @@ export default function ActivityCard({
             </div>
             
             <div className="flex items-center gap-2">
-              {(activity.post_id || activity.target_user_id) && (
+              {activity.post_id && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -126,7 +125,7 @@ export default function ActivityCard({
                   onClick={handleAction}
                 >
                   <ExternalLink className="h-3 w-3 mr-1" />
-                  View
+                  View Post
                 </Button>
               )}
               

@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { 
   Heart, 
@@ -14,16 +13,14 @@ import {
   Users,
   Crown
 } from 'lucide-react';
-import { Link } from 'wouter';
-import type { Post, User } from '@shared/schema';
+import type { Post } from '@shared/schema';
 
 interface MediaPostProps {
   post: Post;
-  creator: User;
   onTip?: (postId: string, amount: number) => void;
 }
 
-export default function MediaPost({ post, creator, onTip }: MediaPostProps) {
+export default function MediaPost({ post, onTip }: MediaPostProps) {
   const { connected, publicKey } = useWallet();
   const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState(false);
@@ -111,26 +108,14 @@ export default function MediaPost({ post, creator, onTip }: MediaPostProps) {
       <CardContent className="p-0">
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-border">
-          <Link href={`/c/${(creator as any).goon_username || creator.handle}`}>
-            <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-accent/50 transition-all">
-              <AvatarImage src={creator.avatar_url} alt={(creator as any).goon_username || creator.handle} />
-              <AvatarFallback>
-                {((creator as any).goon_username || creator.handle)?.charAt(0).toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <span className="text-sm text-muted-foreground">A</span>
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <Link href={`/c/${(creator as any).goon_username || creator.handle}`}>
-                <h3 className="font-medium hover:text-accent transition-colors cursor-pointer">
-                  @{(creator as any).goon_username || creator.handle}
-                </h3>
-              </Link>
-              {creator.is_creator && (
-                <Badge variant="secondary" className="text-xs">
-                  Creator
-                </Badge>
-              )}
+              <h3 className="font-medium text-muted-foreground">
+                Anonymous Creator
+              </h3>
               <div className="flex items-center gap-1 text-muted-foreground">
                 {getVisibilityIcon()}
                 <span className="text-xs">{getVisibilityLabel()}</span>

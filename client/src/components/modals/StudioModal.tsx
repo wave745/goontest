@@ -49,15 +49,6 @@ export default function StudioModal({ isOpen, onClose }: StudioModalProps) {
 
 
   const handleUpload = async () => {
-    if (!connected || !publicKey) {
-      toast({
-        title: "Error",
-        description: "Please connect your wallet first",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!file || !title) {
       toast({
         title: "Error",
@@ -68,13 +59,55 @@ export default function StudioModal({ isOpen, onClose }: StudioModalProps) {
     }
 
     try {
-      // TODO: Implement file upload to DigitalOcean Spaces and database insertion
+      // Upload file to storage service
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', file.type.startsWith('image/') ? 'photo' : 'video');
+      
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+      
+      const { mediaUrl, thumbUrl } = await uploadResponse.json();
+
+      // Create post data - backend will force anonymous upload
+      const postData = {
+        media_url: mediaUrl,
+        thumb_url: thumbUrl,
+        caption: title + (description ? `\n\n${description}` : ''),
+        price_lamports: Math.floor(parseFloat(price) * 1000000000) || 0, // Convert SOL to lamports
+        visibility: visibility,
+      };
+
+      const postResponse = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData),
+      });
+      
+      if (!postResponse.ok) {
+        throw new Error('Failed to create post');
+      }
+
       toast({
         title: "Upload Successful!",
         description: "Your content has been published",
       });
+      
+      // Reset form
+      setFile(null);
+      setTitle('');
+      setDescription('');
+      setPrice('0');
+      setVisibility('public');
       onClose();
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         title: "Upload Failed",
         description: "There was an error uploading your content",
@@ -229,7 +262,7 @@ export default function StudioModal({ isOpen, onClose }: StudioModalProps) {
 
             <Button
               onClick={handleUpload}
-              disabled={!connected || !file || !title}
+              disabled={!file || !title}
               className="w-full btn-goon"
               data-testid="button-upload-content"
             >

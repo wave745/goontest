@@ -18,7 +18,7 @@ export default function MobileNav() {
           const isActive = location === item.href;
           return (
             <Link key={item.href} href={item.href}>
-              <a className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent/10 group">
+              <div className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent/10 group cursor-pointer">
                 <item.icon className={`h-5 w-5 ${
                   isActive 
                     ? 'text-accent' 
@@ -31,7 +31,7 @@ export default function MobileNav() {
                 }`}>
                   {item.label}
                 </span>
-              </a>
+              </div>
             </Link>
           );
         })}

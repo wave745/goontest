@@ -2,16 +2,13 @@ import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Home, Video, Image, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import type { User } from '@shared/schema';
+// Removed User type import for anonymization
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [location] = useLocation();
   
-  const { data: subscriptions } = useQuery<User[]>({
-    queryKey: ['/api/subscriptions'],
-    enabled: false, // Enable when user is authenticated
-  });
+  // Removed subscription query for anonymization
 
   const navItems = [
     { icon: Home, label: 'Home', href: '/' },
@@ -44,14 +41,14 @@ export default function Sidebar() {
               const isActive = location === item.href;
               return (
                 <Link key={item.href} href={item.href}>
-                  <a className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  <div className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors cursor-pointer ${
                     isActive 
                       ? 'text-accent bg-accent/10 border border-accent/20' 
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent/10'
                   }`} data-testid={`link-${item.label.toLowerCase()}`}>
                     <item.icon className="h-4 w-4" />
                     {!isCollapsed && item.label}
-                  </a>
+                  </div>
                 </Link>
               );
             })}
@@ -65,14 +62,14 @@ export default function Sidebar() {
               const isActive = location === item.href;
               return (
                 <Link key={item.href} href={item.href}>
-                  <a className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  <div className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors cursor-pointer ${
                     isActive 
                       ? 'text-accent bg-accent/10 border border-accent/20' 
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent/10'
                   }`} data-testid={`link-${item.label.toLowerCase().replace(' ', '-')}`}>
                     <item.icon className="h-4 w-4" />
                     {!isCollapsed && item.label}
-                  </a>
+                  </div>
                 </Link>
               );
             })}
@@ -80,29 +77,6 @@ export default function Sidebar() {
         </div>
 
 
-        {!isCollapsed && subscriptions && (
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3">Subscriptions</h3>
-            <div className="space-y-3">
-              {subscriptions.slice(0, 5).map((creator) => (
-                <Link key={creator.id} href={`/c/${creator.goon_username || creator.handle}`}>
-                  <div className="flex items-center gap-3 hover:bg-accent/10 rounded-lg p-2 transition-colors cursor-pointer" data-testid={`link-creator-${creator.goon_username || creator.handle}`}>
-                    <img 
-                      src={creator.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.goon_username || creator.handle}`} 
-                      alt={creator.goon_username || creator.handle} 
-                      className="w-8 h-8 rounded-full" 
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">@{creator.goon_username || creator.handle}</p>
-                      <p className="text-xs text-muted-foreground">Online</p>
-                    </div>
-                    <div className="w-2 h-2 bg-success rounded-full"></div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </aside>
   );

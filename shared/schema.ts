@@ -6,8 +6,6 @@ import { z } from "zod";
 
 
 export const insertPostSchema = z.object({
-  creator_id: z.string().default('anonymous'),
-  creator_handle: z.string().default('Anonymous'),
   media_url: z.string(),
   thumb_url: z.string(),
   caption: z.string(),
@@ -96,6 +94,15 @@ export type Post = InsertPost & {
   views: number;
   likes: number;
   created_at: Date;
+};
+
+// Client-safe Post type with sensitive data stripped for API responses
+export type AnonymousPost = Omit<Post, 'solana_address'> & {
+  creator: {
+    id: 'anonymous';
+    handle: 'Anonymous';
+    is_creator: false;
+  };
 };
 
 export type Token = InsertToken & {

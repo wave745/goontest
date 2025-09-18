@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { Download, Check, Coins } from 'lucide-react';
+import { Download, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Link } from 'wouter';
 import { useMutation } from '@tanstack/react-query';
 import ReactionButtons from './ReactionButtons';
 import ContentModal from './modals/ContentModal';
@@ -140,26 +138,16 @@ export default function PhotoCard({
 
         {/* Content */}
         <div className="p-3 space-y-2">
-          {/* Creator Info */}
+          {/* Anonymous Creator Info */}
           <div className="flex items-center gap-2">
-            <Link href={`/c/${(creator as any).goon_username || creator.handle || 'unknown'}`}>
-              <Avatar className="h-6 w-6 cursor-pointer">
-                <AvatarImage src={creator.avatar_url} />
-                <AvatarFallback className="text-xs">
-                  {((creator as any).goon_username || creator.handle)?.charAt(0).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-            </Link>
-            <Link href={`/c/${(creator as any).goon_username || creator.handle || 'unknown'}`} className="flex-1 min-w-0">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-medium text-foreground truncate hover:text-accent">
-                  @{(creator as any).goon_username || creator.handle || 'unknown'}
-                </span>
-                {isVerified && (
-                  <Check className="h-3 w-3 text-accent" />
-                )}
-              </div>
-            </Link>
+            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+              <span className="text-xs text-muted-foreground">A</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-muted-foreground">
+                Anonymous Creator
+              </span>
+            </div>
           </div>
 
           {/* Title */}

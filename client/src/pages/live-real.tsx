@@ -107,7 +107,7 @@ export default function Live() {
           ...stream,
           marketCap: Math.floor(Math.random() * 20000000) + 1000000,
           allTimeHigh: Math.floor(Math.random() * 30000000) + 2000000,
-          tokenSymbol: ((stream.creator as any)?.goon_username || stream.creator?.handle)?.toUpperCase() || 'TOKEN'
+          tokenSymbol: 'ANONYMOUS'
         })) || [];
         
         setStreams(streamsWithData);
@@ -368,16 +368,16 @@ export default function Live() {
                         {/* Creator Info with Market Data */}
                         <div className="flex items-center gap-3 mb-4">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={stream.creator?.avatar_url} alt={(stream.creator as any)?.goon_username || stream.creator?.handle || 'Creator'} />
+                            <AvatarImage src={'/placeholder-avatar.jpg'} alt="Anonymous Creator" />
                             <AvatarFallback>
-                              {((stream.creator as any)?.goon_username || stream.creator?.handle)?.charAt(0).toUpperCase() || 'C'}
+                              A
                             </AvatarFallback>
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold text-foreground truncate">
-                                @{(stream.creator as any)?.goon_username || stream.creator?.handle || 'Unknown Creator'}
+@Anonymous
                               </h4>
                               {stream.creator?.age_verified && (
                                 <Badge variant="secondary" className="text-xs">
@@ -429,9 +429,7 @@ export default function Live() {
                           <ReactionButtons
                             postId={stream.id}
                             likes={stream.likes || 0}
-                            solanaAddress={stream.solana_address}
                             onLike={handleLikeStream}
-                            onTip={handleTipStream}
                           />
                           
                           <Button
@@ -510,13 +508,13 @@ export default function Live() {
                         </h3>
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
-                            <AvatarImage src={stream.creator?.avatar_url} alt={stream.creator?.handle} />
+                            <AvatarImage src={'/placeholder-avatar.jpg'} alt="Anonymous Creator" />
                             <AvatarFallback className="text-xs">
-                              {stream.creator?.handle?.charAt(0).toUpperCase() || 'C'}
+                              A
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-sm text-muted-foreground">
-                            {stream.creator?.handle || 'Unknown Creator'}
+Anonymous Creator
                           </span>
                         </div>
                       </CardContent>
@@ -594,21 +592,19 @@ export default function Live() {
                       onKeyPress={handleKeyPress}
                       placeholder="Type a message..."
                       className="flex-1"
-                      disabled={!currentUser}
+                      disabled={false}
                     />
                     <Button
                       onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || !currentUser}
+                      disabled={!newMessage.trim()}
                       size="sm"
                     >
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
-                  {!currentUser && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Sign in to chat
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Anonymous chat enabled
+                  </p>
                 </div>
               </div>
             )}
