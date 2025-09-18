@@ -85,19 +85,19 @@ export default function Sidebar() {
             <h3 className="text-sm font-semibold text-foreground mb-3">Subscriptions</h3>
             <div className="space-y-3">
               {subscriptions.slice(0, 5).map((creator) => (
-                <Link key={creator.id} href={`/c/${(creator as any).goon_username || creator.handle}`}>
-                  <a className="flex items-center gap-3 hover:bg-accent/10 rounded-lg p-2 transition-colors" data-testid={`link-creator-${(creator as any).goon_username || creator.handle}`}>
+                <Link key={creator.id} href={`/c/${creator.goon_username || creator.handle}`}>
+                  <div className="flex items-center gap-3 hover:bg-accent/10 rounded-lg p-2 transition-colors cursor-pointer" data-testid={`link-creator-${creator.goon_username || creator.handle}`}>
                     <img 
-                      src={creator.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${(creator as any).goon_username || creator.handle}`} 
-                      alt={(creator as any).goon_username || creator.handle} 
+                      src={creator.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.goon_username || creator.handle}`} 
+                      alt={creator.goon_username || creator.handle} 
                       className="w-8 h-8 rounded-full" 
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">@{(creator as any).goon_username || creator.handle}</p>
+                      <p className="text-sm font-medium text-foreground truncate">@{creator.goon_username || creator.handle}</p>
                       <p className="text-xs text-muted-foreground">Online</p>
                     </div>
                     <div className="w-2 h-2 bg-success rounded-full"></div>
-                  </a>
+                  </div>
                 </Link>
               ))}
             </div>

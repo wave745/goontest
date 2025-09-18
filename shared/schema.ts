@@ -127,6 +127,7 @@ export type InsertLiveChatMessage = z.infer<typeof insertLiveChatMessageSchema>;
 
 export type User = InsertUser & {
   created_at: Date;
+  goon_username?: string; // Make sure TypeScript knows about this field
 };
 
 export type Post = InsertPost & {
