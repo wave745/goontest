@@ -51,7 +51,7 @@ export default function TipModal({ isOpen, onClose, creator }: TipModalProps) {
       // TODO: Implement actual Solana transaction
       toast({
         title: "Tip Sent!",
-        description: `Successfully sent ${amount} SOL to @${creator.handle}`,
+        description: `Successfully sent ${amount} SOL to @${(creator as any).goon_username || creator.handle}`,
       });
       onClose();
     } catch (error) {
@@ -73,12 +73,12 @@ export default function TipModal({ isOpen, onClose, creator }: TipModalProps) {
         {creator && (
           <div className="flex items-center gap-3 mb-4">
             <img
-              src={creator.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.handle}`}
-              alt={creator.handle}
+              src={creator.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${(creator as any).goon_username || creator.handle}`}
+              alt={(creator as any).goon_username || creator.handle}
               className="w-12 h-12 rounded-full"
             />
             <div>
-              <p className="font-medium text-foreground">@{creator.handle}</p>
+              <p className="font-medium text-foreground">@{(creator as any).goon_username || creator.handle}</p>
               <p className="text-sm text-muted-foreground">Premium Creator</p>
             </div>
           </div>

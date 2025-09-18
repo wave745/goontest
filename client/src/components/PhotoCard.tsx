@@ -154,18 +154,18 @@ export default function PhotoCard({
         <div className="p-3 space-y-2">
           {/* Creator Info */}
           <div className="flex items-center gap-2">
-            <Link href={`/c/${creator.handle || 'unknown'}`}>
+            <Link href={`/c/${(creator as any).goon_username || creator.handle || 'unknown'}`}>
               <Avatar className="h-6 w-6 cursor-pointer">
                 <AvatarImage src={creator.avatar_url} />
                 <AvatarFallback className="text-xs">
-                  {creator.handle?.charAt(0).toUpperCase() || 'U'}
+                  {((creator as any).goon_username || creator.handle)?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
             </Link>
-            <Link href={`/c/${creator.handle || 'unknown'}`} className="flex-1 min-w-0">
+            <Link href={`/c/${(creator as any).goon_username || creator.handle || 'unknown'}`} className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
                 <span className="text-sm font-medium text-foreground truncate hover:text-accent">
-                  @{creator.handle || 'unknown'}
+                  @{(creator as any).goon_username || creator.handle || 'unknown'}
                 </span>
                 {isVerified && (
                   <Check className="h-3 w-3 text-accent" />

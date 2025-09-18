@@ -111,19 +111,19 @@ export default function MediaPost({ post, creator, onTip }: MediaPostProps) {
       <CardContent className="p-0">
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-border">
-          <Link href={`/c/${creator.handle}`}>
+          <Link href={`/c/${(creator as any).goon_username || creator.handle}`}>
             <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-accent/50 transition-all">
-              <AvatarImage src={creator.avatar_url} alt={creator.handle} />
+              <AvatarImage src={creator.avatar_url} alt={(creator as any).goon_username || creator.handle} />
               <AvatarFallback>
-                {creator.handle?.charAt(0).toUpperCase() || 'U'}
+                {((creator as any).goon_username || creator.handle)?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
           </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <Link href={`/c/${creator.handle}`}>
+              <Link href={`/c/${(creator as any).goon_username || creator.handle}`}>
                 <h3 className="font-medium hover:text-accent transition-colors cursor-pointer">
-                  @{creator.handle}
+                  @{(creator as any).goon_username || creator.handle}
                 </h3>
               </Link>
               {creator.is_creator && (
