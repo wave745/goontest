@@ -65,11 +65,6 @@ export default function ReactionButtons({
       if (onLike) {
         onLike(postId);
       }
-      
-      toast({
-        title: isLiked ? "Unliked!" : "Liked!",
-        description: isLiked ? "Removed like" : "Thanks for the like!",
-      });
     } catch (error) {
       console.error('Failed to like post:', error);
       toast({

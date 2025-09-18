@@ -198,10 +198,6 @@ export default function Live() {
 
   const handleLikeStream = (streamId: string) => {
     // TODO: Implement like functionality
-    toast({
-      title: "Liked!",
-      description: "You liked this stream",
-    });
   };
 
   const handleTipStream = (streamId: string, amount: number) => {
