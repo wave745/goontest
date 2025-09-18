@@ -134,6 +134,7 @@ export type Post = InsertPost & {
   views: number;
   likes: number;
   created_at: Date;
+  creator?: User;
 };
 
 export type Token = InsertToken & {

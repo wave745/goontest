@@ -153,13 +153,13 @@ export default function PostDetail() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <img
-                      src={post.creator.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.creator.handle}`}
-                      alt={post.creator.handle}
+                      src={post.creator?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.creator?.handle || 'anonymous'}`}
+                      alt={post.creator?.handle || 'Anonymous'}
                       className="w-12 h-12 rounded-full"
                     />
                     <div>
                       <CardTitle className="text-foreground">{post.caption}</CardTitle>
-                      <p className="text-muted-foreground">@{post.creator.handle}</p>
+                      <p className="text-muted-foreground">@{post.creator?.handle || 'anonymous'}</p>
                     </div>
                   </div>
                   

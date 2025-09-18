@@ -137,7 +137,7 @@ export default function Videos() {
     try {
       // Upload file to storage service
       const formData = new FormData();
-      formData.append('file', file as File);
+      formData.append('file', uploadFile as File);
       formData.append('type', 'video');
       
       const uploadResponse = await fetch('/api/upload', {
@@ -401,13 +401,13 @@ export default function Videos() {
                       thumb={post.thumb_url}
                       duration="12:34"
                       title={post.caption}
-                      creator={post.creator}
+                      creator={post.creator || { id: 'anonymous', handle: 'Anonymous', is_creator: false }}
                       views={post.views}
                       likes={post.likes}
                       price={post.price_lamports}
                       isGated={post.price_lamports > 0}
-                      isVerified={post.creator.is_creator}
-                      tags={post.tags}
+                      isVerified={post.creator?.is_creator || false}
+                      tags={post.tags || []}
                       onClick={() => handleCardClick(post)}
                     />
                   ))}
