@@ -3,7 +3,6 @@ import { Link, useLocation } from 'wouter';
 import { Upload, Users, Settings, Play, User, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import SearchBar from './SearchBar';
 import UploadDialog from './UploadDialog';
 import { getCurrentUser, getOrCreateUser, type GoonUser } from '@/lib/userManager';
 
@@ -56,21 +55,6 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Search Bar */}
-          <div className="hidden md:block">
-            <SearchBar 
-              className="w-64" 
-              placeholder="Search creators, posts..."
-            />
-          </div>
-          
-          {/* Mobile Search */}
-          <div className="md:hidden">
-            <SearchBar 
-              className="w-32" 
-              placeholder="Search..."
-            />
-          </div>
 
           {/* Mobile Action Buttons */}
           <div className="md:hidden flex items-center gap-1">

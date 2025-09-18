@@ -16,7 +16,6 @@ import Coins from "@/pages/coins";
 import Profile from "@/pages/profile-real";
 import NotFound from "@/pages/not-found";
 import Creators from "@/pages/creators-real";
-import Search from "@/pages/search";
 import AIProfile from "@/pages/ai-profile";
 import Upload from "@/pages/upload";
 import Live from "@/pages/live-real";
@@ -30,7 +29,6 @@ function Router() {
       <Route path="/videos" component={Videos} />
       <Route path="/photos" component={Photos} />
       <Route path="/creators" component={Creators} />
-      <Route path="/search" component={Search} />
       <Route path="/c/:handle" component={CreatorProfile} />
       <Route path="/ai/:handle" component={AIProfile} />
       <Route path="/p/:id" component={PostDetail} />

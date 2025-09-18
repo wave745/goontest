@@ -74,14 +74,6 @@ export interface IStorage {
   getLiveChatMessages(streamId: string, limit: number, offset: number): Promise<any[]>;
   createLiveChatMessage(message: InsertLiveChatMessage): Promise<any>;
 
-  // Search
-  searchUsers(query: string, limit?: number): Promise<User[]>;
-  searchPosts(query: string, limit?: number): Promise<Post[]>;
-  searchAll(query: string, limit?: number): Promise<{
-    users: User[];
-    posts: Post[];
-    tokens: Token[];
-  }>;
 }
 
 export class MemStorage implements IStorage {
@@ -506,55 +498,6 @@ export class MemStorage implements IStorage {
     );
   }
 
-  // Search methods
-  async searchUsers(query: string, limit: number = 10): Promise<User[]> {
-    const searchTerm = query.toLowerCase();
-    const allUsers = Array.from(this.users.values());
-    
-    const results = allUsers.filter(user => {
-      const handle = user.handle?.toLowerCase() || '';
-      const bio = user.bio?.toLowerCase() || '';
-      return handle.includes(searchTerm) || bio.includes(searchTerm);
-    });
-
-    return results.slice(0, limit);
-  }
-
-  async searchPosts(query: string, limit: number = 10): Promise<Post[]> {
-    const searchTerm = query.toLowerCase();
-    const allPosts = Array.from(this.posts.values());
-    
-    const results = allPosts.filter(post => {
-      const caption = post.caption?.toLowerCase() || '';
-      const tags = post.tags?.join(' ').toLowerCase() || '';
-      return caption.includes(searchTerm) || tags.includes(searchTerm);
-    });
-
-    return results.slice(0, limit);
-  }
-
-  async searchAll(query: string, limit: number = 10): Promise<{
-    users: User[];
-    posts: Post[];
-    tokens: Token[];
-  }> {
-    const [users, posts] = await Promise.all([
-      this.searchUsers(query, limit),
-      this.searchPosts(query, limit)
-    ]);
-
-    // Search tokens by name and symbol
-    const searchTerm = query.toLowerCase();
-    const allTokens = Array.from(this.tokens.values());
-    const tokens = allTokens.filter(token => {
-      const name = token.name?.toLowerCase() || '';
-      const symbol = token.symbol?.toLowerCase() || '';
-      const description = token.description?.toLowerCase() || '';
-      return name.includes(searchTerm) || symbol.includes(searchTerm) || description.includes(searchTerm);
-    }).slice(0, limit);
-
-    return { users, posts, tokens };
-  }
 
   // Activity methods
   async getActivities(userId?: string, limit: number = 50): Promise<Activity[]> {
