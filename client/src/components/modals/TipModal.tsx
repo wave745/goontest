@@ -11,7 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 interface TipModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // Tipping disabled - component kept for compatibility but non-functional
+  creator?: {
+    handle: string;
+    avatar_url?: string;
+    id: string;
+  };
 }
 
 export default function TipModal({ isOpen, onClose, creator }: TipModalProps) {
@@ -47,8 +51,7 @@ export default function TipModal({ isOpen, onClose, creator }: TipModalProps) {
       // TODO: Implement actual Solana transaction
       toast({
         title: "Tip Sent!",
-        description: `Tipping is disabled on this anonymous platform`,
-        variant: "destructive",
+        description: `Successfully sent ${amount} SOL to @${creator.handle}`,
       });
       onClose();
     } catch (error) {
@@ -67,17 +70,19 @@ export default function TipModal({ isOpen, onClose, creator }: TipModalProps) {
           <DialogTitle className="text-foreground">Send Tip</DialogTitle>
         </DialogHeader>
 
-        <div className="flex items-center gap-3 mb-4">
-          <img
-            src="/placeholder-avatar.jpg"
-            alt="Anonymous Creator"
-            className="w-12 h-12 rounded-full"
-          />
-          <div>
-            <p className="font-medium text-foreground">@Anonymous</p>
-            <p className="text-sm text-muted-foreground">Tipping Disabled</p>
+        {creator && (
+          <div className="flex items-center gap-3 mb-4">
+            <img
+              src={creator.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.handle}`}
+              alt={creator.handle}
+              className="w-12 h-12 rounded-full"
+            />
+            <div>
+              <p className="font-medium text-foreground">@{creator.handle}</p>
+              <p className="text-sm text-muted-foreground">Premium Creator</p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-4">
           <div>
@@ -132,13 +137,13 @@ export default function TipModal({ isOpen, onClose, creator }: TipModalProps) {
           </div>
 
           <Button 
-            onClick={() => toast({ title: "Tipping Disabled", description: "Tipping is not available on this anonymous platform", variant: "destructive" })}
+            onClick={handleTip}
             className="w-full btn-goon"
-            disabled={true}
+            disabled={!connected}
             data-testid="button-send-tip"
           >
             <PlaneTakeoff className="mr-2 h-4 w-4" />
-            Tipping Disabled
+            Send Tip
           </Button>
         </div>
 

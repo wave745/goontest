@@ -27,6 +27,7 @@ export default function Videos() {
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadPrice, setUploadPrice] = useState('');
+  const [uploadTags, setUploadTags] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,6 +71,7 @@ export default function Videos() {
       setUploadTitle('');
       setUploadDescription('');
       setUploadPrice('');
+      setUploadTags('');
       setIsUploadDialogOpen(false);
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
@@ -83,6 +85,9 @@ export default function Videos() {
     },
   });
 
+  const handleCardClick = (post: Post) => {
+    setLocation(`/p/${post.id}`);
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -132,7 +137,7 @@ export default function Videos() {
     try {
       // Upload file to storage service
       const formData = new FormData();
-      formData.append('file', uploadFile as File);
+      formData.append('file', file as File);
       formData.append('type', 'video');
       
       const uploadResponse = await fetch('/api/upload', {
@@ -146,6 +151,7 @@ export default function Videos() {
       
       const { mediaUrl, thumbUrl } = await uploadResponse.json();
 
+      const tags = uploadTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
 
       const postData = {
         creator_id: publicKey.toBase58(),
@@ -154,6 +160,7 @@ export default function Videos() {
         caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
         price_lamports: parseFloat(uploadPrice || '0') * 1000000,
         visibility: 'public',
+        tags: ['video', ...tags]
       };
 
       await uploadMutation.mutateAsync(postData);
@@ -328,6 +335,16 @@ export default function Videos() {
                         />
                       </div>
 
+                      <div>
+                        <Label htmlFor="tags">Tags (comma-separated)</Label>
+                        <Input
+                          id="tags"
+                          value={uploadTags}
+                          onChange={(e) => setUploadTags(e.target.value)}
+                          placeholder="gaming, tutorial, entertainment"
+                          className="mt-1"
+                        />
+                      </div>
                       
                       <div>
                         <Label htmlFor="price">Price (GOON Coins)</Label>
@@ -384,17 +401,14 @@ export default function Videos() {
                       thumb={post.thumb_url}
                       duration="12:34"
                       title={post.caption}
-                      creator={post.creator ? { 
-                        id: post.creator.id || 'anonymous',
-                        handle: post.creator.handle || 'Anonymous', 
-                        avatar_url: post.creator.avatar_url,
-                        is_creator: post.creator.is_creator || false 
-                      } : { id: 'anonymous', handle: 'Anonymous', is_creator: false }}
+                      creator={post.creator}
                       views={post.views}
                       likes={post.likes}
                       price={post.price_lamports}
                       isGated={post.price_lamports > 0}
-                      isVerified={post.creator?.is_creator || false}
+                      isVerified={post.creator.is_creator}
+                      tags={post.tags}
+                      onClick={() => handleCardClick(post)}
                     />
                   ))}
                 </MasonryGrid>

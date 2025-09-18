@@ -9,6 +9,7 @@ export default function MobileNav() {
     { icon: Clock, label: 'Recent', href: '/recent' },
     { icon: Image, label: 'Photos', href: '/photos' },
     { icon: Video, label: 'Videos', href: '/videos' },
+    { icon: Coins, label: 'GOON Coins', href: '/coins' },
   ];
 
   return (
@@ -18,7 +19,7 @@ export default function MobileNav() {
           const isActive = location === item.href;
           return (
             <Link key={item.href} href={item.href}>
-              <div className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent/10 group cursor-pointer">
+              <a className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent/10 group">
                 <item.icon className={`h-5 w-5 ${
                   isActive 
                     ? 'text-accent' 
@@ -31,7 +32,7 @@ export default function MobileNav() {
                 }`}>
                   {item.label}
                 </span>
-              </div>
+              </a>
             </Link>
           );
         })}

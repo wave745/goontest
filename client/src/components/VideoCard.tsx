@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Download, Play, Coins } from 'lucide-react';
+import { Eye, Share2, MoreVertical, Check, Play, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Link } from 'wouter';
 import { useMutation } from '@tanstack/react-query';
 import ReactionButtons from './ReactionButtons';
-import ContentModal from './modals/ContentModal';
 
 interface VideoCardProps {
   id: string;
@@ -23,6 +25,7 @@ interface VideoCardProps {
   price: number;
   isGated: boolean;
   isVerified: boolean;
+  tags: string[];
   solanaAddress?: string;
   onClick?: () => void;
 }
@@ -38,17 +41,17 @@ export default function VideoCard({
   price,
   isGated,
   isVerified,
+  tags,
   solanaAddress,
   onClick
 }: VideoCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [currentLikes, setCurrentLikes] = useState(likes);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // View mutation
   const viewMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/posts/${id}/view`, {
+      const response = await fetch(`http://localhost:5000/api/posts/${id}/view`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to record view');
@@ -60,19 +63,50 @@ export default function VideoCard({
   });
 
   const handleLike = async (postId: string) => {
-    // Anonymous likes - no user tracking
-    setIsLiked(!isLiked);
-    setCurrentLikes(prev => isLiked ? prev - 1 : prev + 1);
+    if (!currentUser) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/posts/${postId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id }),
+      });
+      
+      if (response.ok) {
+        setIsLiked(!isLiked);
+        setCurrentLikes(prev => isLiked ? prev - 1 : prev + 1);
+      }
+    } catch (error) {
+      console.error('Failed to like post:', error);
+    }
   };
 
   const handleTip = async (postId: string, amount: number) => {
-    // Tip handling is now done through ReactionButtons component with real wallet transactions
-    console.log('Tip request handled by ReactionButtons:', { postId, amount });
+    if (!currentUser) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/tips/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from_user: currentUser.id,
+          to_user: creator.id,
+          amount_lamports: Math.round(amount * 1e9), // Convert SOL to lamports
+          message: `Tip for ${title}`,
+          txn_sig: `tip_${Date.now()}`,
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('Tip sent successfully');
+      }
+    } catch (error) {
+      console.error('Failed to send tip:', error);
+    }
   };
 
   const handleView = () => {
     viewMutation.mutate();
-    setIsModalOpen(true);
     onClick?.();
   };
 
@@ -88,12 +122,10 @@ export default function VideoCard({
   };
 
   return (
-    <>
-      <Card 
-        className="group cursor-pointer overflow-hidden bg-card border-border hover:border-accent/50 transition-all duration-300 hover:shadow-lg hover:shadow-accent/20 hover:scale-[1.02] animate-pulse-glow"
-        onClick={handleView}
-        data-testid={`video-card-${id}`}
-      >
+    <Card 
+      className="group cursor-pointer overflow-hidden bg-card border-border hover:border-accent/50 transition-all duration-300 hover:shadow-lg"
+      onClick={handleView}
+    >
       <CardContent className="p-0">
         {/* Video Thumbnail Container */}
         <div className="relative aspect-video overflow-hidden">
@@ -137,15 +169,8 @@ export default function VideoCard({
                 size="sm"
                 variant="secondary"
                 className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white border-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const link = document.createElement('a');
-                  link.href = thumb;
-                  link.download = `video-${id}`;
-                  link.click();
-                }}
               >
-                <Download className="h-4 w-4" />
+                <Share2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -153,16 +178,38 @@ export default function VideoCard({
 
         {/* Content */}
         <div className="p-3 space-y-2">
-          {/* Anonymous Creator Info */}
+          {/* Creator Info */}
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-              <span className="text-xs text-muted-foreground">A</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-muted-foreground">
-                Anonymous Creator
-              </span>
-            </div>
+            <Link href={`/c/${creator.handle || 'unknown'}`}>
+              <Avatar className="h-6 w-6 cursor-pointer">
+                <AvatarImage src={creator.avatar_url} />
+                <AvatarFallback className="text-xs">
+                  {creator.handle?.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+            <Link href={`/c/${creator.handle || 'unknown'}`} className="flex-1 min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium text-foreground truncate hover:text-accent">
+                  @{creator.handle || 'unknown'}
+                </span>
+                {isVerified && (
+                  <Check className="h-3 w-3 text-accent" />
+                )}
+              </div>
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>Report</DropdownMenuItem>
+                <DropdownMenuItem>Share</DropdownMenuItem>
+                <DropdownMenuItem>Save</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Title */}
@@ -170,15 +217,35 @@ export default function VideoCard({
             {title}
           </h3>
 
+          {/* Tags */}
+          {tags && tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {tags.slice(0, 3).map((tag, index) => (
+                <Badge key={index} variant="outline" className="text-xs">
+                  #{tag}
+                </Badge>
+              ))}
+              {tags.length > 3 && (
+                <Badge variant="outline" className="text-xs">
+                  +{tags.length - 3}
+                </Badge>
+              )}
+            </div>
+          )}
 
-          {/* Reaction Buttons */}
-          <div className="flex items-center justify-end">
+          {/* Stats and Reaction Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Eye className="h-3 w-3" />
+                {formatNumber(views)}
+              </div>
+            </div>
             <ReactionButtons
               postId={id}
               likes={currentLikes}
               isLiked={isLiked}
               solanaAddress={solanaAddress}
-              creatorId={creator.id}
               onLike={handleLike}
               onTip={handleTip}
             />
@@ -186,12 +253,5 @@ export default function VideoCard({
         </div>
       </CardContent>
     </Card>
-
-    <ContentModal
-      postId={id}
-      isOpen={isModalOpen}
-      onClose={() => setIsModalOpen(false)}
-    />
-    </>
   );
 }

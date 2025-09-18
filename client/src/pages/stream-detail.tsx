@@ -103,7 +103,7 @@ export default function StreamDetail() {
           ...streamData,
           marketCap: Math.floor(Math.random() * 20000000) + 1000000,
           allTimeHigh: Math.floor(Math.random() * 30000000) + 2000000,
-          tokenSymbol: ((streamData.creator as any)?.goon_username || streamData.creator?.handle)?.toUpperCase() || 'TOKEN'
+          tokenSymbol: streamData.creator?.handle?.toUpperCase() || 'TOKEN'
         };
         
         setStream(streamWithData);

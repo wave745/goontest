@@ -9,7 +9,7 @@ import type { Post } from '@shared/schema';
 interface PaywallModalProps {
   isOpen: boolean;
   onClose: () => void;
-  post?: Post;
+  post?: Post & { creator: { handle: string; avatar_url?: string } };
   onUnlock?: () => void;
 }
 
@@ -36,6 +36,7 @@ export default function PaywallModal({ isOpen, onClose, post, onUnlock }: Paywal
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           postId: post.id,
+          userPubkey: publicKey.toBase58(),
         }),
       });
 

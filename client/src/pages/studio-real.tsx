@@ -110,7 +110,7 @@ export default function Studio() {
       setStreamStatus('starting');
 
       // Create live stream post using API
-      const response = await fetch('/api/posts', {
+      const response = await fetch('http://localhost:5000/api/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

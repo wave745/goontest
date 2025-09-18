@@ -3,24 +3,29 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { 
   Heart, 
-  Download,
+  Eye, 
+  MessageCircle, 
+  Share2, 
+  MoreHorizontal, 
   Coins,
- 
   Lock,
   Users,
   Crown
 } from 'lucide-react';
-import type { Post } from '@shared/schema';
+import { Link } from 'wouter';
+import type { Post, User } from '@shared/schema';
 
 interface MediaPostProps {
   post: Post;
+  creator: User;
   onTip?: (postId: string, amount: number) => void;
 }
 
-export default function MediaPost({ post, onTip }: MediaPostProps) {
+export default function MediaPost({ post, creator, onTip }: MediaPostProps) {
   const { connected, publicKey } = useWallet();
   const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState(false);
@@ -108,14 +113,26 @@ export default function MediaPost({ post, onTip }: MediaPostProps) {
       <CardContent className="p-0">
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-border">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-            <span className="text-sm text-muted-foreground">A</span>
-          </div>
+          <Link href={`/c/${creator.handle}`}>
+            <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-accent/50 transition-all">
+              <AvatarImage src={creator.avatar_url} alt={creator.handle} />
+              <AvatarFallback>
+                {creator.handle?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-medium text-muted-foreground">
-                Anonymous Creator
-              </h3>
+              <Link href={`/c/${creator.handle}`}>
+                <h3 className="font-medium hover:text-accent transition-colors cursor-pointer">
+                  @{creator.handle}
+                </h3>
+              </Link>
+              {creator.is_creator && (
+                <Badge variant="secondary" className="text-xs">
+                  Creator
+                </Badge>
+              )}
               <div className="flex items-center gap-1 text-muted-foreground">
                 {getVisibilityIcon()}
                 <span className="text-xs">{getVisibilityLabel()}</span>
@@ -125,6 +142,9 @@ export default function MediaPost({ post, onTip }: MediaPostProps) {
               {new Date(post.created_at).toLocaleDateString()}
             </p>
           </div>
+          <Button variant="ghost" size="sm">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Media Content */}
@@ -168,6 +188,15 @@ export default function MediaPost({ post, onTip }: MediaPostProps) {
         {post.caption && (
           <div className="p-4">
             <p className="text-sm">{post.caption}</p>
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {post.tags.map((tag, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    #{tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -175,6 +204,10 @@ export default function MediaPost({ post, onTip }: MediaPostProps) {
         <div className="px-4 pb-4">
           {/* Stats */}
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+            <div className="flex items-center gap-1">
+              <Eye className="h-4 w-4" />
+              <span>{viewCount.toLocaleString()}</span>
+            </div>
             <div className="flex items-center gap-1">
               <Heart className="h-4 w-4" />
               <span>{likeCount.toLocaleString()}</span>
@@ -194,29 +227,24 @@ export default function MediaPost({ post, onTip }: MediaPostProps) {
               {isLiked ? 'Liked' : 'Like'}
             </Button>
 
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleTip}
-              className="flex-1 hover:text-accent"
-            >
-              <Coins className="h-4 w-4 mr-2" />
-              Tip
+            <Button variant="ghost" size="sm" className="flex-1">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Comment
             </Button>
 
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="flex-1"
-              onClick={() => {
-                const link = document.createElement('a');
-                link.href = post.media_url;
-                link.download = `media-${post.id}`;
-                link.click();
-              }}
+            <Button variant="ghost" size="sm" className="flex-1">
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTip}
+              className="bg-gradient-to-r from-accent to-accent-2 hover:from-accent/90 hover:to-accent-2/90"
             >
-              <Download className="h-4 w-4 mr-2" />
-              Download
+              <Coins className="h-4 w-4 mr-1" />
+              Tip
             </Button>
           </div>
         </div>

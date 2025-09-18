@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Upload, Users, Settings, Play, User, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import SearchBar from './SearchBar';
 import UploadDialog from './UploadDialog';
 
 export default function Header() {
@@ -44,6 +45,21 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
+          {/* Search Bar */}
+          <div className="hidden md:block">
+            <SearchBar 
+              className="w-64" 
+              placeholder="Search creators, posts..."
+            />
+          </div>
+          
+          {/* Mobile Search */}
+          <div className="md:hidden">
+            <SearchBar 
+              className="w-32" 
+              placeholder="Search..."
+            />
+          </div>
 
           {/* Mobile Action Buttons */}
           <div className="md:hidden flex items-center gap-1">
@@ -91,18 +107,14 @@ export default function Header() {
             </Button>
           </Link>
 
-          {/* Anonymous user indicator */}
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="hidden md:flex items-center gap-1">
-              <User className="h-3 w-3" />
-              Anonymous
-            </Badge>
-            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
-              <span className="text-accent font-bold text-sm">
-                A
-              </span>
+          {/* User Info */}
+          {currentUser && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+                <User className="h-4 w-4 text-accent" />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
       

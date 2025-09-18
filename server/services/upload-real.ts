@@ -1,6 +1,4 @@
 import { randomUUID } from 'crypto';
-import fs from 'fs';
-import path from 'path';
 
 export interface UploadResult {
   url: string;
@@ -10,40 +8,37 @@ export interface UploadResult {
   mimeType: string;
 }
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
 export async function uploadToDigitalOcean(
   file: Express.Multer.File,
   category: string = 'posts'
 ): Promise<UploadResult> {
-  console.log('Processing real file upload:', file.originalname, 'Size:', file.size, 'Type:', file.mimetype);
-  return uploadToLocalStorage(file, category);
+  // Development-only mock upload - no external dependencies
+  console.log('Development mode: Using mock upload storage');
+  return uploadToMockStorage(file, category);
 }
 
-// Real file upload function for local storage
-function uploadToLocalStorage(
+// Mock upload function for development
+function uploadToMockStorage(
   file: Express.Multer.File,
   category: string = 'posts'
 ): UploadResult {
   const fileExtension = file.originalname.split('.').pop() || '';
-  const uniqueFilename = `${category}_${randomUUID()}.${fileExtension}`;
-  const filePath = path.join(uploadsDir, uniqueFilename);
+  const filename = `${category}/${randomUUID()}.${fileExtension}`;
   
-  // Write the file to disk
-  fs.writeFileSync(filePath, file.buffer);
-  console.log('File saved to:', filePath);
-  
-  // Generate the URL that will be served by Express
-  const fileUrl = `/uploads/${uniqueFilename}`;
-  
+  // Generate a placeholder URL based on file type
+  let placeholderUrl: string;
+  if (file.mimetype.startsWith('image/')) {
+    placeholderUrl = `https://via.placeholder.com/800x600/4f46e5/ffffff?text=${encodeURIComponent(file.originalname)}`;
+  } else if (file.mimetype.startsWith('video/')) {
+    placeholderUrl = `https://via.placeholder.com/800x600/059669/ffffff?text=${encodeURIComponent(file.originalname)}`;
+  } else {
+    placeholderUrl = `https://via.placeholder.com/800x600/6b7280/ffffff?text=${encodeURIComponent(file.originalname)}`;
+  }
+
   return {
-    url: fileUrl,
-    thumbnail: fileUrl, // For now, use same file as thumbnail
-    filename: uniqueFilename,
+    url: placeholderUrl,
+    thumbnail: placeholderUrl,
+    filename,
     size: file.size,
     mimeType: file.mimetype,
   };

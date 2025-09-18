@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +17,7 @@ interface ChatMessage {
 }
 
 export default function Chat() {
+  const { connected, publicKey } = useWallet();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -73,7 +75,7 @@ export default function Chat() {
   const currentPersona = aiPersonas[selectedAI as keyof typeof aiPersonas];
 
   const handleSendMessage = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() || !connected) return;
 
     // Add user message
     const userMessage: ChatMessage = {
@@ -87,51 +89,18 @@ export default function Chat() {
     setMessage('');
     setIsTyping(true);
 
-    try {
-      // Send message to AI API
-      const response = await fetch('/api/chat/ai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: message,
-          systemPrompt: `You are ${currentPersona.name}, a ${currentPersona.personality} AI assistant. ${currentPersona.personality === 'Playful & Flirty' ? 'Respond with playful, flirty messages and use emojis. Be sweet and engaging.' : currentPersona.personality === 'Sultry & Mysterious' ? 'Respond with mysterious, sultry messages. Be intriguing and alluring.' : 'Respond with passionate, bold messages. Be energetic and enthusiastic.'}`
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const aiResponse: ChatMessage = {
-          id: `ai_${Date.now()}`,
-          role: 'assistant',
-          content: data.response,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, aiResponse]);
-      } else {
-        // Fallback to local responses if API fails
-        const aiResponse: ChatMessage = {
-          id: `ai_${Date.now()}`,
-          role: 'assistant',
-          content: currentPersona.responses[Math.floor(Math.random() * currentPersona.responses.length)],
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, aiResponse]);
-      }
-    } catch (error) {
-      console.error('Failed to get AI response:', error);
-      // Fallback to local responses
+    // Simulate AI response after a short delay
+    setTimeout(() => {
       const aiResponse: ChatMessage = {
         id: `ai_${Date.now()}`,
         role: 'assistant',
         content: currentPersona.responses[Math.floor(Math.random() * currentPersona.responses.length)],
         timestamp: new Date()
       };
+
       setMessages(prev => [...prev, aiResponse]);
-    } finally {
       setIsTyping(false);
-    }
+    }, 1000);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -141,6 +110,23 @@ export default function Chat() {
     }
   };
 
+  if (!connected) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex">
+          <Sidebar />
+          <main className="flex-1 p-4">
+            <div className="text-center py-12">
+              <h1 className="text-2xl font-bold text-foreground mb-4">AI Chat</h1>
+              <p className="text-muted-foreground mb-6">Connect your wallet to start chatting with AI companions</p>
+              <Button className="btn-goon">Connect Wallet</Button>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -12,7 +12,7 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+  const baseUrl = import.meta.env.VITE_API_URL || '';
   const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
   
   const res = await fetch(fullUrl, {
@@ -32,7 +32,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const baseUrl = import.meta.env.VITE_API_URL || '';
     const url = queryKey.join("/") as string;
     const fullUrl = url.startsWith('http') ? url : `${baseUrl}/${url}`;
     

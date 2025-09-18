@@ -67,13 +67,14 @@ export default function Live() {
   const [newMessage, setNewMessage] = useState('');
   const [showChat, setShowChat] = useState(true);
 
+
   useEffect(() => {
     const fetchStreams = async () => {
       try {
         setIsLoading(true);
         
         // Get live streams from API
-        const response = await fetch('/api/streams');
+        const response = await fetch('http://localhost:5000/api/streams');
         const data = await response.json();
         const liveStreams = data.streams || [];
         
@@ -107,7 +108,7 @@ export default function Live() {
           ...stream,
           marketCap: Math.floor(Math.random() * 20000000) + 1000000,
           allTimeHigh: Math.floor(Math.random() * 30000000) + 2000000,
-          tokenSymbol: 'ANONYMOUS'
+          tokenSymbol: stream.creator?.handle?.toUpperCase() || 'TOKEN'
         })) || [];
         
         setStreams(streamsWithData);
@@ -188,6 +189,10 @@ export default function Live() {
 
   const handleLikeStream = (streamId: string) => {
     // TODO: Implement like functionality
+    toast({
+      title: "Liked!",
+      description: "You liked this stream",
+    });
   };
 
   const handleTipStream = (streamId: string, amount: number) => {
@@ -208,17 +213,34 @@ export default function Live() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !currentUser) return;
     
-    // Anonymous chat - just add to local state
-    setChatMessages(prev => [...prev, {
-      id: `msg_${Date.now()}`,
-      username: 'Anonymous',
-      message: newMessage.trim(),
-      timestamp: new Date(),
-      isTip: false
-    }]);
-    setNewMessage('');
+    try {
+      // Send message to backend
+      const response = await fetch(`http://localhost:5000/api/chat/live/global`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          message: newMessage.trim(),
+          type: 'message'
+        }),
+      });
+      
+      if (response.ok) {
+        const messageData = await response.json();
+        setChatMessages(prev => [...prev, {
+          id: messageData.id,
+          username: 'Anonymous',
+          message: messageData.message,
+          timestamp: new Date(messageData.created_at),
+          isTip: false
+        }]);
+        setNewMessage('');
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -368,16 +390,16 @@ export default function Live() {
                         {/* Creator Info with Market Data */}
                         <div className="flex items-center gap-3 mb-4">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={'/placeholder-avatar.jpg'} alt="Anonymous Creator" />
+                            <AvatarImage src={stream.creator?.avatar_url} alt={stream.creator?.handle || 'Creator'} />
                             <AvatarFallback>
-                              A
+                              {stream.creator?.handle?.charAt(0).toUpperCase() || 'C'}
                             </AvatarFallback>
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold text-foreground truncate">
-@Anonymous
+                                {stream.creator?.handle || 'Unknown Creator'}
                               </h4>
                               {stream.creator?.age_verified && (
                                 <Badge variant="secondary" className="text-xs">
@@ -429,7 +451,9 @@ export default function Live() {
                           <ReactionButtons
                             postId={stream.id}
                             likes={stream.likes || 0}
+                            solanaAddress={stream.solana_address}
                             onLike={handleLikeStream}
+                            onTip={handleTipStream}
                           />
                           
                           <Button
@@ -508,13 +532,13 @@ export default function Live() {
                         </h3>
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
-                            <AvatarImage src={'/placeholder-avatar.jpg'} alt="Anonymous Creator" />
+                            <AvatarImage src={stream.creator?.avatar_url} alt={stream.creator?.handle} />
                             <AvatarFallback className="text-xs">
-                              A
+                              {stream.creator?.handle?.charAt(0).toUpperCase() || 'C'}
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-sm text-muted-foreground">
-Anonymous Creator
+                            {stream.creator?.handle || 'Unknown Creator'}
                           </span>
                         </div>
                       </CardContent>
@@ -592,19 +616,21 @@ Anonymous Creator
                       onKeyPress={handleKeyPress}
                       placeholder="Type a message..."
                       className="flex-1"
-                      disabled={false}
+                      disabled={!currentUser}
                     />
                     <Button
                       onClick={handleSendMessage}
-                      disabled={!newMessage.trim()}
+                      disabled={!newMessage.trim() || !currentUser}
                       size="sm"
                     >
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Anonymous chat enabled
-                  </p>
+                  {!currentUser && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Sign in to chat
+                    </p>
+                  )}
                 </div>
               </div>
             )}

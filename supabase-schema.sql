@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS users (
 -- Create posts table
 CREATE TABLE IF NOT EXISTS posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   media_url TEXT NOT NULL,
   thumb_url TEXT NOT NULL,
   caption TEXT NOT NULL,
@@ -38,7 +37,6 @@ CREATE TABLE IF NOT EXISTS posts (
 -- Create tokens table
 CREATE TABLE IF NOT EXISTS tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   mint_address TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   symbol TEXT NOT NULL,
@@ -73,7 +71,6 @@ CREATE TABLE IF NOT EXISTS tips (
 -- Create ai_personas table
 CREATE TABLE IF NOT EXISTS ai_personas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   system_prompt TEXT NOT NULL,
   price_per_message BIGINT DEFAULT 1000000 CHECK (price_per_message >= 0),
   is_active BOOLEAN DEFAULT TRUE,
@@ -84,13 +81,11 @@ CREATE TABLE IF NOT EXISTS ai_personas (
 -- Create chat_messages table
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
   content TEXT NOT NULL,
   txn_sig TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT no_self_chat CHECK (user_id != creator_id)
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Create follows table for user relationships
@@ -129,7 +124,6 @@ CREATE TABLE IF NOT EXISTS activities (
 -- Create live_streams table
 CREATE TABLE IF NOT EXISTS live_streams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   status TEXT DEFAULT 'live' CHECK (status IN ('live', 'ended', 'scheduled')),
