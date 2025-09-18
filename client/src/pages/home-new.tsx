@@ -92,6 +92,9 @@ export default function Home() {
           }
           
           const response = await fetch(apiUrl);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
           const data = await response.json();
           
           if (data.posts) {
@@ -107,7 +110,8 @@ export default function Home() {
             }
           }
         } catch (error) {
-          console.error('Error refreshing data:', error);
+          // Silent error handling for polling - don't spam console or show errors to users
+          // Just skip this polling cycle and try again in 30 seconds
         }
       };
       
