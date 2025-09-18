@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Send, Bot, User, Heart, Sparkles, Flame } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getCurrentUser, getOrCreateUser } from '@/lib/userManager';
 
 interface ChatMessage {
   id: string;
@@ -24,15 +23,6 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [selectedAI, setSelectedAI] = useState('amy');
   const [isTyping, setIsTyping] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-  useEffect(() => {
-    const initializeUser = async () => {
-      const user = await getOrCreateUser();
-      setCurrentUser(user);
-    };
-    initializeUser();
-  }, []);
 
   // AI personas data
   const aiPersonas = {
@@ -83,7 +73,7 @@ export default function Chat() {
   const currentPersona = aiPersonas[selectedAI as keyof typeof aiPersonas];
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !currentUser) return;
+    if (!message.trim()) return;
 
     // Add user message
     const userMessage: ChatMessage = {
@@ -151,22 +141,6 @@ export default function Chat() {
     }
   };
 
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-4">
-            <div className="text-center py-12">
-              <h1 className="text-2xl font-bold text-foreground mb-4">AI Chat</h1>
-              <p className="text-muted-foreground mb-6">Loading your goon profile...</p>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">

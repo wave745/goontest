@@ -1,24 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Upload, Users, Settings, Play, User, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import UploadDialog from './UploadDialog';
-import { getCurrentUser, getOrCreateUser, type GoonUser } from '@/lib/userManager';
 
 export default function Header() {
   const [location] = useLocation();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<GoonUser | null>(null);
-
-  useEffect(() => {
-    // Initialize user on component mount
-    const initializeUser = async () => {
-      const user = await getOrCreateUser();
-      setCurrentUser(user);
-    };
-    initializeUser();
-  }, []);
 
   return (
     <header className="sticky top-0 z-50 glass-effect border-b border-border">
@@ -102,20 +91,18 @@ export default function Header() {
             </Button>
           </Link>
 
-          {/* User Info */}
-          {currentUser && (
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="hidden md:flex items-center gap-1">
-                <User className="h-3 w-3" />
-                {currentUser.goon_username}
-              </Badge>
-              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
-                <span className="text-accent font-bold text-sm">
-                  {currentUser.goon_username.charAt(0)}
-                </span>
-              </div>
+          {/* Anonymous user indicator */}
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="hidden md:flex items-center gap-1">
+              <User className="h-3 w-3" />
+              Anonymous
+            </Badge>
+            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+              <span className="text-accent font-bold text-sm">
+                A
+              </span>
             </div>
-          )}
+          </div>
         </div>
       </div>
       

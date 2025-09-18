@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Image, Video, Upload, X, Wallet } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { getCurrentUser, updateUserSolanaAddress } from '@/lib/userManager';
 
 interface UploadDialogProps {
   open: boolean;
@@ -25,7 +24,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
   const [solanaAddress, setSolanaAddress] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const currentUser = getCurrentUser();
+  const currentUser = { id: 'anonymous', goon_username: 'Anonymous' };
 
   const uploadMutation = useMutation({
     mutationFn: async (postData: any) => {
@@ -133,10 +132,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       
       const { mediaUrl, thumbUrl } = await uploadResponse.json();
 
-      // Save Solana address if provided
-      if (solanaAddress) {
-        updateUserSolanaAddress(solanaAddress);
-      }
+      // Anonymous upload - no user address saving needed
 
 
       const postData = {
@@ -173,20 +169,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
     }
   };
 
-  if (!currentUser) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Loading...</DialogTitle>
-          </DialogHeader>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Please wait while we set up your account.</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

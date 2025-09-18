@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useLocation } from 'wouter';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, Image, Video, Play, X, Loader2, Wallet } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { getCurrentUser, updateUserSolanaAddress, getOrCreateUser, type GoonUser } from '@/lib/userManager';
 
 export default function UploadPage() {
   const [, setLocation] = useLocation();
@@ -22,15 +21,6 @@ export default function UploadPage() {
   const [contentType, setContentType] = useState('photo');
   const [isUploading, setIsUploading] = useState(false);
   const [solanaAddress, setSolanaAddress] = useState('');
-  const [currentUser, setCurrentUser] = useState<GoonUser | null>(null);
-
-  useEffect(() => {
-    const initializeUser = async () => {
-      const user = await getOrCreateUser();
-      setCurrentUser(user);
-    };
-    initializeUser();
-  }, []);
 
   // Live streaming form
   const [streamTitle, setStreamTitle] = useState('');
@@ -68,15 +58,6 @@ export default function UploadPage() {
   };
 
   const handleContentUpload = async () => {
-    if (!currentUser) {
-      toast({
-        title: "User not found",
-        description: "Please refresh the page and try again",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!uploadFile || !uploadTitle.trim()) {
       toast({
         title: "Missing information",
@@ -115,11 +96,6 @@ export default function UploadPage() {
       const uploadData = await uploadResponse.json();
       
 
-      // Save Solana address if provided
-      if (solanaAddress) {
-        await updateUserSolanaAddress(solanaAddress);
-      }
-
       // Create post using our API
       const postResponse = await fetch('/api/posts', {
         method: 'POST',
@@ -127,8 +103,8 @@ export default function UploadPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          creator_id: currentUser.id,
-          creator_handle: currentUser.goon_username,
+          creator_id: 'anonymous',
+          creator_handle: 'Anonymous',
           solana_address: solanaAddress,
           media_url: uploadData.mediaUrl,
           thumb_url: uploadData.thumbUrl,
@@ -166,15 +142,6 @@ export default function UploadPage() {
   };
 
   const handleStartStream = async () => {
-    if (!currentUser) {
-      toast({
-        title: "User not found",
-        description: "Please refresh the page and try again",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!streamTitle.trim()) {
       toast({
         title: "Missing information",
@@ -196,11 +163,6 @@ export default function UploadPage() {
     setIsUploading(true);
 
     try {
-      // Save Solana address if provided
-      if (streamSolanaAddress) {
-        await updateUserSolanaAddress(streamSolanaAddress);
-      }
-
       // Create live stream post
       const streamResponse = await fetch('/api/posts', {
         method: 'POST',
@@ -208,8 +170,8 @@ export default function UploadPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          creator_id: currentUser.id,
-          creator_handle: currentUser.goon_username,
+          creator_id: 'anonymous',
+          creator_handle: 'Anonymous',
           solana_address: streamSolanaAddress,
           caption: streamTitle + (streamDescription ? `\n\n${streamDescription}` : ''),
           visibility: 'public',
@@ -247,22 +209,6 @@ export default function UploadPage() {
     }
   };
 
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-4">
-            <div className="text-center py-12">
-              <h1 className="text-2xl font-bold text-foreground mb-4">Loading...</h1>
-              <p className="text-muted-foreground">Please wait while we set up your account.</p>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">

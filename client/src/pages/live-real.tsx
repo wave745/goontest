@@ -31,7 +31,6 @@ import {
 } from 'lucide-react';
 import { supabase, getPosts, type Post, type User } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
-import { getCurrentUser, getOrCreateUser } from '@/lib/userManager';
 import ReactionButtons from '@/components/ReactionButtons';
 
 type StreamWithCreator = Post & { 
@@ -57,7 +56,6 @@ export default function Live() {
   const [isLoading, setIsLoading] = useState(true);
   const [viewerCounts, setViewerCounts] = useState<Record<string, number>>({});
   const [donationData, setDonationData] = useState<Record<string, DonationData>>({});
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const [chatMessages, setChatMessages] = useState<Array<{
     id: string;
     username: string;
@@ -68,14 +66,6 @@ export default function Live() {
   }>>([]);
   const [newMessage, setNewMessage] = useState('');
   const [showChat, setShowChat] = useState(true);
-
-  useEffect(() => {
-    const initializeUser = async () => {
-      const user = await getOrCreateUser();
-      setCurrentUser(user);
-    };
-    initializeUser();
-  }, []);
 
   useEffect(() => {
     const fetchStreams = async () => {
@@ -218,34 +208,17 @@ export default function Live() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !currentUser) return;
+    if (!newMessage.trim()) return;
     
-    try {
-      // Send message to backend
-      const response = await fetch(`/api/chat/live/global`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          message: newMessage.trim(),
-          type: 'message'
-        }),
-      });
-      
-      if (response.ok) {
-        const messageData = await response.json();
-        setChatMessages(prev => [...prev, {
-          id: messageData.id,
-          username: currentUser.goon_username,
-          message: messageData.message,
-          timestamp: new Date(messageData.created_at),
-          isTip: false
-        }]);
-        setNewMessage('');
-      }
-    } catch (error) {
-      console.error('Failed to send message:', error);
-    }
+    // Anonymous chat - just add to local state
+    setChatMessages(prev => [...prev, {
+      id: `msg_${Date.now()}`,
+      username: 'Anonymous',
+      message: newMessage.trim(),
+      timestamp: new Date(),
+      isTip: false
+    }]);
+    setNewMessage('');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

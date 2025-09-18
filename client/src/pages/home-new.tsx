@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
-import { getCurrentUser } from '@/lib/userManager';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
@@ -23,16 +22,6 @@ export default function Home() {
   const [posts, setPosts] = useState<PostWithCreator[]>([]);
   const [streams, setStreams] = useState<PostWithCreator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-  // Initialize user
-  useEffect(() => {
-    const initializeUser = async () => {
-      const user = getCurrentUser();
-      setCurrentUser(user);
-    };
-    initializeUser();
-  }, []);
 
   // Fetch content based on category
   useEffect(() => {

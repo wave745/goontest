@@ -8,7 +8,6 @@ import { Link } from 'wouter';
 import { useMutation } from '@tanstack/react-query';
 import ReactionButtons from './ReactionButtons';
 import ContentModal from './modals/ContentModal';
-import { getCurrentUser } from '@/lib/userManager';
 
 interface VideoCardProps {
   id: string;
@@ -46,7 +45,6 @@ export default function VideoCard({
 }: VideoCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [currentLikes, setCurrentLikes] = useState(likes);
-  const [currentUser] = useState(getCurrentUser());
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // View mutation
@@ -64,22 +62,9 @@ export default function VideoCard({
   });
 
   const handleLike = async (postId: string) => {
-    if (!currentUser) return;
-    
-    try {
-      const response = await fetch(`/api/posts/${postId}/like`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id }),
-      });
-      
-      if (response.ok) {
-        setIsLiked(!isLiked);
-        setCurrentLikes(prev => isLiked ? prev - 1 : prev + 1);
-      }
-    } catch (error) {
-      console.error('Failed to like post:', error);
-    }
+    // Anonymous likes - no user tracking
+    setIsLiked(!isLiked);
+    setCurrentLikes(prev => isLiked ? prev - 1 : prev + 1);
   };
 
   const handleTip = async (postId: string, amount: number) => {

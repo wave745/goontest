@@ -3,124 +3,13 @@ import type { Multer } from "multer";
 import { createServer, type Server } from "http";
 import { storage } from "./storage/index.js";
 import { z } from "zod";
-import { insertPostSchema, insertTokenSchema, insertChatMessageSchema, insertPurchaseSchema, insertTipSchema, createGoonUserSchema, insertUserSchema } from "@shared/schema";
+import { insertPostSchema, insertTokenSchema, insertChatMessageSchema, insertPurchaseSchema, insertTipSchema } from "@shared/schema";
 import { generateGoonToken, verifyTransaction } from "./services/solana";
 import { chatWithAI } from "./services/xai";
 import { uploadToDigitalOcean } from "./services/upload-real";
 
-// Generate a unique goon username
-function generateGoonUsername(): string {
-  const adjectives = [
-    'Wild', 'Crazy', 'Epic', 'Savage', 'Bold', 'Fierce', 'Mystic', 'Cosmic',
-    'Neon', 'Cyber', 'Quantum', 'Atomic', 'Electric', 'Thunder', 'Storm',
-    'Fire', 'Ice', 'Shadow', 'Light', 'Dark', 'Bright', 'Sharp', 'Smooth'
-  ];
-  
-  const nouns = [
-    'Beast', 'Titan', 'Phoenix', 'Dragon', 'Tiger', 'Lion', 'Wolf',
-    'Eagle', 'Hawk', 'Falcon', 'Shark', 'Whale', 'Bear', 'Fox', 'Cat',
-    'Dog', 'Bull', 'Horse', 'Deer', 'Rabbit', 'Squirrel', 'Owl', 'Crow'
-  ];
-  
-  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  const number = Math.floor(Math.random() * 9999) + 1;
-  
-  return `goon${adjective}${noun}${number}`;
-}
 
 export async function registerRoutes(app: Express, upload?: Multer): Promise<Server> {
-  // ===== USER MANAGEMENT ENDPOINTS =====
-  
-  // Create or get goon user
-  app.post("/api/users/goon", async (req, res) => {
-    try {
-      // Always generate a unique username for new users
-      let goon_username = req.body.goon_username || generateGoonUsername();
-      
-      // Ensure username is unique by checking and regenerating if needed
-      let attempts = 0;
-      while (attempts < 10) {
-        const existingUser = await storage.getUserByGoonUsername(goon_username);
-        if (!existingUser) {
-          break; // Username is unique
-        }
-        goon_username = generateGoonUsername(); // Generate new username
-        attempts++;
-      }
-      
-      if (attempts >= 10) {
-        return res.status(500).json({ error: "Could not generate unique username" });
-      }
-      
-      const { solana_address } = createGoonUserSchema.parse({ goon_username, solana_address: req.body.solana_address });
-      
-      // Create new goon user
-      const userData = insertUserSchema.parse({
-        id: `goon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        goon_username,
-        solana_address,
-        is_creator: false,
-        age_verified: false,
-        created_at: new Date().toISOString(),
-        last_active: new Date().toISOString(),
-      });
-      
-      const user = await storage.createUser(userData);
-      res.json(user);
-    } catch (error) {
-      console.error("Failed to create/get goon user:", error);
-      res.status(400).json({ error: "Invalid user data", details: (error as Error).message });
-    }
-  });
-
-  // Get user by goon username
-  app.get("/api/users/goon/:username", async (req, res) => {
-    try {
-      const user = await storage.getUserByGoonUsername(req.params.username);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      console.error("Failed to fetch user:", error);
-      res.status(500).json({ error: "Failed to fetch user" });
-    }
-  });
-
-  // Update user solana address
-  app.put("/api/users/:id/solana", async (req, res) => {
-    try {
-      const { solana_address } = req.body;
-      if (!solana_address) {
-        return res.status(400).json({ error: "Solana address is required" });
-      }
-      
-      const user = await storage.updateUserSolanaAddress(req.params.id, solana_address);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      res.json(user);
-    } catch (error) {
-      console.error("Failed to update solana address:", error);
-      res.status(500).json({ error: "Failed to update solana address" });
-    }
-  });
-
-  // Update user last active
-  app.put("/api/users/:id/active", async (req, res) => {
-    try {
-      const user = await storage.updateUserLastActive(req.params.id);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      console.error("Failed to update last active:", error);
-      res.status(500).json({ error: "Failed to update last active" });
-    }
-  });
 
   // ===== CONTENT ENDPOINTS =====
   
@@ -139,14 +28,10 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       // Apply pagination
       const paginatedPosts = posts.slice(offsetNum, offsetNum + limitNum);
       
-      // Add creator info to each post
-      const postsWithCreators = await Promise.all(
-        paginatedPosts.map(async (post) => {
-          const creator = await storage.getUser(post.creator_id);
-          console.log('Feed post creator lookup:', { creator_id: post.creator_id, creator_found: !!creator });
-          return { ...post, creator };
-        })
-      );
+      // Add anonymous creator info to each post
+      const postsWithCreators = paginatedPosts.map((post) => {
+        return { ...post, creator: { id: 'anonymous', handle: 'Anonymous', is_creator: false } };
+      });
       
       res.json({
         posts: postsWithCreators,
@@ -174,13 +59,10 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         sort: sort as string, // 'latest', 'trending'
       });
       
-      // Add creator info to each post
-      const postsWithCreators = await Promise.all(
-        posts.map(async (post) => {
-          const creator = await storage.getUser(post.creator_id);
-          return { ...post, creator };
-        })
-      );
+      // Add anonymous creator info to each post
+      const postsWithCreators = posts.map((post) => {
+        return { ...post, creator: { id: 'anonymous', handle: 'Anonymous', is_creator: false } };
+      });
       
       res.json(postsWithCreators);
     } catch (error) {
@@ -197,8 +79,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         return res.status(404).json({ error: "Post not found" });
       }
       
-      const creator = await storage.getUser(post.creator_id);
-      console.log('Single post creator lookup:', { creator_id: post.creator_id, creator_found: !!creator, creator });
+      const creator = { id: 'anonymous', handle: 'Anonymous', is_creator: false };
       res.json({ ...post, creator });
     } catch (error) {
       console.error("Failed to fetch post:", error);

@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Heart, Coins, Wallet, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { solanaService } from '@/lib/solana';
-import { getCurrentUser } from '@/lib/userManager';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { 
@@ -44,23 +43,7 @@ export default function ReactionButtons({
     
     setIsLiking(true);
     try {
-      const currentUser = getCurrentUser();
-      if (!currentUser) {
-        throw new Error('Please refresh the page to continue');
-      }
-
-      // Make actual API call to like/unlike the post
-      const method = isLiked ? 'DELETE' : 'POST';
-      const response = await fetch(`/api/posts/${postId}/like`, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to like post');
-      }
+      // Anonymous likes - no user tracking or API calls
       
       if (onLike) {
         onLike(postId);
@@ -135,10 +118,7 @@ export default function ReactionButtons({
 
     setIsTipping(true);
     try {
-      const currentUser = getCurrentUser();
-      if (!currentUser) {
-        throw new Error('User not found');
-      }
+      // Anonymous tipping - no user tracking
 
       // Check wallet balance first
       const balance = await connection.getBalance(publicKey);
