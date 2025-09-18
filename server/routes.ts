@@ -8,12 +8,38 @@ import { generateGoonToken, verifyTransaction } from "./services/solana";
 import { chatWithAI } from "./services/xai";
 import { uploadToDigitalOcean } from "./services/upload-real";
 
+// Generate a unique goon username
+function generateGoonUsername(): string {
+  const adjectives = [
+    'Wild', 'Crazy', 'Epic', 'Savage', 'Bold', 'Fierce', 'Mystic', 'Cosmic',
+    'Neon', 'Cyber', 'Quantum', 'Atomic', 'Electric', 'Thunder', 'Storm',
+    'Fire', 'Ice', 'Shadow', 'Light', 'Dark', 'Bright', 'Sharp', 'Smooth'
+  ];
+  
+  const nouns = [
+    'Goon', 'Beast', 'Titan', 'Phoenix', 'Dragon', 'Tiger', 'Lion', 'Wolf',
+    'Eagle', 'Hawk', 'Falcon', 'Shark', 'Whale', 'Bear', 'Fox', 'Cat',
+    'Dog', 'Bull', 'Horse', 'Deer', 'Rabbit', 'Squirrel', 'Owl', 'Crow'
+  ];
+  
+  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const number = Math.floor(Math.random() * 9999) + 1;
+  
+  return `${adjective}${noun}${number}`;
+}
+
 export async function registerRoutes(app: Express, upload?: Multer): Promise<Server> {
   // ===== USER MANAGEMENT ENDPOINTS =====
   
   // Create or get goon user
   app.post("/api/users/goon", async (req, res) => {
     try {
+      // Generate username if not provided
+      if (!req.body.goon_username) {
+        req.body.goon_username = generateGoonUsername();
+      }
+      
       const { goon_username, solana_address } = createGoonUserSchema.parse(req.body);
       
       // Check if goon username already exists
@@ -110,6 +136,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       const postsWithCreators = await Promise.all(
         paginatedPosts.map(async (post) => {
           const creator = await storage.getUser(post.creator_id);
+          console.log('Feed post creator lookup:', { creator_id: post.creator_id, creator_found: !!creator });
           return { ...post, creator };
         })
       );
@@ -164,6 +191,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       }
       
       const creator = await storage.getUser(post.creator_id);
+      console.log('Single post creator lookup:', { creator_id: post.creator_id, creator_found: !!creator, creator });
       res.json({ ...post, creator });
     } catch (error) {
       console.error("Failed to fetch post:", error);

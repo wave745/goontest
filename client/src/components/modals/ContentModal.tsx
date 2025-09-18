@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -194,6 +195,9 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
         className="max-w-4xl w-full h-[90vh] p-0 overflow-hidden"
         data-testid="content-modal"
       >
+        <DialogDescription className="sr-only">
+          View content in full size
+        </DialogDescription>
         {/* Close button */}
         <button
           onClick={onClose}
