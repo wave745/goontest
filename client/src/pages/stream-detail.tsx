@@ -36,30 +36,16 @@ import {
   ThumbsUp
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import type { Post } from '@shared/schema';
 
-type StreamData = {
+type User = {
   id: string;
-  title: string;
-  description?: string;
-  media_url: string;
-  thumb_url: string;
-  caption: string;
-  views: number;
-  likes: number;
-  created_at: Date;
-  is_live: boolean;
-  metadata?: {
-    streamer_name?: string;
-    solana_address?: string;
-    start_time?: string;
-    viewer_count?: number;
-  };
-  creator: {
-    id: string;
-    handle: string;
-    is_creator: boolean;
-  };
+  handle: string;
+  avatar_url?: string;
+  is_creator: boolean;
 };
+
+type StreamData = Post & { creator: User };
 
 
 export default function StreamDetail() {
@@ -87,7 +73,8 @@ export default function StreamDetail() {
         const streamData = await response.json();
         setStream(streamData);
         
-        setViewerCount(streamData.metadata?.viewer_count || Math.floor(Math.random() * 500) + 50);
+        setViewerCount(streamData.metadata?.viewer_count || streamData.views || 0);
+        setIsStreamingLive(streamData.is_live || false);
         
       } catch (error) {
         console.error('Error fetching stream:', error);
@@ -102,7 +89,40 @@ export default function StreamDetail() {
     };
 
     fetchStream();
-  }, [streamId]);
+
+    // Set up real-time updates for stream status and viewer count every 5 seconds
+    const updateInterval = setInterval(async () => {
+      if (!streamId) return;
+      
+      try {
+        const response = await fetch(`/api/streams/${streamId}`);
+        if (response.ok) {
+          const updatedStream = await response.json();
+          setStream(updatedStream);
+          setViewerCount(updatedStream.metadata?.viewer_count || updatedStream.views || 0);
+          setIsStreamingLive(updatedStream.is_live || false);
+          
+          // If stream ended, show notification and handle navigation
+          if (!updatedStream.is_live && isStreamingLive) {
+            toast({
+              title: "Stream ended",
+              description: "The stream has ended. Redirecting to home...",
+              variant: "default",
+            });
+            // Navigate back to home after 2 seconds
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating stream status:', error);
+      }
+    }, 5000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(updateInterval);
+  }, [streamId, isStreamingLive]);
 
   // Handle stream actions
   const handleStreamStart = () => {
