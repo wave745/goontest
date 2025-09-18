@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Image, Video, Upload, X } from 'lucide-react';
+import { Image, Video, Upload, X, Wallet } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface UploadDialogProps {
@@ -21,6 +21,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadTags, setUploadTags] = useState('');
+  const [solanaAddress, setSolanaAddress] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,6 +47,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       setUploadTitle('');
       setUploadDescription('');
       setUploadTags('');
+      setSolanaAddress('');
       onOpenChange(false);
     },
     onError: (error) => {
@@ -114,6 +116,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
         media_url: mediaUrl,
         thumb_url: thumbUrl,
         caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
+        ...(solanaAddress.trim() && { solana_address: solanaAddress.trim() }),
       };
 
       await uploadMutation.mutateAsync(postData);
@@ -266,6 +269,21 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
               onChange={(e) => setUploadTags(e.target.value)}
               placeholder="nature, landscape, art"
               className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="solana-address" className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              Solana Address for Tips
+            </Label>
+            <Input
+              id="solana-address"
+              value={solanaAddress}
+              onChange={(e) => setSolanaAddress(e.target.value)}
+              placeholder="Enter your Solana wallet address"
+              className="mt-1 bg-muted/50"
+              data-testid="input-solana-address"
             />
           </div>
           
