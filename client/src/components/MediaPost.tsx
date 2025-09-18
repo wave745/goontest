@@ -9,7 +9,7 @@ import {
   Heart, 
   Download,
   Coins,
-  MoreHorizontal, 
+ 
   Lock,
   Users,
   Crown
@@ -140,9 +140,6 @@ export default function MediaPost({ post, creator, onTip }: MediaPostProps) {
               {new Date(post.created_at).toLocaleDateString()}
             </p>
           </div>
-          <Button variant="ghost" size="sm">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
         </div>
 
         {/* Media Content */}
