@@ -48,16 +48,6 @@ export default function Live() {
   const [streams, setStreams] = useState<StreamWithCreator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewerCounts, setViewerCounts] = useState<Record<string, number>>({});
-  const [chatMessages, setChatMessages] = useState<Array<{
-    id: string;
-    username: string;
-    message: string;
-    timestamp: Date;
-    isTip: boolean;
-    tipAmount?: number;
-  }>>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [showChat, setShowChat] = useState(true);
 
   useEffect(() => {
     const fetchStreams = async () => {
@@ -180,25 +170,6 @@ export default function Live() {
     });
   };
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
-    
-    // Anonymous chat - just add to local state
-    setChatMessages(prev => [...prev, {
-      id: `msg_${Date.now()}`,
-      username: 'Anonymous',
-      message: newMessage.trim(),
-      timestamp: new Date(),
-      isTip: false
-    }]);
-    setNewMessage('');
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSendMessage();
-    }
-  };
 
   const formatViewerCount = (count: number) => {
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
@@ -483,90 +454,6 @@ Anonymous Creator
               )}
             </div>
 
-            {/* Global Chat Panel */}
-            {showChat && (
-              <div className="w-80 bg-card border border-border rounded-lg flex flex-col h-[600px]">
-                <div className="p-4 border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-foreground">Global Chat</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowChat(false)}
-                      className="h-6 w-6 p-0"
-                    >
-                      ×
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Chat Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                  {chatMessages.length === 0 ? (
-                    <div className="text-center text-muted-foreground text-sm py-8">
-                      No messages yet. Start the conversation!
-                    </div>
-                  ) : (
-                    chatMessages.map((message) => (
-                      <div key={message.id} className="flex items-start gap-2">
-                        <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-accent font-bold text-xs">
-                            {message.username.charAt(0)}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-foreground">
-                              {message.username}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {message.timestamp.toLocaleTimeString()}
-                            </span>
-                          </div>
-                          <p className="text-sm text-foreground break-words">
-                            {message.message}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                
-                {/* Chat Input */}
-                <div className="p-4 border-t border-border">
-                  <div className="flex gap-2">
-                    <Input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Type a message..."
-                      className="flex-1"
-                      disabled={false}
-                    />
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!newMessage.trim()}
-                      size="sm"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Anonymous chat enabled
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Chat Toggle Button */}
-            {!showChat && (
-              <Button
-                onClick={() => setShowChat(true)}
-                className="fixed bottom-4 right-4 rounded-full w-12 h-12 p-0 bg-accent hover:bg-accent/90"
-              >
-                <MessageCircle className="h-5 w-5" />
-              </Button>
-            )}
           </div>
         </main>
       </div>
