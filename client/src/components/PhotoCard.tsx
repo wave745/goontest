@@ -105,7 +105,7 @@ export default function PhotoCard({
   return (
     <>
       <Card 
-        className="group cursor-pointer overflow-hidden bg-card border-border hover:border-accent/50 transition-all duration-300 hover:shadow-lg"
+        className="group cursor-pointer overflow-hidden bg-card border-border hover:border-accent/50 transition-all duration-300 hover:shadow-lg hover:shadow-accent/20 hover:scale-[1.02] animate-pulse-glow"
         onClick={handleView}
         data-testid={`photo-card-${id}`}
       >

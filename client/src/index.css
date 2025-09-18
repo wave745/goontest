@@ -3,6 +3,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom glow animations for cards */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(249, 161, 27, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(249, 161, 27, 0.3), 0 0 30px rgba(249, 161, 27, 0.1);
+  }
+}
+
+.animate-pulse-glow:hover {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
 :root {
   --bg: hsl(0, 0%, 4.3%); /* #0B0B0B */
   --panel: hsl(0, 0%, 7.1%); /* #121212 */
