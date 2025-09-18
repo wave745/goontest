@@ -61,15 +61,6 @@ type StreamData = {
   };
 };
 
-type DonationData = {
-  totalDonated: number;
-  streamersSupported: number;
-  topDonors: Array<{
-    name: string;
-    amount: number;
-    rank: number;
-  }>;
-};
 
 export default function StreamDetail() {
   const { connected, publicKey } = useWallet();
@@ -78,7 +69,6 @@ export default function StreamDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isStreamingLive, setIsStreamingLive] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
-  const [donationData, setDonationData] = useState<DonationData | null>(null);
   const [isLiked, setIsLiked] = useState(false);
 
   const streamId = params?.streamId;
@@ -97,18 +87,6 @@ export default function StreamDetail() {
         const streamData = await response.json();
         setStream(streamData);
         
-        // Generate mock donation data for demo
-        const donations: DonationData = {
-          totalDonated: Math.floor(Math.random() * 100000) + 10000,
-          streamersSupported: Math.floor(Math.random() * 200) + 50,
-          topDonors: Array.from({ length: 10 }, (_, i) => ({
-            name: `Supporter${i + 1}`,
-            amount: Math.floor(Math.random() * 2000) + 100,
-            rank: i + 1
-          })).sort((a, b) => b.amount - a.amount)
-        };
-        
-        setDonationData(donations);
         setViewerCount(streamData.metadata?.viewer_count || Math.floor(Math.random() * 500) + 50);
         
       } catch (error) {
@@ -340,43 +318,6 @@ export default function StreamDetail() {
                     </CardContent>
                   </Card>
                   
-                  {/* Donation Leaderboard - Compact */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-center text-lg">
-                        DONATION LEADERBOARD
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="bg-muted/50 rounded-lg p-3 text-center">
-                          <div className="text-green-400 font-bold text-xl">
-                            {formatCurrency(donationData?.totalDonated || 0)}
-                          </div>
-                          <div className="text-muted-foreground text-sm">TOTAL DONATED</div>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-3 text-center">
-                          <div className="text-blue-400 font-bold text-xl">
-                            {donationData?.streamersSupported || 0}
-                          </div>
-                          <div className="text-muted-foreground text-sm">STREAMERS SUPPORTED</div>
-                        </div>
-                      </div>
-                      
-                      {/* Top Donors - Compact List */}
-                      <div className="max-h-32 overflow-y-auto">
-                        <div className="text-foreground text-sm font-semibold mb-2">TOP DONORS</div>
-                        {donationData?.topDonors.slice(0, 5).map((donor, index) => (
-                          <div key={index} className="flex justify-between items-center py-1 text-sm">
-                            <span className="text-muted-foreground">#{donor.rank} {donor.name}</span>
-                            <span className="text-green-400 font-semibold">
-                              {formatCurrency(donor.amount)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
 
                 {/* Right Side - Live Chat */}

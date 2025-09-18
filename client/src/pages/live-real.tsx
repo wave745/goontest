@@ -38,27 +38,16 @@ import { Link } from 'wouter';
 
 type StreamWithCreator = Post & { 
   creator: User;
-  donations?: DonationData;
   marketCap?: number;
   allTimeHigh?: number;
   tokenSymbol?: string;
 };
 
-type DonationData = {
-  totalDonated: number;
-  streamersSupported: number;
-  topDonors: Array<{
-    name: string;
-    amount: number;
-    rank: number;
-  }>;
-};
 
 export default function Live() {
   const [streams, setStreams] = useState<StreamWithCreator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewerCounts, setViewerCounts] = useState<Record<string, number>>({});
-  const [donationData, setDonationData] = useState<Record<string, DonationData>>({});
   const [chatMessages, setChatMessages] = useState<Array<{
     id: string;
     username: string;
@@ -80,29 +69,11 @@ export default function Live() {
         const data = await response.json();
         const liveStreams = data.streams || [];
         
-        // Simulate viewer counts and donation data
+        // Simulate viewer counts
         const counts: Record<string, number> = {};
-        const donations: Record<string, DonationData> = {};
         
         liveStreams?.forEach((stream: Post) => {
           counts[stream.id] = Math.floor(Math.random() * 1000) + 10;
-          
-          // Generate mock donation data
-          const totalDonated = Math.floor(Math.random() * 100000) + 10000;
-          const streamersSupported = Math.floor(Math.random() * 200) + 50;
-          
-          // Generate top donors
-          const topDonors = Array.from({ length: 10 }, (_, i) => ({
-            name: `Donor${i + 1}`,
-            amount: Math.floor(Math.random() * 5000) + 100,
-            rank: i + 1
-          })).sort((a, b) => b.amount - a.amount);
-          
-          donations[stream.id] = {
-            totalDonated,
-            streamersSupported,
-            topDonors
-          };
         });
         
         // Add market cap and token data to streams
@@ -115,7 +86,6 @@ export default function Live() {
         
         setStreams(streamsWithData);
         setViewerCounts(counts);
-        setDonationData(donations);
         
       } catch (error) {
         console.error('Error fetching live streams:', error);
@@ -305,56 +275,18 @@ export default function Live() {
             {streams.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {streams.map((stream) => {
-                  const donations = donationData[stream.id];
                   return (
                     <Card key={stream.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
-                      {/* Stream Preview with Donation Leaderboard */}
+                      {/* Stream Preview */}
                       <div className="relative aspect-video bg-gradient-to-br from-gray-900 to-gray-800">
-                        {/* Donation Leaderboard Overlay */}
-                        <div className="absolute inset-0 bg-black/60 flex">
-                          <div className="flex-1 p-4">
-                            <div className="text-center mb-4">
-                              <h3 className="text-white font-bold text-lg mb-2">
-                                {stream.tokenSymbol || 'STREAMERCOIN'} LIVE DONATION LEADERBOARD
-                              </h3>
-                              <div className="grid grid-cols-2 gap-4 mb-4">
-                                <div className="bg-white/10 rounded-lg p-3">
-                                  <div className="text-green-400 font-bold text-xl">
-                                    {formatCurrency(donations?.totalDonated || 0)}
-                                  </div>
-                                  <div className="text-white/80 text-sm">TOTAL DONATED</div>
-                                </div>
-                                <div className="bg-white/10 rounded-lg p-3">
-                                  <div className="text-blue-400 font-bold text-xl">
-                                    {donations?.streamersSupported || 0}
-                                  </div>
-                                  <div className="text-white/80 text-sm">STREAMERS SUPPORTED</div>
-                                </div>
-                              </div>
+                        {/* Stream Preview Content */}
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4 mx-auto">
+                              <Play className="h-8 w-8 text-red-500" />
                             </div>
-                            
-                            {/* Top Donors List */}
-                            <div className="max-h-32 overflow-y-auto">
-                              <div className="text-white/90 text-sm font-semibold mb-2">STREAMER AMOUNT</div>
-                              {donations?.topDonors.slice(0, 5).map((donor, index) => (
-                                <div key={index} className="flex justify-between items-center py-1 text-xs">
-                                  <span className="text-white/80">#{donor.rank} {donor.name}</span>
-                                  <span className="text-green-400 font-semibold">
-                                    {formatCurrency(donor.amount)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          {/* Video Preview Area */}
-                          <div className="w-1/3 bg-gradient-to-br from-purple-900 to-blue-900 flex items-center justify-center">
-                            <div className="text-center">
-                              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mb-2 mx-auto">
-                                <Play className="h-6 w-6 text-red-500" />
-                              </div>
-                              <p className="text-white/80 text-xs">LIVE</p>
-                            </div>
+                            <p className="text-white/80 text-lg font-semibold">LIVE STREAM</p>
+                            <p className="text-white/60 text-sm mt-2">{stream.caption || 'Live streaming now'}</p>
                           </div>
                         </div>
 
