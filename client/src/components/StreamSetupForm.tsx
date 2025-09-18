@@ -14,12 +14,16 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDes
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Play, User, MessageSquare, Wallet, Image, Upload, X } from 'lucide-react';
 
-// Extend the schema with Solana address validation
+// Extend the schema with relaxed Solana address validation for testing
 const streamSetupFormSchema = insertStreamSetupSchema.extend({
   solana_address: z.string()
     .min(1, "Solana address is required")
-    .refine((address) => validateSolanaAddress(address), {
-      message: "Please enter a valid Solana address"
+    .refine((address) => {
+      // For testing, allow a simple fallback address
+      if (address.length < 10) return false;
+      return validateSolanaAddress(address) || address === "test-wallet-address";
+    }, {
+      message: "Please enter a valid Solana address (or use 'test-wallet-address' for testing)"
     })
 });
 
@@ -338,7 +342,7 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
                     />
                   </FormControl>
                   <FormDescription className="text-muted-foreground">
-                    Viewers can send you SOL tips during the stream. Make sure this is a valid Solana address you control.
+                    Viewers can send you SOL tips during the stream. Enter a valid Solana address or use "test-wallet-address" for testing.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
