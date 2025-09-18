@@ -9,7 +9,6 @@ export default function MobileNav() {
     { icon: Clock, label: 'Recent', href: '/recent' },
     { icon: Image, label: 'Photos', href: '/photos' },
     { icon: Video, label: 'Videos', href: '/videos' },
-    { icon: Coins, label: 'GOON Coins', href: '/coins' },
   ];
 
   return (
