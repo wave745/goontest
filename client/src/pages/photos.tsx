@@ -27,7 +27,6 @@ export default function Photos() {
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadPrice, setUploadPrice] = useState('');
-  const [uploadTags, setUploadTags] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,7 +70,6 @@ export default function Photos() {
       setUploadTitle('');
       setUploadDescription('');
       setUploadPrice('');
-      setUploadTags('');
       setIsUploadDialogOpen(false);
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
@@ -151,7 +149,6 @@ export default function Photos() {
       
       const { mediaUrl, thumbUrl } = await uploadResponse.json();
 
-      const tags = uploadTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
 
       const postData = {
         creator_id: publicKey.toBase58(),
@@ -160,7 +157,7 @@ export default function Photos() {
         caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
         price_lamports: parseFloat(uploadPrice || '0') * 1000000,
         visibility: 'public',
-        tags: ['photo', ...tags]
+        tags: ['photo']
       };
 
       await uploadMutation.mutateAsync(postData);
@@ -335,16 +332,6 @@ export default function Photos() {
                         />
                       </div>
 
-                      <div>
-                        <Label htmlFor="tags">Tags (comma-separated)</Label>
-                        <Input
-                          id="tags"
-                          value={uploadTags}
-                          onChange={(e) => setUploadTags(e.target.value)}
-                          placeholder="nature, landscape, art"
-                          className="mt-1"
-                        />
-                      </div>
                       
                       <div>
                         <Label htmlFor="price">Price (GOON Coins)</Label>

@@ -19,7 +19,6 @@ export default function UploadPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
-  const [uploadTags, setUploadTags] = useState('');
   const [contentType, setContentType] = useState('photo');
   const [isUploading, setIsUploading] = useState(false);
   const [solanaAddress, setSolanaAddress] = useState('');
@@ -115,7 +114,6 @@ export default function UploadPage() {
 
       const uploadData = await uploadResponse.json();
       
-      const tags = uploadTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
 
       // Save Solana address if provided
       if (solanaAddress) {
@@ -137,7 +135,7 @@ export default function UploadPage() {
           caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
           visibility: 'public',
           status: 'published',
-          tags: [contentType, ...tags],
+          tags: [contentType],
         }),
       });
 
@@ -154,7 +152,6 @@ export default function UploadPage() {
       setUploadFile(null);
       setUploadTitle('');
       setUploadDescription('');
-      setUploadTags('');
       setSolanaAddress('');
       setLocation('/');
     } catch (error) {
@@ -385,16 +382,6 @@ export default function UploadPage() {
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="tags">Tags (comma-separated)</Label>
-                    <Input
-                      id="tags"
-                      value={uploadTags}
-                      onChange={(e) => setUploadTags(e.target.value)}
-                      placeholder="nature, landscape, art"
-                      className="mt-1"
-                    />
-                  </div>
 
                   <div>
                     <Label htmlFor="solana-address">Solana Address (for tips)</Label>
