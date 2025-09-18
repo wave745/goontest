@@ -137,7 +137,7 @@ export default function Photos() {
     try {
       // Upload file to storage service
       const formData = new FormData();
-      formData.append('file', file as File);
+      formData.append('file', uploadFile as File);
       formData.append('type', 'photo');
       
       const uploadResponse = await fetch('/api/upload', {
@@ -400,13 +400,18 @@ export default function Photos() {
                       id={post.id}
                       imageUrl={post.media_url}
                       title={post.caption}
-                      creator={post.creator}
+                      creator={post.creator ? { 
+                        id: post.creator.id || 'anonymous',
+                        handle: post.creator.handle || 'Anonymous', 
+                        avatar_url: post.creator.avatar_url,
+                        is_creator: post.creator.is_creator || false 
+                      } : { id: 'anonymous', handle: 'Anonymous', is_creator: false }}
                       views={post.views}
                       likes={post.likes}
                       price={post.price_lamports}
                       isGated={post.price_lamports > 0}
-                      isVerified={post.creator.is_creator}
-                      tags={post.tags}
+                      isVerified={post.creator?.is_creator || false}
+                      tags={post.tags || []}
                       onClick={() => handleCardClick(post)}
                     />
                   ))}

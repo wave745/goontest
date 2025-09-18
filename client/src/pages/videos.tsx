@@ -401,7 +401,12 @@ export default function Videos() {
                       thumb={post.thumb_url}
                       duration="12:34"
                       title={post.caption}
-                      creator={post.creator || { id: 'anonymous', handle: 'Anonymous', is_creator: false }}
+                      creator={post.creator ? { 
+                        id: post.creator.id || 'anonymous',
+                        handle: post.creator.handle || 'Anonymous', 
+                        avatar_url: post.creator.avatar_url,
+                        is_creator: post.creator.is_creator || false 
+                      } : { id: 'anonymous', handle: 'Anonymous', is_creator: false }}
                       views={post.views}
                       likes={post.likes}
                       price={post.price_lamports}
