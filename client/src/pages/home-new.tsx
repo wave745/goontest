@@ -117,15 +117,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [selectedCategory]);
 
-  const handleCardClick = (post: PostWithCreator) => {
-    if (post.price_lamports > 0) {
-      // Show paywall modal
-      console.log('Show paywall for:', post);
-    } else {
-      // Navigate to post detail
-      window.location.href = `/p/${post.id}`;
-    }
-  };
+  // Removed handleCardClick - let cards use their built-in modal functionality
 
   const categories = ['All', 'Videos', 'Photos', 'Live'];
 
@@ -196,11 +188,11 @@ export default function Home() {
                         <div className="flex items-center gap-2 mt-2">
                           <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
                             <span className="text-xs font-bold">
-                              {stream.creator_id?.slice(0, 2).toUpperCase() || 'U'}
+                              {((stream.creator as any)?.goon_username || stream.creator_id)?.slice(0, 2).toUpperCase() || 'U'}
                             </span>
                           </div>
                           <span className="text-sm text-muted-foreground">
-                            {stream.creator_id?.slice(0, 8)}...
+                            @{(stream.creator as any)?.goon_username || stream.creator_id?.slice(0, 8) + '...' || 'Unknown'}
                           </span>
                         </div>
                       </CardContent>
@@ -233,18 +225,17 @@ export default function Home() {
                       title={post.caption}
                       creator={{
                         id: post.creator_id,
-                        handle: post.creator_id?.slice(0, 8) || 'Unknown',
-                        avatar_url: undefined,
-                        is_creator: false
+                        handle: (post.creator as any)?.goon_username || post.creator_id?.slice(0, 8) || 'Unknown',
+                        avatar_url: post.creator?.avatar_url,
+                        is_creator: post.creator?.is_creator || false
                       }}
                       views={post.views}
                       likes={post.likes}
                       price={post.price_lamports}
                       isGated={post.price_lamports > 0}
-                      isVerified={false}
+                      isVerified={post.creator?.age_verified || false}
                       tags={post.tags || []}
                       solanaAddress={post.creator?.solana_address}
-                      onClick={() => handleCardClick(post)}
                     />
                   );
                 } else if (isPhoto) {
@@ -256,18 +247,17 @@ export default function Home() {
                       title={post.caption}
                       creator={{ 
                         id: post.creator_id, 
-                        handle: post.creator_id?.slice(0, 8) || 'Unknown',
-                        avatar_url: undefined,
-                        is_creator: false
+                        handle: (post.creator as any)?.goon_username || post.creator_id?.slice(0, 8) || 'Unknown',
+                        avatar_url: post.creator?.avatar_url,
+                        is_creator: post.creator?.is_creator || false
                       }}
                       views={post.views}
                       likes={post.likes}
                       price={post.price_lamports}
                       isGated={post.price_lamports > 0}
-                      isVerified={false}
+                      isVerified={post.creator?.age_verified || false}
                       tags={post.tags || []}
                       solanaAddress={post.creator?.solana_address}
-                      onClick={() => handleCardClick(post)}
                     />
                   );
                 }
