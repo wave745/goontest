@@ -83,9 +83,6 @@ export default function Videos() {
     },
   });
 
-  const handleCardClick = (post: Post) => {
-    setLocation(`/p/${post.id}`);
-  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -157,7 +154,6 @@ export default function Videos() {
         caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
         price_lamports: parseFloat(uploadPrice || '0') * 1000000,
         visibility: 'public',
-        tags: ['video']
       };
 
       await uploadMutation.mutateAsync(postData);
@@ -399,7 +395,6 @@ export default function Videos() {
                       price={post.price_lamports}
                       isGated={post.price_lamports > 0}
                       isVerified={post.creator?.is_creator || false}
-                      onClick={() => handleCardClick(post)}
                     />
                   ))}
                 </MasonryGrid>
