@@ -380,10 +380,6 @@ export default function Live() {
                         Go Live
                       </Button>
                     </Link>
-                    <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground" data-testid="button-refresh-streams">
-                      <Play className="h-4 w-4 mr-2" />
-                      Refresh
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
