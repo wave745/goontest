@@ -197,7 +197,7 @@ export default function LiveChat({ streamId, streamTitle, className }: LiveChatP
     
     try {
       const username = connected 
-        ? `${publicKey?.toBase58().slice(0, 4)}...${publicKey?.toBase58().slice(-4)}` 
+        ? publicKey?.toBase58().slice(0, 4) || 'Anonymous'
         : 'Anonymous';
       
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
