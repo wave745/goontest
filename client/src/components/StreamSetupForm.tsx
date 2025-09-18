@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Play, User, MessageSquare, Wallet, Image } from 'lucide-react';
+import { Loader2, Play, User, MessageSquare, Wallet, Image, Upload, X } from 'lucide-react';
 
 // Extend the schema with Solana address validation
 const streamSetupFormSchema = insertStreamSetupSchema.extend({
@@ -32,6 +32,8 @@ interface StreamSetupFormProps {
 export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
 
   const form = useForm<StreamSetupFormData>({
     resolver: zodResolver(streamSetupFormSchema),
@@ -101,10 +103,62 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
   const onSubmit = async (data: StreamSetupFormData) => {
     setIsSubmitting(true);
     try {
-      await createStreamMutation.mutateAsync(data);
+      let avatarUrl = data.avatar_url;
+      
+      // Upload avatar if file is selected
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append('avatar', avatarFile);
+        
+        const uploadResponse = await fetch('/api/upload/avatar', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload avatar');
+        }
+        
+        const uploadResult = await uploadResponse.json();
+        avatarUrl = uploadResult.avatar_url;
+      }
+      
+      // Submit with uploaded avatar URL
+      await createStreamMutation.mutateAsync({
+        ...data,
+        avatar_url: avatarUrl
+      });
     } finally {
       setIsSubmitting(false);
     }
+  };
+  
+  const handleAvatarFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file for your avatar",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setAvatarFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const removeAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview('');
   };
 
   return (
@@ -177,30 +231,67 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
             />
 
             {/* Streaming Avatar Field */}
-            <FormField
-              control={form.control}
-              name="avatar_url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-foreground">
-                    <Image className="h-4 w-4 text-accent" />
-                    Streaming Avatar (Optional)
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="https://example.com/your-avatar.jpg"
-                      className="bg-background border-border text-foreground placeholder:text-muted-foreground"
-                      data-testid="input-avatar-url"
-                    />
-                  </FormControl>
-                  <FormDescription className="text-muted-foreground">
-                    Add an image URL for your streaming icon that appears above the chat. If left empty, we'll generate one from your name.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormItem>
+              <FormLabel className="flex items-center gap-2 text-foreground">
+                <Image className="h-4 w-4 text-accent" />
+                Streaming Avatar (Optional)
+              </FormLabel>
+              <FormControl>
+                <div className="space-y-4">
+                  {avatarPreview ? (
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <img 
+                          src={avatarPreview} 
+                          alt="Avatar preview" 
+                          className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                          onClick={removeAvatar}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-foreground font-medium">{avatarFile?.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {avatarFile && (avatarFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-accent transition-colors">
+                      <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <div className="space-y-2">
+                        <label htmlFor="avatar-upload" className="cursor-pointer">
+                          <span className="text-sm font-medium text-foreground hover:text-accent">
+                            Click to upload avatar
+                          </span>
+                          <input
+                            id="avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarFileChange}
+                            className="hidden"
+                            data-testid="input-avatar-file"
+                          />
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          PNG, JPG, GIF up to 10MB
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+              <FormDescription className="text-muted-foreground">
+                Upload an image for your streaming icon that appears above the chat. If not uploaded, we'll generate one from your name.
+              </FormDescription>
+            </FormItem>
 
             {/* Stream Description Field */}
             <FormField

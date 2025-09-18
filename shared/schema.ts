@@ -68,7 +68,7 @@ export const insertStreamSetupSchema = z.object({
   name: z.string().min(1, "Streamer name is required").max(50, "Name must be 50 characters or less"),
   title: z.string().min(1, "Stream title is required").max(100, "Title must be 100 characters or less"),
   description: z.string().max(500, "Description must be 500 characters or less").optional(),
-  avatar_url: z.string().url("Please enter a valid image URL").optional(),
+  avatar_url: z.string().optional(), // Will be set by upload or generated
   solana_address: z.string().min(1, "Solana address is required"),
 });
 

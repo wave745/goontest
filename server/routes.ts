@@ -73,6 +73,34 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     }
   });
 
+  // ===== AVATAR UPLOAD ENDPOINT =====
+  
+  // Upload avatar for streaming
+  app.post("/api/upload/avatar", upload?.single('avatar') || ((req, res, next) => next()), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Avatar file is required" });
+      }
+
+      // Validate file type - only images allowed for avatars
+      if (!req.file.mimetype.startsWith('image/')) {
+        return res.status(400).json({ error: "Only image files are allowed for avatars" });
+      }
+
+      // Handle avatar upload
+      const uploadResult = await uploadToDigitalOcean(req.file, 'avatars');
+
+      res.json({ 
+        success: true, 
+        avatar_url: uploadResult.url,
+        filename: uploadResult.filename
+      });
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      res.status(500).json({ error: "Failed to upload avatar" });
+    }
+  });
+
   // ===== CONTENT ENDPOINTS =====
   
   // Get real-time content feed
