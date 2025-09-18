@@ -1,9 +1,12 @@
-// Solana wallet integration for tipping
-export interface SolanaWallet {
-  publicKey: string;
-  signTransaction: (transaction: any) => Promise<any>;
-  signAllTransactions: (transactions: any[]) => Promise<any[]>;
-}
+import { 
+  Connection, 
+  PublicKey, 
+  Transaction, 
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+  clusterApiUrl
+} from '@solana/web3.js';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 
 export interface TipTransaction {
   fromAddress: string;
@@ -12,11 +15,17 @@ export interface TipTransaction {
   message?: string;
 }
 
-// Mock Solana wallet integration
-// In a real implementation, this would integrate with @solana/wallet-adapter-react
+// Real Solana integration using existing wallet adapter
 export class SolanaService {
   private static instance: SolanaService;
-  private wallet: SolanaWallet | null = null;
+  private connection: Connection;
+
+  constructor() {
+    // Use the same network as WalletProvider
+    const network = WalletAdapterNetwork.Devnet;
+    const endpoint = clusterApiUrl(network);
+    this.connection = new Connection(endpoint, 'confirmed');
+  }
 
   static getInstance(): SolanaService {
     if (!SolanaService.instance) {
@@ -25,81 +34,69 @@ export class SolanaService {
     return SolanaService.instance;
   }
 
-  setWallet(wallet: SolanaWallet) {
-    this.wallet = wallet;
-  }
-
-  isConnected(): boolean {
-    return this.wallet !== null;
-  }
-
-  getPublicKey(): string | null {
-    return this.wallet?.publicKey || null;
-  }
-
-  async sendTip(tipData: TipTransaction): Promise<string> {
-    if (!this.wallet) {
+  async sendTip(tipData: TipTransaction, wallet: any): Promise<string> {
+    if (!wallet?.publicKey || !wallet?.signTransaction) {
       throw new Error('Wallet not connected');
     }
 
     try {
-      // In a real implementation, this would:
-      // 1. Create a Solana transaction
-      // 2. Sign the transaction with the wallet
-      // 3. Send the transaction to the Solana network
-      // 4. Return the transaction signature
-
-      // For now, we'll simulate the transaction
-      const mockTransactionSignature = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Validate addresses
+      const fromPubkey = new PublicKey(wallet.publicKey.toString());
+      const toPubkey = new PublicKey(tipData.toAddress);
       
-      // Verify the transaction with our backend
-      const verificationResponse = await fetch('/api/tips/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transactionSignature: mockTransactionSignature,
-          fromAddress: tipData.fromAddress,
-          toAddress: tipData.toAddress,
-          amount: tipData.amount
-        }),
-      });
+      // Convert SOL to lamports
+      const lamports = Math.round(tipData.amount * LAMPORTS_PER_SOL);
+      
+      // Create transaction
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports,
+        })
+      );
 
-      if (!verificationResponse.ok) {
-        throw new Error('Transaction verification failed');
-      }
+      // Get latest blockhash
+      const { blockhash } = await this.connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = fromPubkey;
 
-      return mockTransactionSignature;
+      // Sign transaction
+      const signedTransaction = await wallet.signTransaction(transaction);
+      
+      // Send transaction
+      const signature = await this.connection.sendRawTransaction(
+        signedTransaction.serialize()
+      );
+
+      // Confirm transaction
+      await this.connection.confirmTransaction(signature, 'confirmed');
+      
+      return signature;
     } catch (error) {
       console.error('Failed to send tip:', error);
       throw error;
     }
   }
 
-  async getBalance(): Promise<number> {
-    if (!this.wallet) {
-      throw new Error('Wallet not connected');
+  async getBalance(publicKey: string): Promise<number> {
+    try {
+      const pubkey = new PublicKey(publicKey);
+      const balance = await this.connection.getBalance(pubkey);
+      return balance / LAMPORTS_PER_SOL;
+    } catch (error) {
+      console.error('Failed to get balance:', error);
+      return 0;
     }
-
-    // In a real implementation, this would query the Solana network
-    // For now, return a mock balance
-    return 1.5; // Mock 1.5 SOL balance
   }
 
-  async connectWallet(): Promise<SolanaWallet> {
-    // In a real implementation, this would prompt the user to connect their wallet
-    // For now, return a mock wallet
-    const mockWallet: SolanaWallet = {
-      publicKey: 'mock_public_key_' + Date.now(),
-      signTransaction: async (transaction: any) => transaction,
-      signAllTransactions: async (transactions: any[]) => transactions,
-    };
-
-    this.wallet = mockWallet;
-    return mockWallet;
-  }
-
-  disconnectWallet() {
-    this.wallet = null;
+  validateAddress(address: string): boolean {
+    try {
+      new PublicKey(address);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

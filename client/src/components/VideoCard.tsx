@@ -236,6 +236,7 @@ export default function VideoCard({
               likes={currentLikes}
               isLiked={isLiked}
               solanaAddress={solanaAddress}
+              creatorId={creator.id}
               onLike={handleLike}
               onTip={handleTip}
             />
