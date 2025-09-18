@@ -341,7 +341,7 @@ export default function LiveChat({ streamId, streamTitle, className }: LiveChatP
       
       <CardContent className="p-0">
         {/* Messages Area */}
-        <ScrollArea className="h-[400px] border-b border-border">
+        <ScrollArea className="h-[250px] border-b border-border">
           <div className="p-0">
             {messages.map(renderMessage)}
             <div ref={messagesEndRef} />

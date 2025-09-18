@@ -321,11 +321,11 @@ export default function StreamDetail() {
                 </div>
 
                 {/* Right Side - Live Chat */}
-                <div className="w-full lg:w-80">
+                <div className="w-full lg:w-72">
                   <LiveChat 
                     streamId={streamId!}
                     streamTitle={stream.title}
-                    className="h-[400px] lg:h-[600px]"
+                    className="h-[300px]"
                   />
                 </div>
               </div>
