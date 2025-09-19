@@ -217,16 +217,17 @@ export default function LiveStreamCard({
             {/* Dark overlay for better text visibility */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/20" />
             
-            {/* LIVE Badge - Top Left */}
-            <div className="absolute top-2 left-2">
-              <Badge 
-                variant="secondary" 
-                className={`${isLive ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-600 text-gray-200'} font-bold px-2 py-1`}
-              >
-                <Circle className={`h-2 w-2 mr-1 ${isLive ? 'fill-current' : ''}`} />
-                {isLive ? 'LIVE' : 'OFFLINE'}
-              </Badge>
-            </div>
+            {/* LIVE Badge - Bottom Left (matching user example) */}
+            {isLive && (
+              <div className="absolute bottom-2 left-2">
+                <Badge 
+                  variant="secondary" 
+                  className="bg-green-600 text-white font-bold px-3 py-1 text-sm"
+                >
+                  LIVE
+                </Badge>
+              </div>
+            )}
 
             {/* Viewer Count - Top Right */}
             <div className="absolute top-2 right-2">
@@ -272,15 +273,6 @@ export default function LiveStreamCard({
               </Button>
             </div>
 
-            {/* Live Now Indicator - Bottom Left */}
-            {isLive && (
-              <div className="absolute bottom-2 left-2 flex items-center gap-2">
-                <div className="flex items-center gap-1 bg-black/70 px-2 py-1 rounded">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                  <span className="text-white text-xs font-medium">Live Now</span>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Stream Info */}
