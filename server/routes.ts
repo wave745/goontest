@@ -8,6 +8,11 @@ import { insertPostSchema, insertTipSchema, insertLiveChatMessageSchema, type Po
 import { chatWithAI } from "./services/xai";
 import { uploadToDigitalOcean } from "./services/upload-real";
 
+// Global type declaration for WebSocket server
+declare global {
+  var wss: WebSocketServer;
+}
+
 // Helper function to create anonymous post responses - strips all sensitive data
 function createAnonymousPost(post: Post) {
   const { solana_address, ...anonymousPost } = post;
@@ -215,23 +220,35 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         };
       } else {
         // Handle JSON data - Force anonymous regardless of input
-        const { caption, solana_address, media_url, thumb_url, is_live, tags } = req.body;
+        const { caption, solana_address, media_url, thumb_url, is_live, tags, metadata } = req.body;
+        
+        // For live streams, generate a stream URL if none provided
+        let finalMediaUrl = media_url || '';
+        let finalThumbUrl = thumb_url || media_url || '';
+        
+        if (is_live && !media_url) {
+          // Generate a unique stream identifier for live streams
+          const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          finalMediaUrl = `live://stream/${streamId}`;
+          finalThumbUrl = finalMediaUrl;
+        }
         
         postData = {
-          media_url: media_url || '',
-          thumb_url: thumb_url || media_url || '',
+          media_url: finalMediaUrl,
+          thumb_url: finalThumbUrl,
           caption: caption || '',
           price_lamports: 0,
           visibility: 'public',
           solana_address: 'anonymous',
-          is_live: is_live || false
+          is_live: is_live || false,
+          metadata: metadata || {}
         };
       }
 
       const validatedData = insertPostSchema.parse(postData);
       const post = await storage.createPost(validatedData);
       
-      // If this is a live stream, create activity
+      // If this is a live stream, create activity and broadcast to all clients
       if (post.is_live && post.metadata) {
         await storage.createActivity({
           type: 'core_update',
@@ -244,6 +261,18 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
             streamer_name: post.metadata.streamer_name
           }
         });
+
+        // Broadcast new live stream to all connected clients
+        if (global.wss) {
+          global.wss.clients.forEach((client: WebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'stream_started',
+                stream: createAnonymousPost(post)
+              }));
+            }
+          });
+        }
       }
       
       res.json(post);
@@ -583,6 +612,9 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     server: httpServer,
     path: '/chat-ws'
   });
+  
+  // Make WebSocket server globally accessible for broadcasting
+  global.wss = wss;
   
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');

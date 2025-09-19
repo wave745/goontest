@@ -44,8 +44,25 @@ export default function LiveStreamCard({
   const [previewError, setPreviewError] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isSimulatedStream, setIsSimulatedStream] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Convert live:// URLs to placeholder videos for browser compatibility
+  const getPlayableMediaUrl = (url: string | undefined) => {
+    if (!url) return undefined;
+    
+    if (url.startsWith('live://')) {
+      setIsSimulatedStream(true);
+      // Use a different placeholder video for auto-play previews
+      return '/uploads/video_2d324ce2-f7f1-49c0-8180-170b3a1436b6.mp4';
+    }
+    
+    setIsSimulatedStream(false);
+    return url;
+  };
+
+  const playableMediaUrl = getPlayableMediaUrl(mediaUrl);
 
   // Video auto-play manager - global limit of 3 concurrent videos
   const maxConcurrentVideos = 3;
@@ -92,7 +109,7 @@ export default function LiveStreamCard({
 
   // Auto-play management with concurrent video limits
   const manageVideoPlayback = useCallback(async () => {
-    if (!videoRef.current || !mediaUrl || previewError) return;
+    if (!videoRef.current || !playableMediaUrl || previewError) return;
 
     const video = videoRef.current;
     const playingVideos = document.querySelectorAll('video[data-auto-playing="true"]');
@@ -114,7 +131,18 @@ export default function LiveStreamCard({
         setIsPlaying(true);
       } catch (error) {
         console.error('Auto-play failed:', error);
-        setPreviewError(true);
+        // For simulated streams, try once more with lower volume
+        if (isSimulatedStream) {
+          try {
+            video.volume = 0.1;
+            await video.play();
+            setIsPlaying(true);
+          } catch (retryError) {
+            setPreviewError(true);
+          }
+        } else {
+          setPreviewError(true);
+        }
       }
     } else {
       video.pause();
@@ -122,7 +150,7 @@ export default function LiveStreamCard({
       video.removeAttribute('data-auto-playing');
       setIsPlaying(false);
     }
-  }, [isInView, isLive, mediaUrl, previewError, isPlaying]);
+  }, [isInView, isLive, playableMediaUrl, previewError, isPlaying, isSimulatedStream]);
 
   useEffect(() => {
     manageVideoPlayback();
@@ -192,10 +220,10 @@ export default function LiveStreamCard({
           {/* Stream Preview Container */}
           <div className="relative aspect-video overflow-hidden bg-black">
             {/* Auto-playing video preview or thumbnail */}
-            {mediaUrl && !previewError ? (
+            {playableMediaUrl && !previewError ? (
               <video
                 ref={videoRef}
-                src={mediaUrl}
+                src={playableMediaUrl}
                 poster={thumbnailUrl}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 muted
@@ -219,13 +247,21 @@ export default function LiveStreamCard({
             
             {/* LIVE Badge - Bottom Left (matching user example) */}
             {isLive && (
-              <div className="absolute bottom-2 left-2">
+              <div className="absolute bottom-2 left-2 flex gap-1">
                 <Badge 
                   variant="secondary" 
                   className="bg-green-600 text-white font-bold px-3 py-1 text-sm"
                 >
-                  LIVE
+                  {isSimulatedStream ? 'LIVE SIM' : 'LIVE'}
                 </Badge>
+                {isSimulatedStream && (
+                  <Badge 
+                    variant="secondary" 
+                    className="bg-yellow-600 text-white px-2 py-1 text-xs"
+                  >
+                    🎭
+                  </Badge>
+                )}
               </div>
             )}
 

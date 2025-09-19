@@ -19,7 +19,7 @@ import { toast } from '@/hooks/use-toast';
 
 interface VideoStreamerProps {
   streamId?: string;
-  onStreamStart?: () => void;
+  onStreamStart?: (streamData?: { mediaUrl: string; streamId: string }) => void;
   onStreamEnd?: () => void;
   className?: string;
 }
@@ -66,11 +66,18 @@ export default function VideoStreamer({ streamId, onStreamStart, onStreamEnd, cl
       streamRef.current = stream;
       setStreamSource('camera');
       setIsStreaming(true);
-      onStreamStart?.();
+      
+      // Generate a unique stream URL for this session
+      const streamData = {
+        mediaUrl: `live://stream/camera_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        streamId: streamId || `camera_${Date.now()}`
+      };
+      
+      onStreamStart?.(streamData);
 
       toast({
-        title: "Camera started",
-        description: "Your camera is now live",
+        title: "Camera started (Simulation Mode)",
+        description: "Your camera is now live - streaming URLs are simulated for demo purposes",
       });
 
     } catch (err) {
@@ -121,7 +128,14 @@ export default function VideoStreamer({ streamId, onStreamStart, onStreamEnd, cl
       streamRef.current = stream;
       setStreamSource('screen');
       setIsStreaming(true);
-      onStreamStart?.();
+      
+      // Generate a unique stream URL for this session
+      const streamData = {
+        mediaUrl: `live://stream/screen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        streamId: streamId || `screen_${Date.now()}`
+      };
+      
+      onStreamStart?.(streamData);
 
       // Handle when user stops screen sharing via browser UI
       stream.getVideoTracks()[0].addEventListener('ended', () => {
@@ -129,8 +143,8 @@ export default function VideoStreamer({ streamId, onStreamStart, onStreamEnd, cl
       });
 
       toast({
-        title: "Screen sharing started",
-        description: "Your screen is now being shared",
+        title: "Screen sharing started (Simulation Mode)",
+        description: "Your screen is now being shared - streaming URLs are simulated for demo purposes",
       });
 
     } catch (err) {
@@ -227,7 +241,12 @@ export default function VideoStreamer({ streamId, onStreamStart, onStreamEnd, cl
             {isStreaming && (
               <Badge variant="destructive" className="bg-red-500 text-white">
                 <Wifi className="h-3 w-3 mr-1" />
-                LIVE
+                LIVE SIM
+              </Badge>
+            )}
+            {isStreaming && (
+              <Badge variant="secondary" className="bg-yellow-600 text-white">
+                🎭 Demo Mode
               </Badge>
             )}
             {streamSource === 'camera' && (
@@ -365,6 +384,14 @@ export default function VideoStreamer({ streamId, onStreamStart, onStreamEnd, cl
                   <Video className="h-12 w-12 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Ready to Stream</h3>
+                <div className="bg-yellow-600/20 border border-yellow-600/50 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-yellow-300 mb-1">
+                    🎭 <strong>Demo Mode:</strong> Streaming is simulated
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Your camera/screen will be captured but stream URLs will be demo placeholders
+                  </p>
+                </div>
                 <p className="text-sm text-gray-400 mb-6">
                   Choose your video source to start streaming
                 </p>

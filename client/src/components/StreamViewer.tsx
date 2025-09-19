@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,9 +44,32 @@ export default function StreamViewer({
   const [showControls, setShowControls] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isSimulatedStream, setIsSimulatedStream] = useState(false);
+
+  // Convert live:// URLs to placeholder videos for browser compatibility
+  const playableMediaUrl = useMemo(() => {
+    if (!mediaUrl) return undefined;
+    
+    if (mediaUrl.startsWith('live://')) {
+      // Use a placeholder video for live stream simulation
+      return '/uploads/video_2198c440-f9de-47e7-8386-c3e88dc2eb69.mp4';
+    }
+    
+    return mediaUrl;
+  }, [mediaUrl]);
+
+  // Set simulation state based on media URL
+  useEffect(() => {
+    if (!mediaUrl) {
+      setIsSimulatedStream(false);
+      return;
+    }
+    
+    setIsSimulatedStream(mediaUrl.startsWith('live://'));
+  }, [mediaUrl]);
 
   // Handle play/pause
-  const togglePlayback = async () => {
+  const togglePlayback = useCallback(async () => {
     if (!videoRef.current) return;
 
     try {
@@ -78,28 +101,28 @@ export default function StreamViewer({
       console.error('Playback error:', err);
       setError('Failed to play stream. Please try again.');
     }
-  };
+  }, [isPlaying]);
 
   // Handle mute/unmute
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (!videoRef.current) return;
     
     const newMuted = !isMuted;
     videoRef.current.muted = newMuted;
     setIsMuted(newMuted);
-  };
+  }, [isMuted]);
 
   // Handle volume change
-  const handleVolumeChange = (newVolume: number) => {
+  const handleVolumeChange = useCallback((newVolume: number) => {
     if (!videoRef.current) return;
     
     videoRef.current.volume = newVolume;
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
-  };
+  }, []);
 
   // Handle fullscreen
-  const toggleFullscreen = async () => {
+  const toggleFullscreen = useCallback(async () => {
     if (!videoRef.current) return;
 
     try {
@@ -115,18 +138,34 @@ export default function StreamViewer({
     } catch (err) {
       console.error('Fullscreen error:', err);
     }
-  };
+  }, [isFullscreen]);
 
   // Handle retry stream
-  const retryStream = () => {
-    if (!videoRef.current || !mediaUrl) return;
+  const retryStream = useCallback(() => {
+    if (!videoRef.current || !playableMediaUrl) return;
     
     setError(null);
     setIsLoading(true);
     
-    // Force reload the video source
-    videoRef.current.load();
-  };
+    // For simulated streams (converted from live:// URLs)
+    if (isSimulatedStream) {
+      // This is a simulated live stream - reload the placeholder video
+      setTimeout(() => {
+        setIsLoading(false);
+        setError(null);
+        if (videoRef.current) {
+          videoRef.current.load();
+        }
+        toast({
+          title: "Connected to simulated stream",
+          description: "Live stream simulation is now playing",
+        });
+      }, 1000);
+    } else {
+      // Force reload the video source for regular URLs
+      videoRef.current.load();
+    }
+  }, [playableMediaUrl, isSimulatedStream]);
 
   // Video event handlers
   const handleLoadStart = () => {
@@ -150,7 +189,13 @@ export default function StreamViewer({
   const handleError = () => {
     setIsLoading(false);
     setIsPlaying(false);
-    setError('Stream unavailable. The stream may have ended or there may be a connection issue.');
+    
+    // Handle simulated streams differently
+    if (isSimulatedStream) {
+      setError('Simulated stream temporarily unavailable. Click retry to reconnect.');
+    } else {
+      setError('Stream unavailable. The stream may have ended or there may be a connection issue.');
+    }
   };
 
   const handleTimeUpdate = () => {
@@ -174,7 +219,7 @@ export default function StreamViewer({
   }, []);
 
   // Reset controls hide timer
-  const resetControlsTimer = () => {
+  const resetControlsTimer = useCallback(() => {
     setShowControls(true);
     if (hideControlsTimerRef.current) {
       clearTimeout(hideControlsTimerRef.current);
@@ -182,20 +227,20 @@ export default function StreamViewer({
     hideControlsTimerRef.current = setTimeout(() => {
       setShowControls(false);
     }, 3000);
-  };
+  }, []);
 
   // Handle mouse movement to reset timer
-  const handleMouseMove = () => {
+  const handleMouseMove = useCallback(() => {
     resetControlsTimer();
-  };
+  }, [resetControlsTimer]);
 
   // Handle mouse leave to hide controls immediately
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     if (hideControlsTimerRef.current) {
       clearTimeout(hideControlsTimerRef.current);
     }
     setShowControls(false);
-  };
+  }, []);
 
   // Initialize controls timer
   useEffect(() => {
@@ -206,7 +251,7 @@ export default function StreamViewer({
         clearTimeout(hideControlsTimerRef.current);
       }
     };
-  }, []);
+  }, [resetControlsTimer]);
 
   // Format time display
   const formatTime = (time: number) => {
@@ -232,14 +277,15 @@ export default function StreamViewer({
           data-testid="stream-viewer-container"
         >
           {/* Video Element */}
-          {mediaUrl && (
+          {playableMediaUrl && (
             <video
               ref={videoRef}
               className="w-full h-full object-cover"
-              src={mediaUrl}
+              src={playableMediaUrl}
               autoPlay={isLive}
               muted={isMuted}
               playsInline
+              loop={isSimulatedStream && isLive}
               onLoadStart={handleLoadStart}
               onLoadedData={handleLoadedData}
               onLoadedMetadata={handleLoadedMetadata}
@@ -256,7 +302,12 @@ export default function StreamViewer({
             {isLive && (
               <Badge variant="destructive" className="bg-red-500 text-white animate-pulse">
                 <Wifi className="h-3 w-3 mr-1" />
-                LIVE
+                {isSimulatedStream ? 'LIVE SIMULATION' : 'LIVE'}
+              </Badge>
+            )}
+            {isSimulatedStream && (
+              <Badge variant="secondary" className="bg-yellow-600 text-white">
+                🎭 Demo Mode
               </Badge>
             )}
             {viewerCount > 0 && (
@@ -298,7 +349,7 @@ export default function StreamViewer({
           )}
 
           {/* No Stream Placeholder */}
-          {!mediaUrl && !error && (
+          {!playableMediaUrl && !error && (
             <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
               <div className="text-center text-white p-6">
                 <div className="bg-gray-800 rounded-full p-6 mx-auto mb-4 w-fit">
@@ -313,7 +364,7 @@ export default function StreamViewer({
           )}
 
           {/* Video Controls */}
-          {mediaUrl && (
+          {playableMediaUrl && (
             <div 
               className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
                 showControls ? 'opacity-100' : 'opacity-0'

@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import StudioModal from '@/components/modals/StudioModal';
 import { Upload, Coins, BarChart3, Settings, Video, Radio, Play, Mic, MicOff, Camera, CameraOff, Users, Clock } from 'lucide-react';
-import type { Post, Token, LiveStream } from '@shared/schema';
+import type { Post, Token } from '@shared/schema';
 
 export default function Studio() {
   const { connected, publicKey } = useWallet();
@@ -24,7 +24,7 @@ export default function Studio() {
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [streamTitle, setStreamTitle] = useState('');
   const [streamDescription, setStreamDescription] = useState('');
-  const [currentStream, setCurrentStream] = useState<LiveStream | null>(null);
+  const [currentStream, setCurrentStream] = useState<Post | null>(null);
   const [streamDuration, setStreamDuration] = useState(0);
   const [viewerCount, setViewerCount] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -39,7 +39,7 @@ export default function Studio() {
     enabled: connected,
   });
 
-  const { data: myStreams, isLoading: streamsLoading, error: streamsError } = useQuery<LiveStream[]>({
+  const { data: myStreams, isLoading: streamsLoading, error: streamsError } = useQuery<Post[]>({
     queryKey: ['/api/streams', publicKey?.toBase58()],
     queryFn: async () => {
       const response = await fetch(`/api/streams?creatorId=${publicKey?.toBase58()}`);
@@ -49,7 +49,7 @@ export default function Studio() {
     enabled: connected && !!publicKey,
   });
 
-  const { data: activeStreams } = useQuery<LiveStream[]>({
+  const { data: activeStreams } = useQuery<Post[]>({
     queryKey: ['/api/streams/active'],
     queryFn: async () => {
       const response = await fetch('/api/streams/active');
@@ -83,7 +83,7 @@ export default function Studio() {
   });
 
   const updateStreamMutation = useMutation({
-    mutationFn: async ({ streamId, updates }: { streamId: string; updates: Partial<LiveStream> }) => {
+    mutationFn: async ({ streamId, updates }: { streamId: string; updates: Partial<Post> }) => {
       const response = await fetch(`/api/streams/${streamId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -152,11 +152,11 @@ export default function Studio() {
         updateStreamMutation.mutate({
           streamId: currentStream.id,
           updates: {
-            viewer_count: viewerCount,
-            duration: streamDuration,
-            max_viewers: Math.max(currentStream.max_viewers, viewerCount),
             metadata: {
               ...currentStream.metadata,
+              viewer_count: viewerCount,
+              duration: streamDuration,
+              max_viewers: Math.max(currentStream.metadata?.max_viewers || 0, viewerCount),
               is_muted: isMuted,
               is_camera_on: isCameraOn,
             }
@@ -397,7 +397,7 @@ export default function Studio() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                      <CardTitle className="text-red-400">LIVE: {currentStream.title}</CardTitle>
+                      <CardTitle className="text-red-400">LIVE: {currentStream.metadata?.title || currentStream.caption}</CardTitle>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -434,7 +434,7 @@ export default function Studio() {
                     </div>
                     {/* Stream Key Display */}
                     <div className="absolute top-4 left-4 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                      Stream Key: {currentStream.stream_key}
+                      Stream Key: {currentStream.metadata?.stream_key || 'key_' + currentStream.id.slice(0, 8)}
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between text-sm text-red-400">
@@ -449,7 +449,7 @@ export default function Studio() {
                       </span>
                     </div>
                     <div className="text-xs text-red-300">
-                      Max viewers: {currentStream.max_viewers}
+                      Max viewers: {currentStream.metadata?.max_viewers || 0}
                     </div>
                   </div>
                 </CardContent>
@@ -517,14 +517,14 @@ export default function Studio() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className={`w-3 h-3 rounded-full ${
-                                stream.status === 'live' 
+                                stream.is_live 
                                   ? 'bg-red-500 animate-pulse' 
                                   : 'bg-gray-400'
                               }`}></div>
                               <div>
-                                <h3 className="font-semibold text-foreground">{stream.title}</h3>
+                                <h3 className="font-semibold text-foreground">{stream.metadata?.title || stream.caption}</h3>
                                 <p className="text-sm text-muted-foreground">
-                                  {stream.description || 'No description'}
+                                  {stream.metadata?.description || stream.caption || 'No description'}
                                 </p>
                               </div>
                             </div>
@@ -532,14 +532,14 @@ export default function Studio() {
                               <div className="flex items-center gap-4">
                                 <span className="flex items-center gap-1">
                                   <Users className="h-4 w-4" />
-                                  {stream.max_viewers} max
+                                  {stream.metadata?.max_viewers || 0} max
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Clock className="h-4 w-4" />
-                                  {formatDuration(stream.duration)}
+                                  {formatDuration(stream.metadata?.duration || 0)}
                                 </span>
                                 <span className="capitalize">
-                                  {stream.status}
+                                  {stream.is_live ? 'live' : 'ended'}
                                 </span>
                               </div>
                               <div className="text-xs mt-1">
