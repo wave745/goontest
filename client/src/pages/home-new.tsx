@@ -168,7 +168,7 @@ export default function Home() {
                         <div className="aspect-video bg-gradient-to-br from-accent/20 to-accent/40 flex items-center justify-center">
                           <Play className="h-12 w-12 text-accent" />
                         </div>
-                        <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-red-500">
+                        <Badge className="absolute bottom-2 left-2 bg-green-600 hover:bg-green-600 text-white font-bold">
                           LIVE
                         </Badge>
                         <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 text-white px-2 py-1 rounded text-xs">
