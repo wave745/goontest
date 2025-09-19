@@ -1,11 +1,11 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useRoute } from 'wouter';
+import { useRoute, useLocation } from 'wouter';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
-import VideoStreamer from '@/components/VideoStreamer';
+import StreamViewer from '@/components/StreamViewer';
 import LiveChat from '@/components/LiveChat';
 import TipButton from '@/components/TipButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,6 +51,7 @@ type StreamData = Post & { creator: User };
 export default function StreamDetail() {
   const { connected, publicKey } = useWallet();
   const [, params] = useRoute('/live/:streamId');
+  const [, navigate] = useLocation();
   const [stream, setStream] = useState<StreamData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStreamingLive, setIsStreamingLive] = useState(false);
@@ -111,7 +112,7 @@ export default function StreamDetail() {
             });
             // Navigate back to home after 2 seconds
             setTimeout(() => {
-              window.location.href = '/';
+              navigate('/');
             }, 2000);
           }
         }
@@ -124,22 +125,6 @@ export default function StreamDetail() {
     return () => clearInterval(updateInterval);
   }, [streamId, isStreamingLive]);
 
-  // Handle stream actions
-  const handleStreamStart = () => {
-    setIsStreamingLive(true);
-    toast({
-      title: "Stream started",
-      description: "You are now live!",
-    });
-  };
-
-  const handleStreamEnd = () => {
-    setIsStreamingLive(false);
-    toast({
-      title: "Stream ended",
-      description: "Your stream has ended",
-    });
-  };
 
   const handleLike = async () => {
     try {
@@ -240,13 +225,22 @@ export default function StreamDetail() {
                       <Wifi className="h-5 w-5 text-red-500" />
                     </div>
                     <div>
-                      <h1 className="text-xl font-bold text-foreground">{stream.title}</h1>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">LIVE</span>
-                        <Badge variant="destructive" className="animate-pulse text-xs">
-                          LIVE
-                        </Badge>
-                      </div>
+                      <h1 className="text-xl font-bold text-foreground">{stream.caption}</h1>
+                      {isStreamingLive ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">LIVE</span>
+                          <Badge variant="destructive" className="animate-pulse text-xs">
+                            LIVE
+                          </Badge>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">OFFLINE</span>
+                          <Badge variant="secondary" className="text-xs">
+                            ENDED
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -266,11 +260,12 @@ export default function StreamDetail() {
               <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 lg:p-6">
                 {/* Left Side - Video Player and Controls */}
                 <div className="flex-1 lg:max-w-3xl">
-                  {/* Video Streamer Component */}
-                  <VideoStreamer 
-                    streamId={streamId}
-                    onStreamStart={handleStreamStart}
-                    onStreamEnd={handleStreamEnd}
+                  {/* Stream Viewer Component */}
+                  <StreamViewer 
+                    streamId={streamId!}
+                    mediaUrl={stream.media_url}
+                    isLive={isStreamingLive}
+                    viewerCount={viewerCount}
                     className="mb-4"
                   />
                   
@@ -341,11 +336,11 @@ export default function StreamDetail() {
                 </div>
 
                 {/* Right Side - Live Chat */}
-                <div className="w-full lg:w-72">
+                <div className="w-full lg:w-72 flex flex-col h-full">
                   <LiveChat 
                     streamId={streamId!}
-                    streamTitle={stream.title}
-                    className="h-[300px]"
+                    streamTitle={stream.caption}
+                    className="flex-1 min-h-0 overflow-y-auto"
                   />
                 </div>
               </div>
