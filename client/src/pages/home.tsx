@@ -169,8 +169,7 @@ export default function Home() {
                   thumb={post.thumb_url}
                   duration="12:34"
                   title={post.caption}
-                  creator={post.creator.handle}
-                  creatorAvatar={post.creator.avatar_url}
+                  creator={post.creator}
                   views={post.views || 0}
                   likes={post.likes || 0}
                   price={post.price_lamports}
@@ -221,18 +220,21 @@ export default function Home() {
       )}
 
       {/* Modals */}
-      <TipModal
-        isOpen={showTipModal}
-        onClose={() => setShowTipModal(false)}
-        creator={selectedCreator}
-      />
+      {selectedCreator && (
+        <TipModal
+          isOpen={showTipModal}
+          onClose={() => setShowTipModal(false)}
+        />
+      )}
       
-      <PaywallModal
-        isOpen={showPaywallModal}
-        onClose={() => setShowPaywallModal(false)}
-        post={selectedPost}
-        onUnlock={() => setShowPaywallModal(false)}
-      />
+      {selectedPost && (
+        <PaywallModal
+          isOpen={showPaywallModal}
+          onClose={() => setShowPaywallModal(false)}
+          post={selectedPost}
+          onUnlock={() => setShowPaywallModal(false)}
+        />
+      )}
       
       <StudioModal
         isOpen={showStudioModal}
