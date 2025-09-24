@@ -122,20 +122,7 @@ export default function PhotoCard({
         </div>
 
         {/* Content */}
-        <div className="p-3 space-y-2 bg-transparent">
-          {/* Creator Info */}
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-              <span className="text-xs text-muted-foreground">
-                {creator.handle ? creator.handle.slice(0, 1).toUpperCase() : 'A'}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-muted-foreground">
-                {creator.handle || "Anonymous Creator"}
-              </span>
-            </div>
-          </div>
+        <div className="p-2 space-y-1 bg-transparent">
 
           {/* Title */}
           <h3 className="text-sm font-medium text-foreground line-clamp-2 leading-tight">
