@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { sign } from 'tweetnacl';
+import nacl from 'tweetnacl';
 import { PublicKey } from '@solana/web3.js';
 import { storage } from '../storage/index.js';
 import { type Request } from 'express';
@@ -121,7 +121,7 @@ export function verifyWalletSignature(
     const signatureBytes = Buffer.from(signedMessage, 'base64');
     
     // Verify signature using ed25519
-    const isValid = sign.detached.verify(
+    const isValid = nacl.sign.detached.verify(
       messageBytes,
       signatureBytes,
       publicKey.toBytes()

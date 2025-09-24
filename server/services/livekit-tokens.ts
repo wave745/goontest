@@ -1,4 +1,4 @@
-import { AccessToken, VideoGrant } from 'livekit-server-sdk';
+import { AccessToken } from 'livekit-server-sdk';
 import { z } from 'zod';
 
 // LiveKit configuration - require environment variables for security
@@ -38,8 +38,8 @@ export function generateLiveKitToken(
     })
   });
 
-  // Use VideoGrant for explicit token permissions
-  const grant = new VideoGrant({
+  // Add grant with explicit token permissions (VideoGrant is now a plain object)
+  at.addGrant({
     room: streamId,
     roomJoin: true,
     canPublish: isPublisher,
@@ -47,6 +47,5 @@ export function generateLiveKitToken(
     canPublishData: isPublisher,
   });
 
-  at.addGrant(grant);
   return at.toJwt();
 }
