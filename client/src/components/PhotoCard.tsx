@@ -122,18 +122,17 @@ export default function PhotoCard({
         </div>
 
         {/* Content */}
-        <div className="p-2 space-y-1 bg-transparent">
+        <div className="p-1.5 bg-transparent">
 
-          {/* Title */}
-          <h3 className="text-sm font-medium text-foreground line-clamp-2 leading-tight">
-            {title}
-          </h3>
-
-
-          {/* View Stats Only - Interactive elements moved to modal */}
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs">{formatNumber(views)} views</span>
-            <span className="text-xs">{formatNumber(currentLikes)} likes</span>
+          {/* Compact Info */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-medium text-foreground line-clamp-1 flex-1 mr-2">
+              {title}
+            </h3>
+            <div className="flex gap-2 text-xs text-muted-foreground shrink-0">
+              <span>{formatNumber(views)}v</span>
+              <span>{formatNumber(currentLikes)}♥</span>
+            </div>
           </div>
         </div>
       </CardContent>
