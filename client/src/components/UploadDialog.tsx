@@ -23,6 +23,8 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
   const [uploadTags, setUploadTags] = useState('');
   const [solanaAddress, setSolanaAddress] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadMutation = useMutation({
@@ -91,25 +93,53 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       return;
     }
 
-
     setIsUploading(true);
+    setUploadProgress(0);
+    setUploadStatus('Preparing upload...');
 
     try {
-      // Upload file to storage service
+      // Upload file to storage service with progress tracking
       const formData = new FormData();
       formData.append('file', uploadFile);
       formData.append('type', activeTab);
       
-      const uploadResponse = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      setUploadStatus(`Uploading ${activeTab}...`);
+      
+      // Create XMLHttpRequest for progress tracking
+      const uploadPromise = new Promise<{mediaUrl: string, thumbUrl: string}>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const progress = Math.round((e.loaded / e.total) * 90); // Reserve 10% for processing
+            setUploadProgress(progress);
+          }
+        });
+        
+        xhr.addEventListener('load', () => {
+          if (xhr.status === 200) {
+            setUploadProgress(95);
+            setUploadStatus('Processing...');
+            try {
+              const result = JSON.parse(xhr.responseText);
+              resolve(result);
+            } catch (error) {
+              reject(new Error('Invalid response from server'));
+            }
+          } else {
+            reject(new Error('Upload failed'));
+          }
+        });
+        
+        xhr.addEventListener('error', () => {
+          reject(new Error('Network error during upload'));
+        });
+        
+        xhr.open('POST', '/api/upload');
+        xhr.send(formData);
       });
       
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload file');
-      }
-      
-      const { mediaUrl, thumbUrl } = await uploadResponse.json();
+      const { mediaUrl, thumbUrl } = await uploadPromise;
 
       // Create post data - completely anonymous upload
       const postData = {
@@ -119,11 +149,18 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
         ...(solanaAddress.trim() && { solana_address: solanaAddress.trim() }),
       };
 
+      setUploadProgress(100);
+      setUploadStatus('Creating post...');
+      
       await uploadMutation.mutateAsync(postData);
+      
+      setUploadStatus('Upload complete!');
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
+      setUploadStatus('');
     }
   };
 

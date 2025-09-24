@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto';
-import fs from 'fs';
+import { promises as fs, createWriteStream, existsSync, mkdirSync } from 'fs';
 import path from 'path';
+import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 
 export interface UploadResult {
   url: string;
@@ -12,8 +14,8 @@ export interface UploadResult {
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+if (!existsSync(uploadsDir)) {
+  mkdirSync(uploadsDir, { recursive: true });
 }
 
 export async function uploadToDigitalOcean(
@@ -24,29 +26,48 @@ export async function uploadToDigitalOcean(
   return uploadToLocalStorage(file, category);
 }
 
-// Real file upload function for local storage
-function uploadToLocalStorage(
+// Optimized async file upload function for local storage
+async function uploadToLocalStorage(
   file: Express.Multer.File,
   category: string = 'posts'
-): UploadResult {
+): Promise<UploadResult> {
   const fileExtension = file.originalname.split('.').pop() || '';
   const uniqueFilename = `${category}_${randomUUID()}.${fileExtension}`;
-  const filePath = path.join(uploadsDir, uniqueFilename);
+  const finalPath = path.join(uploadsDir, uniqueFilename);
   
-  // Write the file to disk
-  fs.writeFileSync(filePath, file.buffer);
-  console.log('File saved to:', filePath);
+  const startTime = Date.now();
   
-  // Generate the URL that will be served by Express
-  const fileUrl = `/uploads/${uniqueFilename}`;
-  
-  return {
-    url: fileUrl,
-    thumbnail: fileUrl, // For now, use same file as thumbnail
-    filename: uniqueFilename,
-    size: file.size,
-    mimeType: file.mimetype,
-  };
+  try {
+    // For disk storage, file.path contains the temporary file path
+    if (file.path) {
+      // Move from temp location to final location (much faster than copying)
+      await fs.rename(file.path, finalPath);
+    } else if (file.buffer) {
+      // Fallback for memory storage - use streaming
+      const readable = Readable.from(file.buffer);
+      const writeStream = createWriteStream(finalPath);
+      await pipeline(readable, writeStream);
+    } else {
+      throw new Error('No file data available');
+    }
+    
+    const uploadTime = Date.now() - startTime;
+    console.log(`File saved to: ${finalPath} (${uploadTime}ms)`);
+    
+    // Generate the URL that will be served by Express
+    const fileUrl = `/uploads/${uniqueFilename}`;
+    
+    return {
+      url: fileUrl,
+      thumbnail: fileUrl, // For now, use same file as thumbnail
+      filename: uniqueFilename,
+      size: file.size,
+      mimeType: file.mimetype,
+    };
+  } catch (error) {
+    console.error('File upload error:', error);
+    throw new Error('Failed to save file to disk');
+  }
 }
 
 export function generateThumbnail(file: Express.Multer.File): Promise<string> {
