@@ -36,9 +36,21 @@ export default function Home() {
   const [showStudioModal, setShowStudioModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
 
-  // Fetch regular posts
+  // Fetch regular posts with proper URL construction
+  const getPostsUrl = () => {
+    switch (selectedCategory) {
+      case 'Videos':
+        return '/api/posts?type=video';
+      case 'Photos':
+        return '/api/posts?type=photo';
+      case 'All':
+      default:
+        return '/api/posts';
+    }
+  };
+
   const { data: posts, isLoading: postsLoading } = useQuery<PostWithCreator[]>({
-    queryKey: ['/api/posts', selectedCategory],
+    queryKey: [getPostsUrl()],
   });
 
   // Fetch live streams
@@ -61,23 +73,9 @@ export default function Home() {
       case 'All':
         return { liveStreams: streams, posts: regularPosts };
       case 'Videos':
-        // Filter for video posts only
-        const videoPosts = regularPosts.filter(post => 
-          post.media_url.includes('.mp4') || 
-          post.media_url.includes('.webm') || 
-          post.media_url.includes('.mov')
-        );
-        return { liveStreams: [], posts: videoPosts };
       case 'Photos':
-        // Filter for photo posts only
-        const photoPosts = regularPosts.filter(post => 
-          post.media_url.includes('.jpg') || 
-          post.media_url.includes('.jpeg') || 
-          post.media_url.includes('.png') || 
-          post.media_url.includes('.gif') || 
-          post.media_url.includes('.webp')
-        );
-        return { liveStreams: [], posts: photoPosts };
+        // Posts are already filtered by the API based on type
+        return { liveStreams: [], posts: regularPosts };
       default:
         return { liveStreams: streams, posts: regularPosts };
     }
