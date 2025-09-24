@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Upload, Play, Bot } from 'lucide-react';
+import { Upload, Play, Bot, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { Badge } from '@/components/ui/badge';
 import UploadDialog from './UploadDialog';
 
 export default function Header() {
   const [location] = useLocation();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const { connected, publicKey } = useWallet();
 
   return (
     <header className="sticky top-0 z-50 glass-effect border-b border-border">
@@ -90,11 +93,24 @@ export default function Header() {
             </Button>
           </Link>
 
-          {/* Solana Wallet Connection */}
-          <WalletMultiButton 
-            className="!bg-gradient-to-r !from-purple-500 !to-pink-500 hover:!from-purple-600 hover:!to-pink-600 !border-none !rounded-lg !text-white !font-medium !text-sm !px-4 !py-2 !h-10"
-            data-testid="wallet-connect-button"
-          />
+          {/* Wallet Connection & Status */}
+          <div className="flex items-center gap-2">
+            {connected && publicKey && (
+              <Badge 
+                variant="outline" 
+                className="hidden md:flex items-center gap-1 bg-green-500/10 text-green-400 border-green-500/30"
+                data-testid="wallet-status"
+              >
+                <Wallet className="h-3 w-3" />
+                {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
+              </Badge>
+            )}
+            
+            <WalletMultiButton 
+              className="!bg-gradient-to-r !from-purple-500 !to-pink-500 hover:!from-purple-600 hover:!to-pink-600 !border-none !rounded-lg !text-white !font-medium !text-sm !px-4 !py-2 !h-10 !transition-all"
+              data-testid="wallet-connect-button"
+            />
+          </div>
         </div>
       </div>
       

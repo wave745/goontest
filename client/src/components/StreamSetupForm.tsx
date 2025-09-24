@@ -11,32 +11,21 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Play, User, MessageSquare, Wallet, Image, Upload, X } from 'lucide-react';
+import { Loader2, Play, User, MessageSquare, Wallet, Image, Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { useWalletAuth } from '@/hooks/useWalletAuth';
+import { useWallet } from '@solana/wallet-adapter-react';
 
-// TypeScript declaration for Solana wallet
-declare global {
-  interface Window {
-    solana?: {
-      signMessage: (message: Uint8Array, display?: string) => Promise<{
-        signature: Uint8Array;
-      }>;
-      connect: () => Promise<any>;
-      disconnect: () => Promise<any>;
-    };
-  }
-}
-
-// Extend the schema with relaxed Solana address validation for testing
+// Extend the schema to work with connected wallet
 const streamSetupFormSchema = insertStreamSetupSchema.extend({
   solana_address: z.string()
     .min(1, "Solana address is required")
     .refine((address) => {
-      // For testing, allow a simple fallback address
       if (address.length < 10) return false;
-      return validateSolanaAddress(address) || address === "test-wallet-address";
+      return validateSolanaAddress(address);
     }, {
-      message: "Please enter a valid Solana address (or use 'test-wallet-address' for testing)"
+      message: "Please enter a valid Solana address"
     })
 });
 
@@ -51,6 +40,15 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
+  
+  const { connected, publicKey } = useWallet();
+  const { 
+    authenticateForStream, 
+    claimStream, 
+    isAuthenticating, 
+    isAuthenticated,
+    isWalletConnected 
+  } = useWalletAuth();
 
   const form = useForm<StreamSetupFormData>({
     resolver: zodResolver(streamSetupFormSchema),
@@ -59,9 +57,14 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
       title: '',
       description: '',
       avatar_url: '',
-      solana_address: ''
+      solana_address: publicKey?.toBase58() || ''
     }
   });
+
+  // Update wallet address when wallet connects
+  if (connected && publicKey && form.getValues('solana_address') !== publicKey.toBase58()) {
+    form.setValue('solana_address', publicKey.toBase58());
+  }
 
   const createStreamMutation = useMutation({
     mutationFn: async (data: StreamSetupFormData) => {
@@ -96,54 +99,16 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
       const createdPost = await createResponse.json();
       const postId = createdPost.id;
 
-      // Step 2: Get nonce for authentication
-      const nonceResponse = await fetch('/api/auth/nonce', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress: data.solana_address,
-          streamId: postId
-        }),
-      });
-
-      if (!nonceResponse.ok) {
-        throw new Error('Failed to get authentication nonce');
+      // Step 2: Authenticate with wallet and claim stream
+      const authData = await authenticateForStream(postId);
+      if (!authData) {
+        throw new Error('Authentication failed');
       }
 
-      const { nonce, expiresAt } = await nonceResponse.json();
-
-      // Step 3: Create message to sign
-      const message = `Authenticate for stream: ${postId}\nNonce: ${nonce}\nTimestamp: ${expiresAt}`;
-      const messageBytes = new TextEncoder().encode(message);
-
-      // Request wallet to sign the message (this will prompt the user)
-      if (!window.solana || !window.solana.signMessage) {
-        throw new Error('Solana wallet not available. Please install Phantom or another Solana wallet.');
-      }
-
-      const signedMessage = await window.solana.signMessage(messageBytes, 'utf8');
-      const signatureBase64 = btoa(String.fromCharCode(...signedMessage.signature));
-
-      // Step 4: Claim ownership with signature
-      const claimResponse = await fetch(`/api/posts/${postId}/claim`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress: data.solana_address,
-          signedMessage: signatureBase64
-        }),
-      });
-
-      if (!claimResponse.ok) {
-        const error = await claimResponse.json();
-        throw new Error(error.error || 'Failed to claim stream ownership');
-      }
-
-      return await claimResponse.json();
+      // Step 3: Claim ownership with authentication
+      const claimedStream = await claimStream(postId, authData);
+      
+      return claimedStream;
     },
     onSuccess: (stream) => {
       toast({
@@ -227,6 +192,30 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
     setAvatarFile(null);
     setAvatarPreview('');
   };
+
+  // Show wallet connection warning if not connected
+  if (!connected) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto bg-card border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-2xl font-bold text-foreground">
+            <div className="p-2 rounded-full bg-accent/20">
+              <Wallet className="h-6 w-6 text-accent" />
+            </div>
+            Connect Your Wallet
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              You need to connect your Solana wallet to start streaming. Please use the "Connect Wallet" button in the header to continue.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto bg-card border-border">
@@ -386,31 +375,43 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
               )}
             />
 
-            {/* Solana Address Field */}
-            <FormField
-              control={form.control}
-              name="solana_address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-foreground">
-                    <Wallet className="h-4 w-4 text-accent" />
-                    Solana Address for Tips
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Enter your Solana wallet address"
-                      className="bg-background border-border text-foreground placeholder:text-muted-foreground font-mono text-sm"
-                      data-testid="input-solana-address"
-                    />
-                  </FormControl>
-                  <FormDescription className="text-muted-foreground">
-                    Viewers can send you SOL tips during the stream. Enter a valid Solana address or use "test-wallet-address" for testing.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Wallet Connection Status & Address */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-green-400">Wallet Connected</p>
+                  <p className="text-xs text-green-300 font-mono break-all">
+                    {publicKey?.toBase58()}
+                  </p>
+                </div>
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="solana_address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2 text-foreground">
+                      <Wallet className="h-4 w-4 text-accent" />
+                      Solana Address for Tips
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        readOnly
+                        className="bg-muted border-border text-foreground font-mono text-sm cursor-not-allowed"
+                        data-testid="input-solana-address"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-muted-foreground">
+                      Tips will be sent to your connected wallet address. This field is automatically filled from your wallet.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Submit Button */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -425,19 +426,19 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || createStreamMutation.isPending}
+                disabled={isSubmitting || createStreamMutation.isPending || isAuthenticating || !connected}
                 className="w-full sm:flex-1 bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
                 data-testid="button-start-stream"
               >
-                {isSubmitting || createStreamMutation.isPending ? (
+                {isSubmitting || createStreamMutation.isPending || isAuthenticating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Starting Stream...
+                    {isAuthenticating ? 'Authenticating...' : 'Starting Stream...'}
                   </>
                 ) : (
                   <>
                     <Play className="h-4 w-4 mr-2" />
-                    Start Gooning
+                    Start Live Stream
                   </>
                 )}
               </Button>
