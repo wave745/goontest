@@ -112,7 +112,7 @@ export default function PhotoCard({
           {/* Price Badge */}
           {isGated && (
             <div className="absolute top-2 right-2">
-              <Badge variant="secondary" className="bg-accent/95 backdrop-blur-sm text-accent-foreground border-0">
+              <Badge variant="secondary" className="bg-transparent text-accent-foreground border-0">
                 <Coins className="h-3 w-3 mr-1" />
                 {formatPrice(price)}
               </Badge>
@@ -122,7 +122,7 @@ export default function PhotoCard({
         </div>
 
         {/* Content */}
-        <div className="p-3 space-y-2 bg-card/90 backdrop-blur-sm">
+        <div className="p-3 space-y-2 bg-transparent">
           {/* Creator Info */}
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
