@@ -104,10 +104,10 @@ export default function VideoCard({
             loading="lazy"
           />
           
-          {/* Play Button Overlay */}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors duration-300">
+          {/* Subtle Play Button Overlay - No Dark Background */}
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
                 <Play className="h-6 w-6 text-black ml-1" />
               </div>
             </div>
@@ -115,7 +115,7 @@ export default function VideoCard({
           
           {/* Duration Badge */}
           <div className="absolute bottom-2 right-2">
-            <Badge variant="secondary" className="bg-black/70 text-white text-xs">
+            <Badge variant="secondary" className="bg-black/80 backdrop-blur-sm text-white text-xs border-0">
               {duration}
             </Badge>
           </div>
@@ -123,32 +123,13 @@ export default function VideoCard({
           {/* Price Badge */}
           {isGated && (
             <div className="absolute top-2 right-2">
-              <Badge variant="secondary" className="bg-accent/90 text-accent-foreground">
+              <Badge variant="secondary" className="bg-accent/95 backdrop-blur-sm text-accent-foreground border-0">
                 <Coins className="h-3 w-3 mr-1" />
                 {formatPrice(price)}
               </Badge>
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white border-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const link = document.createElement('a');
-                  link.href = thumb;
-                  link.download = `video-${id}`;
-                  link.click();
-                }}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
         </div>
 
         {/* Content */}
@@ -173,14 +154,10 @@ export default function VideoCard({
           </h3>
 
 
-          {/* Reaction Buttons */}
-          <div className="flex items-center justify-end">
-            <ReactionButtons
-              postId={id}
-              likes={currentLikes}
-              isLiked={isLiked}
-              onLike={handleLike}
-            />
+          {/* View Stats Only - Interactive elements moved to modal */}
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs">{formatNumber(views)} views</span>
+            <span className="text-xs">{formatNumber(currentLikes)} likes</span>
           </div>
         </div>
       </CardContent>

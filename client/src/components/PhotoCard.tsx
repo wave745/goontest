@@ -102,38 +102,23 @@ export default function PhotoCard({
             loading="lazy"
           />
           
-          {/* Overlay on hover */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+          {/* Subtle View Indicator - No Dark Background */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
+              <span className="text-black text-xs font-medium">View</span>
+            </div>
+          </div>
           
           {/* Price Badge */}
           {isGated && (
             <div className="absolute top-2 right-2">
-              <Badge variant="secondary" className="bg-accent/90 text-accent-foreground">
+              <Badge variant="secondary" className="bg-accent/95 backdrop-blur-sm text-accent-foreground border-0">
                 <Coins className="h-3 w-3 mr-1" />
                 {formatPrice(price)}
               </Badge>
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white border-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const link = document.createElement('a');
-                  link.href = imageUrl;
-                  link.download = `photo-${id}`;
-                  link.click();
-                }}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
         </div>
 
         {/* Content */}
@@ -158,14 +143,10 @@ export default function PhotoCard({
           </h3>
 
 
-          {/* Reaction Buttons */}
-          <div className="flex items-center justify-end">
-            <ReactionButtons
-              postId={id}
-              likes={currentLikes}
-              isLiked={isLiked}
-              onLike={handleLike}
-            />
+          {/* View Stats Only - Interactive elements moved to modal */}
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs">{formatNumber(views)} views</span>
+            <span className="text-xs">{formatNumber(currentLikes)} likes</span>
           </div>
         </div>
       </CardContent>

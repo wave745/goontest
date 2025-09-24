@@ -313,12 +313,12 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
                     </div>
                   )}
 
-                  {/* Tags */}
-                  {post.tags && post.tags.length > 0 && (
+                  {/* Tags - Currently not implemented */}
+                  {false && (
                     <div>
                       <h4 className="font-medium mb-2">Tags</h4>
                       <div className="flex flex-wrap gap-1">
-                        {post.tags.map((tag, index) => (
+                        {[].map((tag: string, index: number) => (
                           <Badge key={index} variant="outline" className="text-xs">
                             #{tag}
                           </Badge>
