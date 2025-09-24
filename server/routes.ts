@@ -7,7 +7,17 @@ import { z } from "zod";
 import { insertPostSchema, insertTipSchema, insertLiveChatMessageSchema, type Post } from "@shared/schema";
 import { chatWithAI } from "./services/xai";
 import { uploadToDigitalOcean } from "./services/upload-real";
-import { generateLiveKitToken, tokenRequestSchema, canUserPublish } from "./services/livekit-tokens";
+import { generateLiveKitToken, tokenRequestSchema } from "./services/livekit-tokens";
+import { 
+  generateNonce, 
+  verifyWalletSignature, 
+  canUserPublish, 
+  validateStreamAccess, 
+  checkTokenRateLimit,
+  checkTokenRateLimitByIP,
+  type NonceRequest 
+} from "./services/auth";
+import { nonceRequestSchema } from "./services/auth-nonce";
 
 // Global type declaration for WebSocket server
 declare global {
@@ -16,7 +26,7 @@ declare global {
 
 // Helper function to create anonymous post responses - strips all sensitive data
 function createAnonymousPost(post: Post) {
-  const { solana_address, ...anonymousPost } = post;
+  const { solana_address, owner_wallet, ...anonymousPost } = post;
   return {
     ...anonymousPost,
     creator: { id: 'anonymous', handle: 'Anonymous', is_creator: false }
@@ -221,22 +231,11 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         };
       } else {
         // Handle JSON data - Force anonymous regardless of input
-        const { caption, solana_address, media_url, thumb_url, is_live, tags, metadata } = req.body;
-        
-        // For live streams, generate a stream URL if none provided
-        let finalMediaUrl = media_url || '';
-        let finalThumbUrl = thumb_url || media_url || '';
-        
-        if (is_live && !media_url) {
-          // Generate a unique stream identifier for live streams
-          const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          finalMediaUrl = `live://stream/${streamId}`;
-          finalThumbUrl = finalMediaUrl;
-        }
+        const { caption, solana_address, media_url, thumb_url, is_live, tags, metadata, walletAddress, signedMessage, streamId } = req.body;
         
         postData = {
-          media_url: finalMediaUrl,
-          thumb_url: finalThumbUrl,
+          media_url: media_url || '',
+          thumb_url: thumb_url || media_url || '',
           caption: caption || '',
           price_lamports: 0,
           visibility: 'public',
@@ -247,7 +246,42 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       }
 
       const validatedData = insertPostSchema.parse(postData);
-      const post = await storage.createPost(validatedData);
+      
+      // Create post first to get the canonical post.id
+      let post = await storage.createPost(validatedData);
+      
+      // For live streams, require authentication and set canonical ownership using post.id
+      if (post.is_live) {
+        const { walletAddress, signedMessage } = req.body;
+        
+        if (!walletAddress || !signedMessage) {
+          return res.status(400).json({
+            error: "Live streams require authentication: walletAddress and signedMessage"
+          });
+        }
+        
+        // Use post.id as the canonical stream identifier for LiveKit
+        const streamId = post.id;
+        
+        // Verify wallet signature for stream ownership
+        const isAuthenticated = verifyWalletSignature(walletAddress, streamId, signedMessage);
+        if (!isAuthenticated) {
+          return res.status(401).json({
+            error: "Invalid wallet signature. Please authenticate first."
+          });
+        }
+        
+        // Update post with canonical ownership and proper media_url using post.id
+        const updatedPost = await storage.updatePost(post.id, {
+          owner_wallet: walletAddress, // Server-set canonical ownership
+          media_url: `live://stream/${post.id}`, // Use post.id as LiveKit room identifier
+          thumb_url: post.thumb_url || `live://stream/${post.id}`
+        });
+        
+        if (updatedPost) {
+          post = updatedPost;
+        }
+      }
       
       // If this is a live stream, create activity and broadcast to all clients
       if (post.is_live && post.metadata) {
@@ -293,7 +327,35 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
 
 
 
-  // LiveKit token generation endpoint with security
+  // Authentication nonce generation endpoint with comprehensive validation
+  app.post("/api/auth/nonce", async (req, res) => {
+    try {
+      // Validate request with Zod schema
+      const validation = nonceRequestSchema.safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({
+          error: "Invalid request data",
+          details: validation.error.format()
+        });
+      }
+      
+      const { walletAddress, streamId } = validation.data;
+      const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+      
+      const nonceData = generateNonce({ walletAddress, streamId }, clientIP);
+      res.json(nonceData);
+      
+    } catch (error) {
+      console.error("Failed to generate nonce:", error);
+      if (error instanceof Error && error.message.includes('Rate limit')) {
+        return res.status(429).json({ error: error.message });
+      }
+      res.status(500).json({ error: "Failed to generate nonce" });
+    }
+  });
+
+  // LiveKit token generation endpoint with comprehensive security
   app.post("/api/livekit/token", async (req, res) => {
     try {
       // Validate request body with Zod
@@ -308,19 +370,43 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       
       const { streamId, participantName, walletAddress, signedMessage } = validation.data;
       
-      // TODO: Verify the signed message to authenticate wallet ownership
-      // This should verify that the walletAddress signed a nonce/challenge
-      // to prevent wallet address spoofing
+      // CRITICAL: Verify signature FIRST before any rate limiting
+      const isAuthenticated = verifyWalletSignature(walletAddress, streamId, signedMessage);
+      if (!isAuthenticated) {
+        return res.status(401).json({ 
+          error: "Invalid wallet signature. Please authenticate first."
+        });
+      }
       
-      // Determine role server-side (never trust client input for permissions)
+      // Rate limiting AFTER authentication (prevents DoS via wallet spoofing)
+      const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+      if (!checkTokenRateLimit(walletAddress) || !checkTokenRateLimitByIP(clientIP)) {
+        return res.status(429).json({ 
+          error: "Rate limit exceeded. Too many token requests."
+        });
+      }
+      
+      // Validate stream exists and is accessible
+      const hasStreamAccess = await validateStreamAccess(streamId, walletAddress);
+      if (!hasStreamAccess) {
+        return res.status(403).json({ 
+          error: "Stream not found or not accessible"
+        });
+      }
+      
+      // Determine role server-side based on stream ownership
       const isPublisher = await canUserPublish(streamId, walletAddress);
       
-      // Generate token with determined permissions
-      const token = generateLiveKitToken(streamId, participantName, isPublisher);
+      // Generate secure token with short TTL
+      const token = generateLiveKitToken(streamId, walletAddress, participantName, isPublisher);
+      
+      // Log token issuance for auditing
+      console.log(`Token issued: ${walletAddress} as ${isPublisher ? 'publisher' : 'viewer'} for stream ${streamId}`);
       
       res.json({ 
         token,
-        role: isPublisher ? 'publisher' : 'viewer'
+        role: isPublisher ? 'publisher' : 'viewer',
+        expiresIn: 300 // 5 minutes
       });
       
     } catch (error) {

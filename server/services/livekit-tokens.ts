@@ -16,30 +16,26 @@ export const tokenRequestSchema = z.object({
   participantName: z.string().min(1, 'Participant name is required'),
   walletAddress: z.string().min(1, 'Wallet address is required'),
   signedMessage: z.string().min(1, 'Signed message is required'), // For authentication
-  role: z.enum(['viewer']).default('viewer'), // Only viewers can be requested from client
 });
 
 export type TokenRequest = z.infer<typeof tokenRequestSchema>;
 
-// Server-side function to determine if user can publish (must be called server-side only)
-export async function canUserPublish(streamId: string, walletAddress: string): Promise<boolean> {
-  // TODO: Implement proper authorization logic
-  // Check if walletAddress owns this stream or has permission to publish
-  // This could check against your stream metadata in Supabase
-  
-  // For now, this is a placeholder - you would implement:
-  // 1. Check if walletAddress created this stream
-  // 2. Check if walletAddress is authorized to publish to this stream
-  // 3. Verify the signed message to prevent spoofing
-  
-  return false; // Default to viewer-only for security
-}
-
-export function generateLiveKitToken(streamId: string, participantName: string, isPublisher: boolean): string {
-  // Create access token with proper VideoGrant
+export function generateLiveKitToken(
+  streamId: string, 
+  walletAddress: string, 
+  participantName: string, 
+  isPublisher: boolean
+): string {
+  // Create access token with wallet address as identity (prevents impersonation)
   const at = new AccessToken(LIVEKIT_API_KEY!, LIVEKIT_API_SECRET!, {
-    identity: participantName,
-    name: participantName,
+    identity: walletAddress, // Use wallet address as unique identity
+    name: participantName,   // Display name can be different
+    ttl: '5m',              // Short TTL for security (5 minutes)
+    metadata: JSON.stringify({ // Add metadata for auditing
+      streamId,
+      role: isPublisher ? 'publisher' : 'viewer',
+      issuedAt: Date.now()
+    })
   });
 
   // Use VideoGrant for explicit token permissions

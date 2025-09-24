@@ -15,6 +15,7 @@ export const insertPostSchema = z.object({
   solana_address: z.string().optional(),
   is_live: z.boolean().default(false),
   metadata: z.record(z.any()).optional(), // Stream metadata, tips, etc.
+  owner_wallet: z.string().optional(), // Canonical stream owner for LiveKit auth
 });
 
 export const insertTokenSchema = z.object({
@@ -104,7 +105,7 @@ export type Post = InsertPost & {
 };
 
 // Client-safe Post type with sensitive data stripped for API responses
-export type AnonymousPost = Omit<Post, 'solana_address'> & {
+export type AnonymousPost = Omit<Post, 'solana_address' | 'owner_wallet'> & {
   creator: {
     id: 'anonymous';
     handle: 'Anonymous';
