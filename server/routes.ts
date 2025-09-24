@@ -57,6 +57,33 @@ function filterPublicPosts(posts: Post[]): Post[] {
 
 export async function registerRoutes(app: Express, upload?: Multer): Promise<Server> {
 
+  // ===== LIVEKIT TOKEN ENDPOINTS =====
+  
+  // Generate LiveKit access token for streaming
+  app.post("/api/livekit/token", async (req, res) => {
+    try {
+      const validatedRequest = tokenRequestSchema.parse(req.body);
+      
+      // Determine if this is a publisher (streamer) or viewer
+      const isPublisher = validatedRequest.signedMessage === 'publisher';
+      
+      const token = generateLiveKitToken(
+        validatedRequest.streamId,
+        validatedRequest.walletAddress,
+        validatedRequest.participantName,
+        isPublisher
+      );
+      
+      res.json({ token });
+      
+    } catch (error) {
+      console.error("Failed to generate LiveKit token:", error);
+      res.status(400).json({ 
+        error: error instanceof Error ? error.message : "Invalid token request" 
+      });
+    }
+  });
+
   // ===== LIVE STREAMING ENDPOINTS =====
   
   // Get all live streams

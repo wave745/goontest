@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
 import StreamViewer from '@/components/StreamViewer';
+import StreamPublisher from '@/components/StreamPublisher';
 import LiveChat from '@/components/LiveChat';
 import TipButton from '@/components/TipButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +58,7 @@ export default function StreamDetail() {
   const [isStreamingLive, setIsStreamingLive] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   const streamId = params?.streamId;
 
@@ -76,6 +78,12 @@ export default function StreamDetail() {
         
         setViewerCount(streamData.metadata?.viewer_count || streamData.views || 0);
         setIsStreamingLive(streamData.is_live || false);
+        
+        // Check if current user is the stream owner
+        if (connected && publicKey) {
+          const userAddress = publicKey.toBase58();
+          setIsOwner(streamData.owner_wallet === userAddress);
+        }
         
       } catch (error) {
         console.error('Error fetching stream:', error);
@@ -260,14 +268,31 @@ export default function StreamDetail() {
               <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 lg:p-6">
                 {/* Left Side - Video Player and Controls */}
                 <div className="flex-1 lg:max-w-3xl">
-                  {/* Stream Viewer Component */}
-                  <StreamViewer 
-                    streamId={streamId!}
-                    mediaUrl={stream.media_url}
-                    isLive={isStreamingLive}
-                    viewerCount={viewerCount}
-                    className="mb-4"
-                  />
+                  {/* Show StreamPublisher if user owns this stream, otherwise StreamViewer */}
+                  {isOwner ? (
+                    <div className="mb-4">
+                      <div className="mb-2 p-3 bg-accent/10 border border-accent/30 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Crown className="h-4 w-4 text-accent" />
+                          <span className="text-sm font-medium text-accent">You're the streamer</span>
+                        </div>
+                      </div>
+                      <StreamPublisher
+                        streamId={streamId!}
+                        streamerName={stream.metadata?.streamer_name || 'Anonymous'}
+                        walletAddress={publicKey?.toBase58() || ''}
+                        onViewerCountChange={setViewerCount}
+                      />
+                    </div>
+                  ) : (
+                    <StreamViewer 
+                      streamId={streamId!}
+                      mediaUrl={stream.media_url}
+                      isLive={isStreamingLive}
+                      viewerCount={viewerCount}
+                      className="mb-4"
+                    />
+                  )}
                   
                   {/* Stream Controls */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-card border border-border rounded-lg p-4 mb-4 gap-4 sm:gap-0">

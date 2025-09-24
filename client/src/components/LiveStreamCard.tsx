@@ -48,21 +48,26 @@ export default function LiveStreamCard({
   const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Convert live:// URLs to placeholder videos for browser compatibility
-  const getPlayableMediaUrl = (url: string | undefined) => {
-    if (!url) return undefined;
-    
-    if (url.startsWith('live://')) {
-      setIsSimulatedStream(true);
-      // Use a different placeholder video for auto-play previews
-      return '/uploads/video_2d324ce2-f7f1-49c0-8180-170b3a1436b6.mp4';
+  // Use stable media URL to prevent re-render loops
+  const [playableMediaUrl, setPlayableMediaUrl] = useState<string | undefined>(undefined);
+
+  // Process media URL once when mediaUrl changes
+  useEffect(() => {
+    if (!mediaUrl) {
+      setPlayableMediaUrl(undefined);
+      setIsSimulatedStream(false);
+      return;
     }
     
-    setIsSimulatedStream(false);
-    return url;
-  };
-
-  const playableMediaUrl = getPlayableMediaUrl(mediaUrl);
+    if (mediaUrl.startsWith('live://')) {
+      setIsSimulatedStream(true);
+      // Use a different placeholder video for auto-play previews
+      setPlayableMediaUrl('/uploads/video_2d324ce2-f7f1-49c0-8180-170b3a1436b6.mp4');
+    } else {
+      setIsSimulatedStream(false);
+      setPlayableMediaUrl(mediaUrl);
+    }
+  }, [mediaUrl]);
 
   // Video auto-play manager - global limit of 3 concurrent videos
   const maxConcurrentVideos = 3;
@@ -115,46 +120,53 @@ export default function LiveStreamCard({
     const playingVideos = document.querySelectorAll('video[data-auto-playing="true"]');
 
     if (isInView && isLive) {
-      // Check if we're under the concurrent video limit
-      if (playingVideos.length >= maxConcurrentVideos && !isPlaying) {
-        // Pause oldest playing video
-        const oldestVideo = playingVideos[0] as HTMLVideoElement;
-        if (oldestVideo && oldestVideo !== video) {
-          oldestVideo.pause();
-          oldestVideo.removeAttribute('data-auto-playing');
+      // Only proceed if not already playing
+      if (!isPlaying) {
+        // Check if we're under the concurrent video limit
+        if (playingVideos.length >= maxConcurrentVideos) {
+          // Pause oldest playing video
+          const oldestVideo = playingVideos[0] as HTMLVideoElement;
+          if (oldestVideo && oldestVideo !== video) {
+            oldestVideo.pause();
+            oldestVideo.removeAttribute('data-auto-playing');
+          }
         }
-      }
 
-      try {
-        video.setAttribute('data-auto-playing', 'true');
-        await video.play();
-        setIsPlaying(true);
-      } catch (error) {
-        console.error('Auto-play failed:', error);
-        // For simulated streams, try once more with lower volume
-        if (isSimulatedStream) {
-          try {
-            video.volume = 0.1;
-            await video.play();
-            setIsPlaying(true);
-          } catch (retryError) {
+        try {
+          video.setAttribute('data-auto-playing', 'true');
+          await video.play();
+          setIsPlaying(true);
+        } catch (error) {
+          console.error('Auto-play failed:', error);
+          // For simulated streams, try once more with lower volume
+          if (isSimulatedStream) {
+            try {
+              video.volume = 0.1;
+              await video.play();
+              setIsPlaying(true);
+            } catch (retryError) {
+              setPreviewError(true);
+            }
+          } else {
             setPreviewError(true);
           }
-        } else {
-          setPreviewError(true);
         }
       }
-    } else {
+    } else if (isPlaying) {
+      // Only pause if currently playing
       video.pause();
       video.currentTime = 0;
       video.removeAttribute('data-auto-playing');
       setIsPlaying(false);
     }
-  }, [isInView, isLive, playableMediaUrl, previewError, isPlaying, isSimulatedStream]);
+  }, [isInView, isLive, playableMediaUrl, previewError, isSimulatedStream, isPlaying]);
 
+  // Separate effect for video playback management
   useEffect(() => {
-    manageVideoPlayback();
-  }, [manageVideoPlayback]);
+    if (playableMediaUrl) {
+      manageVideoPlayback();
+    }
+  }, [isInView, isLive, playableMediaUrl, manageVideoPlayback]);
 
   const handleClick = () => {
     viewMutation.mutate();

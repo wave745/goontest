@@ -1,0 +1,83 @@
+Looks like the frontend is fine—the UI and chat are live—but the *actual* media stream never starts.
+Here are the key things to check so your webcam or screen share actually shows up to viewers:
+
+---
+
+### 1️⃣ Browser Permissions
+
+* **Camera/Mic**: Make sure the site is served over **HTTPS** and that the browser has camera & mic access.
+  *On Chrome/Brave:* click the padlock → Site settings → Camera & Microphone → Allow.
+* If the LiveKit/MediaSoup room can’t grab those devices, you’ll just see a black “Stream Error.”
+
+---
+
+### 2️⃣ LiveKit / WebRTC Config
+
+* **Room Token**: Verify the serverless endpoint (`/api/livekit/token`) is creating a valid token with the correct `identity` and `room` name.
+  *A 401 or expired token will silently break publishing.*
+* **WSS URL**: Your `LIVEKIT_URL` must be the `wss://` (not `https://`) WebSocket endpoint from the LiveKit dashboard.
+* Check the browser console (`F12 → Console`) for `WebSocket connection failed` or `Room connection failed` errors.
+
+---
+
+### 3️⃣ Publishing Tracks
+
+In your broadcaster code:
+
+```ts
+const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+room.localParticipant.publishTrack(stream.getVideoTracks()[0]);
+room.localParticipant.publishTrack(stream.getAudioTracks()[0]);
+```
+
+* Make sure this runs **after** the room successfully connects.
+* Log `stream.getVideoTracks()` to confirm a real track is returned.
+
+---
+
+### 4️⃣ Screen Share Option
+
+For screen share you need an extra call:
+
+```ts
+const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+room.localParticipant.publishTrack(displayStream.getVideoTracks()[0]);
+```
+
+Provide a toggle UI so users can choose between cam or screen.
+
+---
+
+### 5️⃣ Viewer Side
+
+* Viewer must join the same `room` and subscribe:
+
+```ts
+room.on(RoomEvent.TrackSubscribed, (track) => track.attach(videoEl));
+```
+
+* If the viewer page shows *Stream Error*, check its console for “no tracks subscribed.”
+
+---
+
+### 6️⃣ Replit & SSL Gotchas
+
+* Replit preview URLs are `https://...replit.dev` but LiveKit requires WSS and valid certs.
+  If you’re testing locally with `http://localhost`, switch to `https://` with a self-signed cert or use the public Replit URL.
+
+---
+
+### Quick Test Plan
+
+1. Open dev tools → Console and Network tabs.
+2. Click **Go Live**.
+3. Look for:
+
+   * `getUserMedia` permission prompts.
+   * Any 401/403 from `/api/livekit/token`.
+   * WebSocket errors.
+4. If you see tracks publishing but no remote playback, the issue is on the viewer subscription.
+
+---
+
+Once these are set, clicking “Go Live” should immediately push your webcam (or chosen screen) to the room, and anyone clicking the live card on the home page should see the video + live chat in full.
