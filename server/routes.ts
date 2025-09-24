@@ -7,6 +7,7 @@ import { z } from "zod";
 import { insertPostSchema, insertTipSchema, insertLiveChatMessageSchema, type Post } from "@shared/schema";
 import { chatWithAI } from "./services/xai";
 import { uploadToDigitalOcean } from "./services/upload-real";
+import { generateLiveKitToken, tokenRequestSchema, canUserPublish } from "./services/livekit-tokens";
 
 // Global type declaration for WebSocket server
 declare global {
@@ -291,6 +292,45 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
 
 
 
+
+  // LiveKit token generation endpoint with security
+  app.post("/api/livekit/token", async (req, res) => {
+    try {
+      // Validate request body with Zod
+      const validation = tokenRequestSchema.safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Invalid request data",
+          details: validation.error.format()
+        });
+      }
+      
+      const { streamId, participantName, walletAddress, signedMessage } = validation.data;
+      
+      // TODO: Verify the signed message to authenticate wallet ownership
+      // This should verify that the walletAddress signed a nonce/challenge
+      // to prevent wallet address spoofing
+      
+      // Determine role server-side (never trust client input for permissions)
+      const isPublisher = await canUserPublish(streamId, walletAddress);
+      
+      // Generate token with determined permissions
+      const token = generateLiveKitToken(streamId, participantName, isPublisher);
+      
+      res.json({ 
+        token,
+        role: isPublisher ? 'publisher' : 'viewer'
+      });
+      
+    } catch (error) {
+      console.error("Failed to generate LiveKit token:", error);
+      res.status(500).json({ 
+        error: "Failed to generate token",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 
   // AI Chat endpoint for direct AI responses
   app.post("/api/chat/ai", async (req, res) => {

@@ -17,6 +17,8 @@ import Upload from "@/pages/upload";
 import Live from "@/pages/live-real";
 import StreamSetup from "@/pages/stream-setup";
 import StreamDetail from "@/pages/stream-detail";
+import StreamStart from "@/pages/stream-start";
+import StreamViewer from "@/pages/stream-viewer";
 
 function Router() {
   return (
@@ -34,6 +36,8 @@ function Router() {
       <Route path="/live" component={Live} />
       <Route path="/live/setup" component={StreamSetup} />
       <Route path="/live/:streamId" component={StreamDetail} />
+      <Route path="/stream/start" component={StreamStart} />
+      <Route path="/stream/:id" component={StreamViewer} />
       <Route component={NotFound} />
     </Switch>
   );
