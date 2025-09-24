@@ -14,6 +14,19 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDes
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Play, User, MessageSquare, Wallet, Image, Upload, X } from 'lucide-react';
 
+// TypeScript declaration for Solana wallet
+declare global {
+  interface Window {
+    solana?: {
+      signMessage: (message: Uint8Array, display?: string) => Promise<{
+        signature: Uint8Array;
+      }>;
+      connect: () => Promise<any>;
+      disconnect: () => Promise<any>;
+    };
+  }
+}
+
 // Extend the schema with relaxed Solana address validation for testing
 const streamSetupFormSchema = insertStreamSetupSchema.extend({
   solana_address: z.string()
@@ -52,8 +65,8 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
 
   const createStreamMutation = useMutation({
     mutationFn: async (data: StreamSetupFormData) => {
-      // Create a live post that represents the stream
-      const response = await fetch('/api/posts', {
+      // Step 1: Create a live post that represents the stream
+      const createResponse = await fetch('/api/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,11 +89,61 @@ export default function StreamSetupForm({ onSuccess }: StreamSetupFormProps) {
         }),
       });
 
-      if (!response.ok) {
+      if (!createResponse.ok) {
         throw new Error('Failed to create stream');
       }
 
-      return response.json();
+      const createdPost = await createResponse.json();
+      const postId = createdPost.id;
+
+      // Step 2: Get nonce for authentication
+      const nonceResponse = await fetch('/api/auth/nonce', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: data.solana_address,
+          streamId: postId
+        }),
+      });
+
+      if (!nonceResponse.ok) {
+        throw new Error('Failed to get authentication nonce');
+      }
+
+      const { nonce, expiresAt } = await nonceResponse.json();
+
+      // Step 3: Create message to sign
+      const message = `Authenticate for stream: ${postId}\nNonce: ${nonce}\nTimestamp: ${expiresAt}`;
+      const messageBytes = new TextEncoder().encode(message);
+
+      // Request wallet to sign the message (this will prompt the user)
+      if (!window.solana || !window.solana.signMessage) {
+        throw new Error('Solana wallet not available. Please install Phantom or another Solana wallet.');
+      }
+
+      const signedMessage = await window.solana.signMessage(messageBytes, 'utf8');
+      const signatureBase64 = btoa(String.fromCharCode(...signedMessage.signature));
+
+      // Step 4: Claim ownership with signature
+      const claimResponse = await fetch(`/api/posts/${postId}/claim`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: data.solana_address,
+          signedMessage: signatureBase64
+        }),
+      });
+
+      if (!claimResponse.ok) {
+        const error = await claimResponse.json();
+        throw new Error(error.error || 'Failed to claim stream ownership');
+      }
+
+      return await claimResponse.json();
     },
     onSuccess: (stream) => {
       toast({

@@ -2,15 +2,12 @@ import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Upload, Play, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import UploadDialog from './UploadDialog';
-import { useUsername } from '@/hooks/useUsername';
 
 export default function Header() {
   const [location] = useLocation();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const { displayName, getUserAvatar } = useUsername();
 
   return (
     <header className="sticky top-0 z-50 glass-effect border-b border-border">
@@ -93,24 +90,11 @@ export default function Header() {
             </Button>
           </Link>
 
-          {/* Simple Anonymous User Section */}
-          <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8" data-testid="user-avatar">
-              <AvatarImage src={getUserAvatar()} />
-              <AvatarFallback className="text-xs bg-orange-500 text-white">
-                A
-              </AvatarFallback>
-            </Avatar>
-            
-            {/* Anonymous Badge - Hidden on mobile */}
-            <Badge 
-              variant="secondary" 
-              className="hidden md:flex items-center gap-1 bg-orange-500 text-white hover:bg-orange-600"
-              data-testid="user-display-name"
-            >
-              {displayName}
-            </Badge>
-          </div>
+          {/* Solana Wallet Connection */}
+          <WalletMultiButton 
+            className="!bg-gradient-to-r !from-purple-500 !to-pink-500 hover:!from-purple-600 hover:!to-pink-600 !border-none !rounded-lg !text-white !font-medium !text-sm !px-4 !py-2 !h-10"
+            data-testid="wallet-connect-button"
+          />
         </div>
       </div>
       
