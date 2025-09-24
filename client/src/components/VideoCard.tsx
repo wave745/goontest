@@ -90,7 +90,7 @@ export default function VideoCard({
   return (
     <>
       <Card 
-        className="group cursor-pointer overflow-hidden bg-card border-border hover:border-accent/50 transition-all duration-300 hover:shadow-lg hover:shadow-accent/20 hover:scale-[1.02] animate-pulse-glow"
+        className="group cursor-pointer overflow-hidden bg-transparent border-0 hover:border-accent/50 transition-all duration-300 hover:shadow-lg hover:shadow-accent/20 hover:scale-[1.02] animate-pulse-glow"
         onClick={handleView}
         data-testid={`video-card-${id}`}
       >
@@ -133,7 +133,7 @@ export default function VideoCard({
         </div>
 
         {/* Content */}
-        <div className="p-3 space-y-2">
+        <div className="p-3 space-y-2 bg-card/90 backdrop-blur-sm">
           {/* Creator Info */}
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
