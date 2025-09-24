@@ -170,12 +170,17 @@ export async function validateStreamAccess(streamId: string, walletAddress?: str
       return false; // Stream doesn't exist
     }
     
+    // Only allow access to claimed streams (with owner_wallet set) to prevent spam/abuse
+    if (!stream.owner_wallet) {
+      return false; // Prevent access to unclaimed streams
+    }
+    
     // If stream has ended, only allow access if user owns it
     if (stream.ended_at) {
       return walletAddress === stream.owner_wallet;
     }
     
-    // If stream is live, accessible to all
+    // If stream is live, accessible to all (but only for claimed streams)
     if (stream.is_live) {
       return true;
     }

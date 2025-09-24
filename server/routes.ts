@@ -5,6 +5,12 @@ import { WebSocket, WebSocketServer } from "ws";
 import { storage } from "./storage/index.js";
 import { z } from "zod";
 import { insertPostSchema, insertTipSchema, insertLiveChatMessageSchema, type Post } from "@shared/schema";
+
+// Claim ownership schema for live stream authentication
+const claimStreamSchema = z.object({
+  walletAddress: z.string().min(1, 'Wallet address is required'),
+  signedMessage: z.string().min(1, 'Signed message is required')
+});
 import { chatWithAI } from "./services/xai";
 import { uploadToDigitalOcean } from "./services/upload-real";
 import { generateLiveKitToken, tokenRequestSchema } from "./services/livekit-tokens";
@@ -24,6 +30,16 @@ declare global {
   var wss: WebSocketServer;
 }
 
+// Helper function to check if a post should be publicly visible
+function isPublicPost(post: Post): boolean {
+  // Live streams must be claimed (have owner_wallet) to be publicly visible
+  if (post.is_live) {
+    return !!post.owner_wallet;
+  }
+  // Non-live posts are always public
+  return true;
+}
+
 // Helper function to create anonymous post responses - strips all sensitive data
 function createAnonymousPost(post: Post) {
   const { solana_address, owner_wallet, ...anonymousPost } = post;
@@ -31,6 +47,11 @@ function createAnonymousPost(post: Post) {
     ...anonymousPost,
     creator: { id: 'anonymous', handle: 'Anonymous', is_creator: false }
   };
+}
+
+// Helper function to filter posts to only include publicly visible ones
+function filterPublicPosts(posts: Post[]): Post[] {
+  return posts.filter(isPublicPost);
 }
 
 
@@ -43,8 +64,11 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     try {
       const liveStreams = await storage.getLiveStreams();
       
+      // Only return claimed streams (with owner_wallet set) to prevent spam/abuse
+      const claimedStreams = liveStreams.filter(stream => stream.owner_wallet);
+      
       // Strip sensitive data and add anonymous creator info
-      const streamsWithCreators = liveStreams.map(createAnonymousPost);
+      const streamsWithCreators = claimedStreams.map(createAnonymousPost);
       
       res.json(streamsWithCreators);
     } catch (error) {
@@ -57,7 +81,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
   app.get("/api/streams/:id", async (req, res) => {
     try {
       const post = await storage.getPost(req.params.id);
-      if (!post || !post.is_live) {
+      if (!post || !post.is_live || !post.owner_wallet) {
         return res.status(404).json({ error: "Stream not found" });
       }
       
@@ -71,6 +95,11 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
   // Like/unlike stream endpoints
   app.post("/api/posts/:id/like", async (req, res) => {
     try {
+      const post = await storage.getPost(req.params.id);
+      if (!post || !isPublicPost(post)) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      
       const success = await storage.likePost(req.params.id);
       res.json({ success });
     } catch (error) {
@@ -81,6 +110,11 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
 
   app.delete("/api/posts/:id/like", async (req, res) => {
     try {
+      const post = await storage.getPost(req.params.id);
+      if (!post || !isPublicPost(post)) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      
       const success = await storage.unlikePost(req.params.id);
       res.json({ success });
     } catch (error) {
@@ -134,16 +168,17 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       // Apply pagination
       const paginatedPosts = posts.slice(offsetNum, offsetNum + limitNum);
       
-      // Strip sensitive data and add anonymous creator info
-      const postsWithCreators = paginatedPosts.map(createAnonymousPost);
+      // Filter to only public posts and strip sensitive data
+      const publicPosts = filterPublicPosts(paginatedPosts);
+      const postsWithCreators = publicPosts.map(createAnonymousPost);
       
       res.json({
         posts: postsWithCreators,
         pagination: {
           limit: limitNum,
           offset: offsetNum,
-          total: posts.length,
-          hasMore: offsetNum + limitNum < posts.length
+          total: publicPosts.length,
+          hasMore: offsetNum + limitNum < publicPosts.length
         }
       });
     } catch (error) {
@@ -162,8 +197,9 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         sort: sort as string, // 'latest', 'trending'
       });
       
-      // Strip sensitive data and add anonymous creator info
-      const postsWithCreators = posts.map(createAnonymousPost);
+      // Filter to only public posts and strip sensitive data
+      const publicPosts = filterPublicPosts(posts);
+      const postsWithCreators = publicPosts.map(createAnonymousPost);
       
       res.json(postsWithCreators);
     } catch (error) {
@@ -176,7 +212,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
   app.get("/api/posts/:id", async (req, res) => {
     try {
       const post = await storage.getPost(req.params.id);
-      if (!post) {
+      if (!post || !isPublicPost(post)) {
         return res.status(404).json({ error: "Post not found" });
       }
       
@@ -190,12 +226,17 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
   // Track post view
   app.post("/api/posts/:id/view", async (req, res) => {
     try {
-      const post = await storage.incrementPostViews(req.params.id);
-      if (!post) {
+      const post = await storage.getPost(req.params.id);
+      if (!post || !isPublicPost(post)) {
         return res.status(404).json({ error: "Post not found" });
       }
       
-      res.json({ success: true, views: post.views });
+      const updatedPost = await storage.incrementPostViews(req.params.id);
+      if (!updatedPost) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      
+      res.json({ success: true, views: updatedPost.views });
     } catch (error) {
       console.error("Failed to track post view:", error);
       res.status(500).json({ error: "Failed to track post view" });
@@ -247,70 +288,13 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
 
       const validatedData = insertPostSchema.parse(postData);
       
-      // Create post first to get the canonical post.id
-      let post = await storage.createPost(validatedData);
+      // Create post first to get the canonical post.id (no authentication required at creation)
+      const post = await storage.createPost(validatedData);
       
-      // For live streams, require authentication and set canonical ownership using post.id
-      if (post.is_live) {
-        const { walletAddress, signedMessage } = req.body;
-        
-        if (!walletAddress || !signedMessage) {
-          return res.status(400).json({
-            error: "Live streams require authentication: walletAddress and signedMessage"
-          });
-        }
-        
-        // Use post.id as the canonical stream identifier for LiveKit
-        const streamId = post.id;
-        
-        // Verify wallet signature for stream ownership
-        const isAuthenticated = verifyWalletSignature(walletAddress, streamId, signedMessage);
-        if (!isAuthenticated) {
-          return res.status(401).json({
-            error: "Invalid wallet signature. Please authenticate first."
-          });
-        }
-        
-        // Update post with canonical ownership and proper media_url using post.id
-        const updatedPost = await storage.updatePost(post.id, {
-          owner_wallet: walletAddress, // Server-set canonical ownership
-          media_url: `live://stream/${post.id}`, // Use post.id as LiveKit room identifier
-          thumb_url: post.thumb_url || `live://stream/${post.id}`
-        });
-        
-        if (updatedPost) {
-          post = updatedPost;
-        }
-      }
+      // Note: Live streams are not broadcast until ownership is claimed via /api/posts/:id/claim
       
-      // If this is a live stream, create activity and broadcast to all clients
-      if (post.is_live && post.metadata) {
-        await storage.createActivity({
-          type: 'core_update',
-          title: `🔴 Live Stream Started`,
-          description: post.metadata.stream_title || post.caption || 'New live stream',
-          is_read: false,
-          metadata: {
-            post_id: post.id,
-            stream_title: post.metadata.stream_title,
-            streamer_name: post.metadata.streamer_name
-          }
-        });
-
-        // Broadcast new live stream to all connected clients
-        if (global.wss) {
-          global.wss.clients.forEach((client: WebSocket) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: 'stream_started',
-                stream: createAnonymousPost(post)
-              }));
-            }
-          });
-        }
-      }
-      
-      res.json(post);
+      // Return sanitized response to client
+      res.json(createAnonymousPost(post));
     } catch (error) {
       console.error("Failed to create post:", error);
       res.status(400).json({ error: "Invalid post data", details: (error as Error).message });
@@ -326,6 +310,104 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
 
 
 
+
+  // Step 2: Claim ownership of live stream with authentication
+  app.post("/api/posts/:id/claim", async (req, res) => {
+    try {
+      // Validate post ID parameter
+      const postId = req.params.id;
+      if (!postId || typeof postId !== 'string') {
+        return res.status(400).json({
+          error: "Invalid post ID"
+        });
+      }
+      
+      // Validate request body with Zod schema
+      const validation = claimStreamSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: "Invalid request data",
+          details: validation.error.format()
+        });
+      }
+      
+      const { walletAddress, signedMessage } = validation.data;
+      
+      // Get the post to verify it exists and is a live stream
+      const post = await storage.getPost(postId);
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      
+      if (!post.is_live) {
+        return res.status(400).json({ error: "Only live posts can be claimed" });
+      }
+      
+      if (post.owner_wallet) {
+        return res.status(409).json({ error: "Post already claimed by another user" });
+      }
+      
+      // Use post.id as the canonical stream identifier for signature verification
+      const streamId = post.id;
+      
+      // Verify wallet signature for stream ownership
+      const isAuthenticated = verifyWalletSignature(walletAddress, streamId, signedMessage);
+      if (!isAuthenticated) {
+        return res.status(401).json({
+          error: "Invalid wallet signature. Please authenticate first."
+        });
+      }
+      
+      // Update post with canonical ownership and proper media_url using post.id
+      const updatedPost = await storage.updatePost(post.id, {
+        owner_wallet: walletAddress, // Server-set canonical ownership
+        media_url: `live://stream/${post.id}`, // Use post.id as LiveKit room identifier
+        thumb_url: post.thumb_url || `live://stream/${post.id}`
+      });
+      
+      if (!updatedPost) {
+        return res.status(500).json({ error: "Failed to claim ownership" });
+      }
+      
+      // Create activity and broadcast stream start to all clients
+      if (updatedPost.metadata) {
+        await storage.createActivity({
+          type: 'core_update',
+          title: `🔴 Live Stream Started`,
+          description: updatedPost.metadata.stream_title || updatedPost.caption || 'New live stream',
+          is_read: false,
+          metadata: {
+            post_id: updatedPost.id,
+            stream_title: updatedPost.metadata.stream_title,
+            streamer_name: updatedPost.metadata.streamer_name
+          }
+        });
+
+        // Broadcast new live stream to all connected clients
+        if (global.wss) {
+          global.wss.clients.forEach((client: WebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'stream_started',
+                stream: createAnonymousPost(updatedPost)
+              }));
+            }
+          });
+        }
+      }
+      
+      // Return sanitized response with ownership confirmed
+      res.json({
+        ...createAnonymousPost(updatedPost),
+        claimed: true,
+        streamId: updatedPost.id // Include streamId for LiveKit token requests
+      });
+      
+    } catch (error) {
+      console.error("Failed to claim post ownership:", error);
+      res.status(500).json({ error: "Failed to claim ownership" });
+    }
+  });
 
   // Authentication nonce generation endpoint with comprehensive validation
   app.post("/api/auth/nonce", async (req, res) => {
@@ -459,20 +541,23 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       // Get trending posts based on engagement
       const posts = await storage.getPosts({ sort: 'trending' });
       
+      // Filter to only public posts first
+      const publicPosts = filterPublicPosts(posts);
+      
       // Filter by type if specified
-      let filteredPosts = posts;
+      let filteredPosts = publicPosts;
       if (type === 'videos') {
-        filteredPosts = posts.filter(post => 
+        filteredPosts = publicPosts.filter(post => 
           post.media_url.includes('.mp4') || post.media_url.includes('.webm') || post.media_url.includes('.mov')
         );
       } else if (type === 'photos') {
-        filteredPosts = posts.filter(post => 
+        filteredPosts = publicPosts.filter(post => 
           post.media_url.includes('.jpg') || post.media_url.includes('.jpeg') || post.media_url.includes('.png') || 
           post.media_url.includes('.gif') || post.media_url.includes('.webp')
         );
       } else if (type === 'live') {
-        filteredPosts = posts.filter(post => 
-          post.is_live
+        filteredPosts = publicPosts.filter(post => 
+          post.is_live && post.owner_wallet
         );
       }
       
@@ -508,11 +593,16 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
         storage.getLiveStreams()
       ]);
       
+      // Filter all content to only include publicly visible posts
+      const publicTrendingPosts = filterPublicPosts(trendingPosts);
+      const publicRecentPosts = filterPublicPosts(recentPosts);
+      const claimedLiveStreams = liveStreams.filter(stream => stream.owner_wallet);
+      
       // Mix content types for discovery
       const discoveryContent = [
-        ...trendingPosts.slice(0, 5),
-        ...recentPosts.slice(0, 5),
-        ...liveStreams.slice(0, 3)
+        ...publicTrendingPosts.slice(0, 5),
+        ...publicRecentPosts.slice(0, 5),
+        ...claimedLiveStreams.slice(0, 3)
       ];
       
       // Shuffle and apply pagination
