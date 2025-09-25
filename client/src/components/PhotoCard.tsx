@@ -94,11 +94,11 @@ export default function PhotoCard({
       >
       <CardContent className="p-0">
         {/* Image Container */}
-        <div className="relative min-h-[600px] overflow-hidden">
+        <div className="relative h-[600px] overflow-hidden">
           <img
             src={imageUrl}
             alt={title}
-            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
           
