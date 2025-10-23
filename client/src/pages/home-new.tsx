@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
 import { CategoryChips } from '@/components/CategoryChips';
 import VideoCard from '@/components/VideoCard';
@@ -118,9 +117,7 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1">
+          <div>
             <CategoryChips onCategoryChange={setSelectedCategory} />
             <div className="p-4">
               <MasonryGrid>
@@ -137,7 +134,6 @@ export default function Home() {
                 ))}
               </MasonryGrid>
             </div>
-          </main>
         </div>
       </div>
     );
@@ -146,9 +142,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1">
+        <div>
           <CategoryChips onCategoryChange={setSelectedCategory} />
           <div className="p-2 md:p-4 pb-20 md:pb-4">
             {/* Live Streams Section */}
@@ -269,7 +263,6 @@ export default function Home() {
               </Button>
             </div>
           </div>
-        </main>
       </div>
 
       {/* Mobile Navigation */}

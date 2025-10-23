@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -255,15 +254,12 @@ export default function Studio() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-4">
+          <div className=" p-4">
             <div className="text-center py-12">
               <h1 className="text-2xl font-bold text-foreground mb-4">Creator Studio</h1>
               <p className="text-muted-foreground mb-6">Connect your wallet to access creator tools</p>
               <Button className="btn-goon">Connect Wallet</Button>
             </div>
-          </main>
         </div>
       </div>
     );
@@ -272,9 +268,7 @@ export default function Studio() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-6">
+        <div className=" p-4 md:p-6">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 md:mb-6">
               <h1 className="text-xl md:text-2xl font-bold text-foreground">Creator Studio</h1>
@@ -621,7 +615,6 @@ export default function Studio() {
               </TabsContent>
             </Tabs>
           </div>
-        </main>
       </div>
 
       <StudioModal

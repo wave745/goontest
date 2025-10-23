@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -249,17 +248,14 @@ export default function Recent() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-4 md:p-6">
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center py-12">
-                <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-foreground mb-2">Connect Your Wallet</h1>
-                <p className="text-muted-foreground">Please connect your wallet to view your recent activities.</p>
-              </div>
+        <div className="p-4 md:p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-12">
+              <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-foreground mb-2">Connect Your Wallet</h1>
+              <p className="text-muted-foreground">Please connect your wallet to view your recent activities.</p>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     );
@@ -269,18 +265,15 @@ export default function Recent() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-4 md:p-6">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex justify-center items-center h-64">
-                <div className="flex flex-col items-center gap-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                  <p className="text-muted-foreground">Loading activities...</p>
-                </div>
+        <div className="p-4 md:p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-center items-center h-64">
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                <p className="text-muted-foreground">Loading activities...</p>
               </div>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     );
@@ -289,9 +282,7 @@ export default function Recent() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-6">
+      <div className="p-4 md:p-6">
           <div className="max-w-4xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
@@ -425,7 +416,6 @@ export default function Recent() {
               </div>
             )}
           </div>
-        </main>
       </div>
 
       {/* Mobile Navigation */}

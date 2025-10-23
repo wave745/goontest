@@ -2,7 +2,6 @@ import { useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@solana/wallet-adapter-react';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import { CategoryChips } from '@/components/CategoryChips';
 import VideoCard from '@/components/VideoCard';
 import MasonryGrid from '@/components/MasonryGrid';
@@ -68,12 +67,9 @@ export default function AIProfile() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-4">
+          <div className=" p-4">
             <div className="loading-skeleton h-40 rounded-xl mb-4"></div>
             <div className="loading-skeleton h-24 rounded-xl"></div>
-          </main>
         </div>
       </div>
     );
@@ -83,14 +79,11 @@ export default function AIProfile() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-4">
+          <div className=" p-4">
             <div className="text-center py-12">
               <h1 className="text-2xl font-bold text-foreground">AI Creator not found</h1>
               <p className="text-muted-foreground">The AI creator you're looking for doesn't exist.</p>
             </div>
-          </main>
         </div>
       </div>
     );
@@ -125,9 +118,7 @@ export default function AIProfile() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1">
+        <div>
           {/* AI Creator Banner */}
           <div className="relative h-48 bg-gradient-to-r from-accent/20 to-accent-2/20">
             {creator.banner_url && (
@@ -306,7 +297,6 @@ export default function AIProfile() {
               ))}
             </MasonryGrid>
           </div>
-        </main>
       </div>
     </div>
   );

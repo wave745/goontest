@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import AnimatedGoonText from "@/components/AnimatedGoonText";
 import Home from "@/pages/home";
 import Recent from "@/pages/recent-real";
 import Videos from "@/pages/videos";
@@ -38,6 +39,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <div className="min-h-screen bg-background text-foreground">
+          <AnimatedGoonText />
           <Toaster />
           <Router />
         </div>

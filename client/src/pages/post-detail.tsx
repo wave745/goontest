@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@solana/wallet-adapter-react';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, Heart, Share, Flag, MessageCircle } from 'lucide-react';
@@ -62,14 +61,11 @@ export default function PostDetail() {
     return (
       <div className="min-h-screen bg-bg">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-4">
+          <div className=" p-4">
             <div className="max-w-4xl mx-auto">
               <div className="loading-skeleton aspect-video rounded-xl mb-4"></div>
               <div className="loading-skeleton h-12 rounded-xl"></div>
             </div>
-          </main>
         </div>
       </div>
     );
@@ -79,14 +75,11 @@ export default function PostDetail() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-4">
+          <div className=" p-4">
             <div className="text-center py-12">
               <h1 className="text-2xl font-bold text-foreground">Post not found</h1>
               <p className="text-muted-foreground">The content you're looking for doesn't exist.</p>
             </div>
-          </main>
         </div>
       </div>
     );
@@ -97,9 +90,7 @@ export default function PostDetail() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-4">
+        <div className=" p-4">
           <div className="max-w-4xl mx-auto">
             <Card className="bg-card border-border">
               <CardContent className="p-0">
@@ -201,7 +192,6 @@ export default function PostDetail() {
               </CardContent>
             </Card>
           </div>
-        </main>
       </div>
     </div>
   );

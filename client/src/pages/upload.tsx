@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { useLocation } from 'wouter';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -178,9 +177,7 @@ export default function UploadPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-6">
+        <div className=" p-4 md:p-6">
           <div className="max-w-2xl mx-auto">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-foreground mb-2">Share Content</h1>
@@ -376,7 +373,6 @@ export default function UploadPage() {
               </Card>
             </div>
           </div>
-        </main>
       </div>
     </div>
   );

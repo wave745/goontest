@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import { Coins as CoinsIcon, Copy, ExternalLink, CheckCircle, TrendingUp, TrendingDown, Wallet, Plus, ArrowUpDown, History, Star } from 'lucide-react';
 
 interface MintDisplayProps {
@@ -192,9 +191,7 @@ export default function Coins() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-4">
+          <div className=" p-4">
             <div className="text-center py-12">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-accent to-accent-2 rounded-full mb-4">
                 <CoinsIcon className="h-8 w-8 text-accent-foreground" />
@@ -203,7 +200,6 @@ export default function Coins() {
               <p className="text-muted-foreground mb-6">Connect your wallet to manage your GOON tokens</p>
               <Button className="btn-goon">Connect Wallet</Button>
             </div>
-          </main>
         </div>
       </div>
     );
@@ -212,9 +208,7 @@ export default function Coins() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-6">
+        <div className=" p-4 md:p-6">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 md:mb-6">
               <div>
@@ -483,7 +477,6 @@ export default function Coins() {
               </TabsContent>
             </Tabs>
           </div>
-        </main>
       </div>
     </div>
   );

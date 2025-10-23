@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
 import VideoCard from '@/components/VideoCard';
 import MasonryGrid from '@/components/MasonryGrid';
@@ -179,22 +178,17 @@ export default function Videos() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1">
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-6">
-                <Video className="h-6 w-6 text-accent" />
-                <h1 className="text-2xl font-bold">Videos</h1>
-              </div>
-              <div className="flex justify-center items-center h-64">
-                <div className="flex flex-col items-center gap-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                  <p className="text-muted-foreground">Loading videos...</p>
-                </div>
-              </div>
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-6">
+            <Video className="h-6 w-6 text-accent" />
+            <h1 className="text-2xl font-bold">Videos</h1>
+          </div>
+          <div className="flex justify-center items-center h-64">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-accent" />
+              <p className="text-muted-foreground">Loading videos...</p>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     );
@@ -204,30 +198,25 @@ export default function Videos() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1">
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-6">
-                <Video className="h-6 w-6 text-accent" />
-                <h1 className="text-2xl font-bold">Videos</h1>
-              </div>
-              <div className="flex justify-center items-center h-64">
-                <div className="text-center">
-                  <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">Failed to load videos</p>
-                  <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleRetry}
-                    className="bg-card border-border text-card-foreground hover:bg-accent/10"
-                  >
-                    Try Again
-                  </Button>
-                </div>
-              </div>
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-6">
+            <Video className="h-6 w-6 text-accent" />
+            <h1 className="text-2xl font-bold">Videos</h1>
+          </div>
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">Failed to load videos</p>
+              <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
+              <Button 
+                variant="outline" 
+                onClick={handleRetry}
+                className="bg-card border-border text-card-foreground hover:bg-accent/10"
+              >
+                Try Again
+              </Button>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     );
@@ -236,9 +225,6 @@ export default function Videos() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1">
           <div className="p-4 md:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 md:mb-6">
               <div className="flex items-center gap-2">
@@ -422,8 +408,6 @@ export default function Videos() {
               </div>
             )}
           </div>
-        </main>
-      </div>
 
       {/* Mobile Navigation */}
       <MobileNav />

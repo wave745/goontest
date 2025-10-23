@@ -17,6 +17,59 @@
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* Animated goon text animations */
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-right {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes goon-glow {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-scroll-left {
+  animation: scroll-left 20s linear infinite;
+}
+
+.animate-scroll-right {
+  animation: scroll-right 20s linear infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-goon-glow {
+  animation: goon-glow 2s ease-in-out infinite;
+}
+
 :root {
   --bg: hsl(0, 0%, 4.3%); /* #0B0B0B */
   --panel: hsl(0, 0%, 7.1%); /* #121212 */

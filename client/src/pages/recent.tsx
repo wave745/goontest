@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
 import VideoCard from '@/components/VideoCard';
 import MasonryGrid from '@/components/MasonryGrid';
@@ -32,9 +31,7 @@ export default function Recent() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1">
+          <div>
             <div className="p-4">
               <div className="flex items-center gap-2 mb-6">
                 <Clock className="h-6 w-6 text-accent" />
@@ -44,7 +41,6 @@ export default function Recent() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
               </div>
             </div>
-          </main>
         </div>
       </div>
     );
@@ -54,9 +50,7 @@ export default function Recent() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1">
+          <div>
             <div className="p-4">
               <div className="flex items-center gap-2 mb-6">
                 <Clock className="h-6 w-6 text-accent" />
@@ -75,7 +69,6 @@ export default function Recent() {
                 </div>
               </div>
             </div>
-          </main>
         </div>
       </div>
     );
@@ -84,9 +77,7 @@ export default function Recent() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1">
+        <div>
           <div className="p-4 md:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4 md:mb-6">
               <div className="flex items-center gap-2">
@@ -179,7 +170,6 @@ export default function Recent() {
               />
             </div>
           )}
-        </main>
       </div>
 
       {/* Mobile Navigation */}

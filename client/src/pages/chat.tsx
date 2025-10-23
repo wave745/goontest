@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -145,9 +144,7 @@ export default function Chat() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-6">
+        <div className=" p-4 md:p-6">
           <div className="max-w-4xl mx-auto">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-foreground mb-2">AI Chat</h1>
@@ -323,7 +320,6 @@ export default function Chat() {
               </div>
             </Card>
           </div>
-        </main>
       </div>
     </div>
   );
