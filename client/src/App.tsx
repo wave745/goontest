@@ -8,7 +8,6 @@ import Home from "@/pages/home";
 import Recent from "@/pages/recent-real";
 import Videos from "@/pages/videos";
 import Photos from "@/pages/photos";
-import PostDetail from "@/pages/post-detail";
 import Studio from "@/pages/studio-real";
 import Chat from "@/pages/chat";
 import Coins from "@/pages/coins";
@@ -24,7 +23,6 @@ function Router() {
       <Route path="/videos" component={Videos} />
       <Route path="/photos" component={Photos} />
       <Route path="/ai/:handle" component={AIProfile} />
-      <Route path="/p/:id" component={PostDetail} />
       <Route path="/studio" component={Studio} />
       <Route path="/chat" component={Chat} />
       <Route path="/coins" component={Coins} />

@@ -71,7 +71,6 @@ export default function PhotoCard({
   const handleView = () => {
     viewMutation.mutate();
     setIsModalOpen(true);
-    onClick?.();
   };
 
   const formatNumber = (num: number) => {

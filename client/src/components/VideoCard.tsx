@@ -70,7 +70,6 @@ export default function VideoCard({
   const handleView = () => {
     viewMutation.mutate();
     setIsModalOpen(true);
-    onClick?.();
   };
 
   const formatNumber = (num: number) => {
