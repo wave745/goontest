@@ -183,7 +183,7 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
-        className="max-w-4xl w-full h-[90vh] p-0 overflow-hidden"
+        className="max-w-2xl w-full h-[70vh] p-0 overflow-hidden"
         data-testid="content-modal"
       >
         <DialogDescription className="sr-only">
@@ -211,186 +211,55 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
             </div>
           </div>
         ) : (
-          <div className="flex h-full">
-            {/* Media Section */}
-            <div className="flex-1 bg-black flex items-center justify-center relative">
-              {canView ? (
-                <div className="w-full h-full flex items-center justify-center">
-                  {isVideo ? (
-                    <video
-                      src={post.media_url}
-                      controls
-                      className="max-w-full max-h-full object-contain"
-                      data-testid="video-player"
-                      autoPlay
-                    />
-                  ) : isImage ? (
-                    <img
-                      src={post.media_url}
-                      alt={post.caption}
-                      className="max-w-full max-h-full object-contain"
-                      data-testid="image-content"
-                    />
-                  ) : (
-                    <div className="text-white text-center">
-                      <p>Unsupported media type</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="relative w-full h-full flex items-center justify-center">
+          <div className="w-full h-full bg-black flex items-center justify-center relative">
+            {canView ? (
+              <div className="w-full h-full flex items-center justify-center">
+                {isVideo ? (
+                  <video
+                    src={post.media_url}
+                    controls
+                    className="max-w-full max-h-full object-contain"
+                    data-testid="video-player"
+                    autoPlay
+                  />
+                ) : isImage ? (
                   <img
-                    src={post.thumb_url}
-                    alt="Thumbnail"
-                    className="w-full h-full object-cover filter blur-sm opacity-50"
+                    src={post.media_url}
+                    alt=""
+                    className="max-w-full max-h-full object-contain"
+                    data-testid="image-content"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <div className="bg-black/80 rounded-full p-6 mb-4 mx-auto w-fit">
-                        <Lock className="text-accent h-8 w-8" />
-                      </div>
-                      <Button
-                        onClick={handleUnlock}
-                        disabled={unlockMutation.isPending}
-                        className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                        data-testid="button-unlock-content"
-                      >
-                        <Coins className="h-4 w-4 mr-2" />
-                        {unlockMutation.isPending ? 'Unlocking...' : `Unlock for ${formatPrice(post.price_lamports)}`}
-                      </Button>
-                    </div>
+                ) : (
+                  <div className="text-white text-center">
+                    <p>Unsupported media type</p>
                   </div>
-                </div>
-              )}
-
-              {/* Media overlay indicators */}
-              {isVideo && canView && (
-                <div className="absolute bottom-4 left-4">
-                  <Badge variant="secondary" className="bg-black/70 text-white">
-                    <Play className="h-3 w-3 mr-1" />
-                    Video
-                  </Badge>
-                </div>
-              )}
-              {post.price_lamports > 0 && (
-                <div className="absolute top-4 left-4">
-                  <Badge variant="secondary" className="bg-accent/90 text-accent-foreground">
-                    <Coins className="h-3 w-3 mr-1" />
-                    {formatPrice(post.price_lamports)}
-                  </Badge>
-                </div>
-              )}
-            </div>
-
-            {/* Content Section */}
-            <div className="w-80 bg-card border-l border-border flex flex-col">
-              <ScrollArea className="flex-1">
-                <div className="p-4 space-y-4">
-                  {/* Anonymous Creator Info */}
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                      <span className="text-sm text-muted-foreground">A</span>
+                )}
+              </div>
+            ) : (
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img
+                  src={post.thumb_url}
+                  alt="Thumbnail"
+                  className="w-full h-full object-cover filter blur-sm opacity-50"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <div className="bg-black/80 rounded-full p-6 mb-4 mx-auto w-fit">
+                      <Lock className="text-accent h-8 w-8" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-muted-foreground">
-                        Anonymous Creator
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(post.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+                    <Button
+                      onClick={handleUnlock}
+                      disabled={unlockMutation.isPending}
+                      className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                      data-testid="button-unlock-content"
+                    >
+                      <Coins className="h-4 w-4 mr-2" />
+                      {unlockMutation.isPending ? 'Unlocking...' : `Unlock for ${formatPrice(post.price_lamports)}`}
+                    </Button>
                   </div>
-
-                  <Separator />
-
-                  {/* Caption */}
-                  {post.caption && (
-                    <div>
-                      <h4 className="font-medium mb-2">Caption</h4>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {post.caption}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Tags - Currently not implemented */}
-                  {false && (
-                    <div>
-                      <h4 className="font-medium mb-2">Tags</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {[].map((tag: string, index: number) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            #{tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Stats */}
-                  <div>
-                    <h4 className="font-medium mb-2">Stats</h4>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Heart className="h-4 w-4" />
-                        <span>{currentLikes.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span>{post.views.toLocaleString()} views</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </ScrollArea>
-
-              {/* Action Buttons */}
-              <div className="p-4 border-t border-border space-y-3">
-                {/* Reaction Buttons */}
-                <div className="flex justify-center">
-                  <ReactionButtons
-                    postId={post.id}
-                    likes={currentLikes}
-                    isLiked={isLiked}
-                    onLike={handleLike}
-                  />
-                </div>
-
-                {/* Action Buttons Row */}
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownload}
-                    className="flex-1"
-                    data-testid="button-download"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleShare}
-                    className="flex-1"
-                    data-testid="button-share"
-                  >
-                    <Share className="h-4 w-4 mr-1" />
-                    Share
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    data-testid="button-report"
-                  >
-                    <Flag className="h-4 w-4 mr-1" />
-                    Report
-                  </Button>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </DialogContent>
