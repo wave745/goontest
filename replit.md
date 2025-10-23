@@ -4,6 +4,18 @@
 
 GoonHub is a Solana-based NSFW creator platform with a PornHub-inspired UI featuring a dark theme, masonry grid layout, and cryptocurrency integration. The platform allows creators to upload and monetize content using SOL payments and custom GOON tokens, while providing features like AI chat, tipping, and age-verified access controls.
 
+## Recent Changes (October 2025)
+
+- **Animated Goon Text**: Added hypnotic animated Chinese goon text banners that scroll across the top and bottom of the screen, with pulsing corner characters and a floating background GOON text. Features include:
+  - Scrolling Chinese/GOON text banners with orange glow effects
+  - Animated opacity pulsing for hypnotic effect
+  - Responsive design that adapts to mobile and desktop
+  - Non-intrusive pointer-events-none to allow interaction with page content
+
+- **UI Simplification**: Removed the sidebar navigation from all pages to provide a cleaner, more immersive full-width layout. Navigation is now handled through:
+  - Header navigation on desktop
+  - Mobile bottom navigation bar on mobile devices
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
