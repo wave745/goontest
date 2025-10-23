@@ -174,27 +174,6 @@ export default function Recent() {
 
       {/* Mobile Navigation */}
       <MobileNav />
-      
-      {/* Floating Action Buttons - Hidden on mobile */}
-      {connected && (
-        <div className="fixed bottom-6 right-6 flex flex-col gap-3 hidden md:flex">
-          <Button
-            size="lg"
-            className="h-14 w-14 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
-            data-testid="button-upload"
-          >
-            <Upload className="h-6 w-6" />
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="h-12 w-12 rounded-full bg-card border-border text-card-foreground hover:bg-accent/10 shadow-lg"
-            data-testid="button-coins"
-          >
-            <Coins className="h-5 w-5" />
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
