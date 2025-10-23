@@ -10,7 +10,8 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 glass-effect border-b border-border">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 relative">
+        {/* Left: Logo */}
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2" data-testid="link-home">
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-accent-2 flex items-center justify-center">
@@ -21,21 +22,25 @@ export default function Header() {
               <span className="bg-accent text-black px-3 py-1 rounded-md font-black ml-1">Hub</span>
             </div>
           </Link>
-          
-          <div className="hidden md:flex items-center gap-4">
-            <Link href="/chat" className={`hover:text-accent transition-colors ${location === '/chat' ? 'text-foreground' : 'text-muted-foreground'}`} data-testid="link-chat">
-              AI Chat
-            </Link>
-          </div>
-          
-          {/* Mobile Navigation */}
-          <div className="md:hidden flex items-center gap-2">
-            <Link href="/chat" className="p-2 text-muted-foreground hover:text-accent transition-colors rounded-lg hover:bg-accent/10" data-testid="link-chat-mobile">
-              <Bot className="h-5 w-5" />
-            </Link>
-          </div>
         </div>
 
+        {/* Center: GoonAI */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Link 
+            href="/chat" 
+            className={`text-2xl font-black transition-all duration-300 ${
+              location === '/chat' ? 'text-accent' : 'text-accent/80 hover:text-accent'
+            }`}
+            style={{
+              textShadow: '0 0 10px rgba(255, 165, 0, 0.8), 0 0 20px rgba(255, 165, 0, 0.6), 0 0 30px rgba(255, 165, 0, 0.4)'
+            }}
+            data-testid="link-chat"
+          >
+            goonai
+          </Link>
+        </div>
+
+        {/* Right: Action Buttons */}
         <div className="flex items-center gap-2 md:gap-4">
           {/* Mobile Action Buttons */}
           <div className="md:hidden flex items-center gap-1">
