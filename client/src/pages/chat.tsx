@@ -220,7 +220,7 @@ export default function Chat() {
             </div>
 
             {/* Chat Interface */}
-            <Card className="bg-card border-border h-[400px] md:h-[500px] flex flex-col">
+            <Card className="bg-card border-border h-[320px] md:h-[400px] flex flex-col">
               <CardHeader className="border-b border-border">
                 <div className="flex items-center gap-3">
                   <Avatar className="w-12 h-12">
