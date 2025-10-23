@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Video, Image, Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Video, Image, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 // Removed User type import for anonymization
 
@@ -17,7 +17,6 @@ export default function Sidebar() {
   const categoryItems = [
     { icon: Image, label: 'Photos', href: '/photos' },
     { icon: Video, label: 'Videos', href: '/videos' },
-    { icon: Play, label: 'Live', href: '/live' },
   ];
 
   return (

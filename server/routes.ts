@@ -1,34 +1,12 @@
 import type { Express } from "express";
 import type { Multer } from "multer";
 import { createServer, type Server } from "http";
-import { WebSocket, WebSocketServer } from "ws";
 import { storage } from "./storage/index.js";
 import { z } from "zod";
-import { insertPostSchema, insertTipSchema, insertLiveChatMessageSchema, type Post } from "@shared/schema";
+import { insertPostSchema, insertTipSchema, type Post } from "@shared/schema";
 
-// Claim ownership schema for live stream authentication
-const claimStreamSchema = z.object({
-  walletAddress: z.string().min(1, 'Wallet address is required'),
-  signedMessage: z.string().min(1, 'Signed message is required')
-});
 import { chatWithAI } from "./services/xai";
 import { uploadToDigitalOcean } from "./services/upload-real";
-import { generateLiveKitToken, tokenRequestSchema } from "./services/livekit-tokens";
-import { 
-  generateNonce, 
-  verifyWalletSignature, 
-  canUserPublish, 
-  validateStreamAccess, 
-  checkTokenRateLimit,
-  checkTokenRateLimitByIP,
-  type NonceRequest 
-} from "./services/auth";
-import { nonceRequestSchema } from "./services/auth-nonce";
-
-// Global type declaration for WebSocket server
-declare global {
-  var wss: WebSocketServer;
-}
 
 // Helper function to check if a post should be publicly visible
 function isPublicPost(post: Post): boolean {
@@ -56,68 +34,6 @@ function filterPublicPosts(posts: Post[]): Post[] {
 
 
 export async function registerRoutes(app: Express, upload?: Multer): Promise<Server> {
-
-  // ===== LIVEKIT TOKEN ENDPOINTS =====
-  
-  // Generate LiveKit access token for streaming
-  app.post("/api/livekit/token", async (req, res) => {
-    try {
-      const validatedRequest = tokenRequestSchema.parse(req.body);
-      
-      // Determine if this is a publisher (streamer) or viewer
-      const isPublisher = validatedRequest.signedMessage === 'publisher';
-      
-      const token = generateLiveKitToken(
-        validatedRequest.streamId,
-        validatedRequest.walletAddress,
-        validatedRequest.participantName,
-        isPublisher
-      );
-      
-      res.json({ token });
-      
-    } catch (error) {
-      console.error("Failed to generate LiveKit token:", error);
-      res.status(400).json({ 
-        error: error instanceof Error ? error.message : "Invalid token request" 
-      });
-    }
-  });
-
-  // ===== LIVE STREAMING ENDPOINTS =====
-  
-  // Get all live streams
-  app.get("/api/streams", async (req, res) => {
-    try {
-      const liveStreams = await storage.getLiveStreams();
-      
-      // Only return claimed streams (with owner_wallet set) to prevent spam/abuse
-      const claimedStreams = liveStreams.filter(stream => stream.owner_wallet);
-      
-      // Strip sensitive data and add anonymous creator info
-      const streamsWithCreators = claimedStreams.map(createAnonymousPost);
-      
-      res.json(streamsWithCreators);
-    } catch (error) {
-      console.error("Failed to fetch streams:", error);
-      res.status(500).json({ error: "Failed to fetch streams" });
-    }
-  });
-
-  // Get single stream by ID
-  app.get("/api/streams/:id", async (req, res) => {
-    try {
-      const post = await storage.getPost(req.params.id);
-      if (!post || !post.is_live || !post.owner_wallet) {
-        return res.status(404).json({ error: "Stream not found" });
-      }
-      
-      res.json(createAnonymousPost(post));
-    } catch (error) {
-      console.error("Failed to fetch stream:", error);
-      res.status(500).json({ error: "Failed to fetch stream" });
-    }
-  });
 
   // Like/unlike stream endpoints
   app.post("/api/posts/:id/like", async (req, res) => {
@@ -338,195 +254,6 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
 
 
 
-  // Step 2: Claim ownership of live stream with authentication
-  app.post("/api/posts/:id/claim", async (req, res) => {
-    try {
-      // Validate post ID parameter
-      const postId = req.params.id;
-      if (!postId || typeof postId !== 'string') {
-        return res.status(400).json({
-          error: "Invalid post ID"
-        });
-      }
-      
-      // Validate request body with Zod schema
-      const validation = claimStreamSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({
-          error: "Invalid request data",
-          details: validation.error.format()
-        });
-      }
-      
-      const { walletAddress, signedMessage } = validation.data;
-      
-      // Get the post to verify it exists and is a live stream
-      const post = await storage.getPost(postId);
-      if (!post) {
-        return res.status(404).json({ error: "Post not found" });
-      }
-      
-      if (!post.is_live) {
-        return res.status(400).json({ error: "Only live posts can be claimed" });
-      }
-      
-      if (post.owner_wallet) {
-        return res.status(409).json({ error: "Post already claimed by another user" });
-      }
-      
-      // Use post.id as the canonical stream identifier for signature verification
-      const streamId = post.id;
-      
-      // Verify wallet signature for stream ownership
-      const isAuthenticated = verifyWalletSignature(walletAddress, streamId, signedMessage);
-      if (!isAuthenticated) {
-        return res.status(401).json({
-          error: "Invalid wallet signature. Please authenticate first."
-        });
-      }
-      
-      // Update post with canonical ownership and proper media_url using post.id
-      const updatedPost = await storage.updatePost(post.id, {
-        owner_wallet: walletAddress, // Server-set canonical ownership
-        media_url: `live://stream/${post.id}`, // Use post.id as LiveKit room identifier
-        thumb_url: post.thumb_url || `live://stream/${post.id}`
-      });
-      
-      if (!updatedPost) {
-        return res.status(500).json({ error: "Failed to claim ownership" });
-      }
-      
-      // Create activity and broadcast stream start to all clients
-      if (updatedPost.metadata) {
-        await storage.createActivity({
-          type: 'core_update',
-          title: `🔴 Live Stream Started`,
-          description: updatedPost.metadata.stream_title || updatedPost.caption || 'New live stream',
-          is_read: false,
-          metadata: {
-            post_id: updatedPost.id,
-            stream_title: updatedPost.metadata.stream_title,
-            streamer_name: updatedPost.metadata.streamer_name
-          }
-        });
-
-        // Broadcast new live stream to all connected clients
-        if (global.wss) {
-          global.wss.clients.forEach((client: WebSocket) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: 'stream_started',
-                stream: createAnonymousPost(updatedPost)
-              }));
-            }
-          });
-        }
-      }
-      
-      // Return sanitized response with ownership confirmed
-      res.json({
-        ...createAnonymousPost(updatedPost),
-        claimed: true,
-        streamId: updatedPost.id // Include streamId for LiveKit token requests
-      });
-      
-    } catch (error) {
-      console.error("Failed to claim post ownership:", error);
-      res.status(500).json({ error: "Failed to claim ownership" });
-    }
-  });
-
-  // Authentication nonce generation endpoint with comprehensive validation
-  app.post("/api/auth/nonce", async (req, res) => {
-    try {
-      // Validate request with Zod schema
-      const validation = nonceRequestSchema.safeParse(req.body);
-      
-      if (!validation.success) {
-        return res.status(400).json({
-          error: "Invalid request data",
-          details: validation.error.format()
-        });
-      }
-      
-      const { walletAddress, streamId } = validation.data;
-      const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-      
-      const nonceData = generateNonce({ walletAddress, streamId }, clientIP);
-      res.json(nonceData);
-      
-    } catch (error) {
-      console.error("Failed to generate nonce:", error);
-      if (error instanceof Error && error.message.includes('Rate limit')) {
-        return res.status(429).json({ error: error.message });
-      }
-      res.status(500).json({ error: "Failed to generate nonce" });
-    }
-  });
-
-  // LiveKit token generation endpoint with comprehensive security
-  app.post("/api/livekit/token", async (req, res) => {
-    try {
-      // Validate request body with Zod
-      const validation = tokenRequestSchema.safeParse(req.body);
-      
-      if (!validation.success) {
-        return res.status(400).json({ 
-          error: "Invalid request data",
-          details: validation.error.format()
-        });
-      }
-      
-      const { streamId, participantName, walletAddress, signedMessage } = validation.data;
-      
-      // CRITICAL: Verify signature FIRST before any rate limiting
-      const isAuthenticated = verifyWalletSignature(walletAddress, streamId, signedMessage);
-      if (!isAuthenticated) {
-        return res.status(401).json({ 
-          error: "Invalid wallet signature. Please authenticate first."
-        });
-      }
-      
-      // Rate limiting AFTER authentication (prevents DoS via wallet spoofing)
-      const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-      if (!checkTokenRateLimit(walletAddress) || !checkTokenRateLimitByIP(clientIP)) {
-        return res.status(429).json({ 
-          error: "Rate limit exceeded. Too many token requests."
-        });
-      }
-      
-      // Validate stream exists and is accessible
-      const hasStreamAccess = await validateStreamAccess(streamId, walletAddress);
-      if (!hasStreamAccess) {
-        return res.status(403).json({ 
-          error: "Stream not found or not accessible"
-        });
-      }
-      
-      // Determine role server-side based on stream ownership
-      const isPublisher = await canUserPublish(streamId, walletAddress);
-      
-      // Generate secure token with short TTL
-      const token = generateLiveKitToken(streamId, walletAddress, participantName, isPublisher);
-      
-      // Log token issuance for auditing
-      console.log(`Token issued: ${walletAddress} as ${isPublisher ? 'publisher' : 'viewer'} for stream ${streamId}`);
-      
-      res.json({ 
-        token,
-        role: isPublisher ? 'publisher' : 'viewer',
-        expiresIn: 300 // 5 minutes
-      });
-      
-    } catch (error) {
-      console.error("Failed to generate LiveKit token:", error);
-      res.status(500).json({ 
-        error: "Failed to generate token",
-        message: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
   // AI Chat endpoint for direct AI responses
   app.post("/api/chat/ai", async (req, res) => {
     try {
@@ -582,10 +309,6 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
           post.media_url.includes('.jpg') || post.media_url.includes('.jpeg') || post.media_url.includes('.png') || 
           post.media_url.includes('.gif') || post.media_url.includes('.webp')
         );
-      } else if (type === 'live') {
-        filteredPosts = publicPosts.filter(post => 
-          post.is_live && post.owner_wallet
-        );
       }
       
       // Apply limit
@@ -614,30 +337,27 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       const searchOffset = parseInt(offset as string) || 0;
       
       // Get diverse content for discovery
-      const [trendingPosts, recentPosts, liveStreams] = await Promise.all([
+      const [trendingPosts, recentPosts] = await Promise.all([
         storage.getPosts({ sort: 'trending' }),
-        storage.getPosts({ sort: 'latest' }),
-        storage.getLiveStreams()
+        storage.getPosts({ sort: 'latest' })
       ]);
       
       // Filter all content to only include publicly visible posts
       const publicTrendingPosts = filterPublicPosts(trendingPosts);
       const publicRecentPosts = filterPublicPosts(recentPosts);
-      const claimedLiveStreams = liveStreams.filter(stream => stream.owner_wallet);
       
       // Mix content types for discovery
       const discoveryContent = [
-        ...publicTrendingPosts.slice(0, 5),
-        ...publicRecentPosts.slice(0, 5),
-        ...claimedLiveStreams.slice(0, 3)
+        ...publicTrendingPosts.slice(0, 8),
+        ...publicRecentPosts.slice(0, 8)
       ];
       
       // Shuffle and apply pagination
       const shuffled = discoveryContent.sort(() => Math.random() - 0.5);
       const paginatedContent = shuffled.slice(searchOffset, searchOffset + searchLimit);
       
-      // Strip sensitive data and add anonymous creator info - filter out non-post types first
-      const contentWithCreators = paginatedContent.filter((item): item is Post => 'media_url' in item).map(createAnonymousPost);
+      // Strip sensitive data and add anonymous creator info
+      const contentWithCreators = paginatedContent.map(createAnonymousPost);
       
       res.json({
         content: contentWithCreators,
@@ -768,143 +488,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     }
   });
   
-  // Chat endpoints
-  app.get("/api/chat/:postId", async (req, res) => {
-    try {
-      const { limit = 50, offset = 0 } = req.query;
-      const messages = await storage.getLiveChatMessages(
-        req.params.postId,
-        parseInt(limit as string),
-        parseInt(offset as string)
-      );
-      res.json(messages);
-    } catch (error) {
-      console.error("Failed to fetch chat messages:", error);
-      res.status(500).json({ error: "Failed to fetch chat messages" });
-    }
-  });
-  
-  app.post("/api/chat/:postId", async (req, res) => {
-    try {
-      const chatData = {
-        ...req.body,
-        post_id: req.params.postId
-      };
-      const validatedData = insertLiveChatMessageSchema.parse(chatData);
-      const message = await storage.createLiveChatMessage(validatedData);
-      
-      // Broadcast to WebSocket clients if connected
-      if (wss) {
-        wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-              type: 'chat_message',
-              postId: req.params.postId,
-              message
-            }));
-          }
-        });
-      }
-      
-      res.json(message);
-    } catch (error) {
-      console.error("Failed to create chat message:", error);
-      res.status(400).json({ error: "Invalid message data", details: (error as Error).message });
-    }
-  });
-  
-  // End stream endpoint
-  app.post("/api/streams/:id/end", async (req, res) => {
-    try {
-      const stream = await storage.endLiveStream(req.params.id);
-      if (!stream) {
-        return res.status(404).json({ error: "Stream not found" });
-      }
-      
-      res.json(createAnonymousPost(stream));
-    } catch (error) {
-      console.error("Failed to end stream:", error);
-      res.status(500).json({ error: "Failed to end stream" });
-    }
-  });
-  
-  // Update stream viewer count
-  app.post("/api/streams/:id/viewers", async (req, res) => {
-    try {
-      const { viewer_count } = req.body;
-      if (typeof viewer_count !== 'number') {
-        return res.status(400).json({ error: "Invalid viewer count" });
-      }
-      
-      const stream = await storage.updateStreamViewerCount(req.params.id, viewer_count);
-      if (!stream) {
-        return res.status(404).json({ error: "Stream not found" });
-      }
-      
-      res.json({ success: true, viewer_count: stream.metadata?.viewer_count || 0 });
-    } catch (error) {
-      console.error("Failed to update viewer count:", error);
-      res.status(500).json({ error: "Failed to update viewer count" });
-    }
-  });
-  
   const httpServer = createServer(app);
-  
-  // Setup WebSocket server for live chat on a specific path to avoid conflicts with Vite HMR
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/chat-ws'
-  });
-  
-  // Make WebSocket server globally accessible for broadcasting
-  global.wss = wss;
-  
-  wss.on('connection', (ws) => {
-    console.log('New WebSocket connection established');
-    
-    ws.on('message', async (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        
-        if (message.type === 'join_stream') {
-          // Client joining a stream chat
-          (ws as any).streamId = message.postId;
-        } else if (message.type === 'chat_message') {
-          // Handle chat message
-          const chatData = {
-            post_id: message.postId,
-            username: message.username || 'Anonymous',
-            message: message.content,
-            type: message.messageType || 'message',
-            sender_address: message.senderAddress
-          };
-          
-          const validatedData = insertLiveChatMessageSchema.parse(chatData);
-          const savedMessage = await storage.createLiveChatMessage(validatedData);
-          
-          // Broadcast to all clients in the same stream
-          wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN && (client as any).streamId === message.postId) {
-              client.send(JSON.stringify({
-                type: 'chat_message',
-                message: savedMessage
-              }));
-            }
-          });
-        }
-      } catch (error) {
-        console.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Invalid message format'
-        }));
-      }
-    });
-    
-    ws.on('close', () => {
-      console.log('WebSocket connection closed');
-    });
-  });
   
   return httpServer;
 }

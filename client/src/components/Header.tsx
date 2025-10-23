@@ -1,16 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Upload, Play, Bot, Wallet } from 'lucide-react';
+import { Upload, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { Badge } from '@/components/ui/badge';
 import UploadDialog from './UploadDialog';
 
 export default function Header() {
   const [location] = useLocation();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const { connected, publicKey } = useWallet();
 
   return (
     <header className="sticky top-0 z-50 glass-effect border-b border-border">
@@ -27,9 +23,6 @@ export default function Header() {
           </Link>
           
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/live" className={`hover:text-accent transition-colors ${location === '/live' ? 'text-foreground' : 'text-muted-foreground'}`} data-testid="link-live">
-              Live
-            </Link>
             <Link href="/chat" className={`hover:text-accent transition-colors ${location === '/chat' ? 'text-foreground' : 'text-muted-foreground'}`} data-testid="link-chat">
               AI Chat
             </Link>
@@ -37,9 +30,6 @@ export default function Header() {
           
           {/* Mobile Navigation */}
           <div className="md:hidden flex items-center gap-2">
-            <Link href="/live" className="p-2 text-muted-foreground hover:text-accent transition-colors rounded-lg hover:bg-accent/10" data-testid="link-live-mobile">
-              <Play className="h-5 w-5" />
-            </Link>
             <Link href="/chat" className="p-2 text-muted-foreground hover:text-accent transition-colors rounded-lg hover:bg-accent/10" data-testid="link-chat-mobile">
               <Bot className="h-5 w-5" />
             </Link>
@@ -58,16 +48,6 @@ export default function Header() {
             >
               <Upload className="h-4 w-4" />
             </Button>
-            <Link href="/live">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="p-2 h-9 w-9 bg-card border-border hover:bg-accent/10"
-                data-testid="button-live-mobile"
-              >
-                <Play className="h-4 w-4" />
-              </Button>
-            </Link>
           </div>
           
           {/* Desktop Action Buttons */}
@@ -82,35 +62,6 @@ export default function Header() {
             Upload
           </Button>
 
-          <Link href="/live">
-            <Button
-              size="sm"
-              className="hidden md:flex items-center gap-2 bg-accent hover:bg-accent/90"
-              data-testid="button-live"
-            >
-              <Play className="h-4 w-4" />
-              Go Live
-            </Button>
-          </Link>
-
-          {/* Wallet Connection & Status */}
-          <div className="flex items-center gap-2">
-            {connected && publicKey && (
-              <Badge 
-                variant="outline" 
-                className="hidden md:flex items-center gap-1 bg-green-500/10 text-green-400 border-green-500/30"
-                data-testid="wallet-status"
-              >
-                <Wallet className="h-3 w-3" />
-                {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
-              </Badge>
-            )}
-            
-            <WalletMultiButton 
-              className="!bg-gradient-to-r !from-purple-500 !to-pink-500 hover:!from-purple-600 hover:!to-pink-600 !border-none !rounded-lg !text-white !font-medium !text-sm !px-4 !py-2 !h-10 !transition-all"
-              data-testid="wallet-connect-button"
-            />
-          </div>
         </div>
       </div>
       
