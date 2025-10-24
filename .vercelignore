@@ -1,6 +1,4 @@
-# Server files (not needed for frontend deployment)
-server/
-dist/
+# Node modules (installed during build)
 node_modules/
 
 # Development files
@@ -9,17 +7,20 @@ node_modules/
 .env.development
 .env.production
 
-# Database files
-drizzle.config.ts
-setup-supabase.js
-
 # Build artifacts
 *.log
 npm-debug.log*
+.cache
+.vite
+
+# Uploads (should use cloud storage in production)
+uploads/
 
 # IDE files
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS files
 .DS_Store
@@ -31,4 +32,28 @@ Thumbs.db
 
 # Replit specific
 .replit
-replit.md
+replit.nix
+.config/
+
+# Documentation (keep only README)
+DEPLOYMENT.md
+VERCEL_README.md
+CHAT_UPGRADE.md
+SUPABASE_SETUP.md
+
+# Scripts
+*.sh
+
+# Database migration files (use Vercel env vars for DB)
+drizzle.config.ts
+setup-supabase.js
+setup-db.js
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*~
+tmp/
+temp/
