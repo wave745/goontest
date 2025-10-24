@@ -263,7 +263,7 @@ export default function Chat() {
                 </div>
               </CardHeader>
 
-              <CardContent className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 scrollbar-hide">
+              <CardContent className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50">
                 {messages.map((msg) => (
                   <div 
                     key={msg.id} 
