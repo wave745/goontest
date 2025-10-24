@@ -1,18 +1,15 @@
-import { createApp } from "../server/app";
+import express from "express";
+import { registerRoutes } from "../server/routes";
 
-let appPromise: ReturnType<typeof createApp> | null = null;
+// Create a simple Express app for Vercel
+const app = express();
 
-// Initialize the app once
-async function getApp() {
-  if (!appPromise) {
-    appPromise = createApp();
-  }
-  const { app } = await appPromise;
-  return app;
-}
+// Basic middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Register routes
+registerRoutes(app);
 
 // Export the Express app for Vercel
-export default async function handler(req: any, res: any) {
-  const app = await getApp();
-  return app(req, res);
-}
+export default app;
