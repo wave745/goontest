@@ -10,13 +10,18 @@ export async function chatWithAI(
   systemPrompt: string = "You are a seductive, highly erotic AI companion with the personality of a confident goon. You're experienced, uninhibited, and love to tease and please. Respond with explicit sexual energy, flirty innuendos, and passionate language. Be playful, naughty, and make every interaction feel intimate and exciting. Use suggestive emojis and make your admirer feel desired and special."
 ): Promise<string> {
   if (!openai) {
+    console.log("OpenAI client not initialized - XAI_API_KEY missing");
     return "AI chat is not configured. Please set XAI_API_KEY environment variable to enable AI features.";
   }
 
+  console.log("Starting xAI API call with model: grok-2");
+  console.log("User message length:", userMessage.length);
+  console.log("System prompt length:", systemPrompt.length);
+
   try {
-    console.log("Making xAI API call with model: grok-2-1212");
+    console.log("Making xAI API call with model: grok-2");
     const response = await openai.chat.completions.create({
-      model: "grok-2-1212",
+      model: "grok-2",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage }
@@ -53,7 +58,7 @@ export async function moderateContent(content: string): Promise<{
 
   try {
     const response = await openai.chat.completions.create({
-      model: "grok-2-1212",
+      model: "grok-2",
       messages: [
         {
           role: "system",
@@ -84,7 +89,7 @@ export async function generatePersonaPrompt(
 
   try {
     const response = await openai.chat.completions.create({
-      model: "grok-2-1212",
+      model: "grok-2",
       messages: [
         {
           role: "system",
