@@ -266,6 +266,13 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       }
 
       console.log("XAI_API_KEY exists:", !!process.env.XAI_API_KEY);
+      console.log("XAI_API_KEY length:", process.env.XAI_API_KEY?.length || 0);
+      
+      if (!process.env.XAI_API_KEY) {
+        console.log("XAI_API_KEY is not set");
+        return res.status(500).json({ error: "AI service not configured", details: "XAI_API_KEY environment variable is not set" });
+      }
+
       console.log("Calling chatWithAI with message:", message);
 
       // Get AI response using xAI
@@ -275,6 +282,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       res.json({ response: aiResponse });
     } catch (error) {
       console.error("Failed to get AI response:", error);
+      console.error("Error details:", error);
       res.status(500).json({ error: "Failed to get AI response", details: error.message });
     }
   });

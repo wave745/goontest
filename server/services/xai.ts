@@ -14,6 +14,7 @@ export async function chatWithAI(
   }
 
   try {
+    console.log("Making xAI API call with model: grok-2-1212");
     const response = await openai.chat.completions.create({
       model: "grok-2-1212",
       messages: [
@@ -27,10 +28,17 @@ export async function chatWithAI(
       presence_penalty: 0.3,
     });
 
+    console.log("xAI API response received successfully");
     return response.choices[0]?.message?.content || "Sorry, I couldn't process that message.";
   } catch (error) {
     console.error("xAI API error:", error);
-    throw new Error("Failed to get AI response");
+    console.error("Error type:", error.constructor.name);
+    console.error("Error message:", error.message);
+    if (error.response) {
+      console.error("API response status:", error.response.status);
+      console.error("API response data:", error.response.data);
+    }
+    throw new Error(`Failed to get AI response: ${error.message}`);
   }
 }
 
