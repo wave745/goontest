@@ -92,7 +92,7 @@ export default function VideoCard({
       >
         <CardContent className="p-0">
           {/* Video Thumbnail Container */}
-          <div className="relative aspect-video overflow-hidden">
+          <div className="relative aspect-square overflow-hidden">
             <img
               src={thumb}
               alt={title}

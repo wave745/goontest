@@ -93,7 +93,7 @@ export default function PhotoCard({
       >
       <CardContent className="p-0">
         {/* Image Container */}
-        <div className="relative h-[600px] overflow-hidden">
+        <div className="relative aspect-square overflow-hidden">
           <img
             src={imageUrl}
             alt={title}
