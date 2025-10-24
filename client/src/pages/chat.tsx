@@ -187,7 +187,7 @@ export default function Chat() {
                   <Button
                     key={ai.id}
                     onClick={() => setSelectedAI(ai.id)}
-                    className={`relative group rounded-xl p-3 md:p-4 h-auto min-h-[70px] md:min-h-[80px] flex flex-row items-center gap-3 transition-all duration-300 ${
+                    className={`relative group rounded-xl p-2 md:p-3 h-auto min-h-[50px] md:min-h-[60px] flex flex-row items-center gap-2 md:gap-3 transition-all duration-300 ${
                       isActive 
                         ? 'bg-gradient-to-r from-accent to-accent-2 text-black shadow-lg scale-105' 
                         : 'bg-card/50 hover:bg-card border border-border hover:border-accent/30 hover:shadow-lg hover:scale-102'
@@ -198,7 +198,7 @@ export default function Chat() {
                       <img 
                         src={ai.avatar} 
                         alt={ai.name}
-                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 transition-all duration-300 ${
+                        className={`w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 transition-all duration-300 ${
                           isActive ? 'border-black shadow-lg' : 'border-border group-hover:border-accent/50'
                         }`}
                         onError={(e) => {
@@ -209,14 +209,14 @@ export default function Chat() {
                         }}
                       />
                       <div 
-                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full bg-muted border-2 flex items-center justify-center hidden ${
+                        className={`w-8 h-8 md:w-10 md:h-10 rounded-full bg-muted border-2 flex items-center justify-center hidden ${
                           isActive ? 'border-black' : 'border-border'
                         }`}
                       >
-                        <User className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
+                        <User className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                       </div>
                       {/* Online indicator */}
-                      <div className={`absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 rounded-full border-2 ${
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 md:w-3 md:h-3 rounded-full border-2 ${
                         isActive ? 'border-black bg-success' : 'border-card bg-success'
                       }`} />
                     </div>
@@ -227,7 +227,7 @@ export default function Chat() {
                         <h3 className={`font-semibold text-xs md:text-sm ${isActive ? 'text-black' : 'text-foreground'}`}>
                           {ai.name}
                         </h3>
-                        <IconComponent className={`w-3 h-3 md:w-4 md:h-4 flex-shrink-0 ${isActive ? 'text-black' : 'text-accent'}`} />
+                        <IconComponent className={`w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0 ${isActive ? 'text-black' : 'text-accent'}`} />
                       </div>
                       <p className={`text-[10px] md:text-xs truncate ${isActive ? 'text-black/70' : 'text-muted-foreground'}`}>
                         {ai.personality}
