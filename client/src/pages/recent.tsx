@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
 import VideoCard from '@/components/VideoCard';
 import MasonryGrid from '@/components/MasonryGrid';
 import { CategoryChips } from '@/components/CategoryChips';
@@ -171,9 +170,6 @@ export default function Recent() {
             </div>
           )}
       </div>
-
-      {/* Mobile Navigation */}
-      <MobileNav />
     </div>
   );
 }

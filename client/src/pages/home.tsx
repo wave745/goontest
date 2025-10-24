@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
 import { CategoryChips } from '@/components/CategoryChips';
 import VideoCard from '@/components/VideoCard';
 import PhotoCard from '@/components/PhotoCard';
@@ -153,9 +152,6 @@ export default function Home() {
           </Button>
         </div>
       </div>
-
-      {/* Mobile Navigation */}
-      <MobileNav />
 
       {/* Modals */}
       {selectedCreator && (

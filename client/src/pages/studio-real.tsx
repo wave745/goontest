@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -463,9 +462,6 @@ export default function Studio() {
             </Tabs>
           </div>
       </div>
-
-      {/* Mobile Navigation */}
-      <MobileNav />
     </div>
   );
 }

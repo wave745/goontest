@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
 import VideoCard from '@/components/VideoCard';
 import MasonryGrid from '@/components/MasonryGrid';
 import { Button } from '@/components/ui/button';
@@ -408,9 +407,6 @@ export default function Videos() {
               </div>
             )}
           </div>
-
-      {/* Mobile Navigation */}
-      <MobileNav />
     </div>
   );
 }

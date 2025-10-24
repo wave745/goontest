@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
 import PhotoCard from '@/components/PhotoCard';
 import MasonryGrid from '@/components/MasonryGrid';
 import { Button } from '@/components/ui/button';
@@ -407,9 +406,6 @@ export default function Photos() {
               </div>
             )}
           </div>
-
-      {/* Mobile Navigation */}
-      <MobileNav />
     </div>
   );
 }

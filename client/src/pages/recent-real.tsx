@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -417,9 +416,6 @@ export default function Recent() {
             )}
           </div>
       </div>
-
-      {/* Mobile Navigation */}
-      <MobileNav />
     </div>
   );
 }
