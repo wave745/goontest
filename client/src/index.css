@@ -552,11 +552,21 @@ button[class*="wallet-adapter"],
 button[class*="wallet-adapter"]:hover,
 [class*="wallet-adapter"] button:hover,
 .wallet-connect button:hover,
-.wallet-connect [class*="wallet"]:hover {
+  .wallet-connect [class*="wallet"]:hover {
   background: #F9A11B !important;
   background-color: #F9A11B !important;
   color: #0B0B0B !important;
   border-color: #F9A11B !important;
   box-shadow: 0 4px 12px rgba(249, 161, 27, 0.3) !important;
   transform: translateY(-1px) !important;
+}
+
+/* Hide scrollbar completely */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* WebKit */
 }
