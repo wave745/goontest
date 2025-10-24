@@ -13,7 +13,7 @@ export default function ChatSelector({ activeAI, setActiveAI, personas }: ChatSe
     { 
       id: 'amy', 
       name: 'Amy', 
-      image: '/amy-goonhub.jpg',
+      image: '/amy-goonhub.svg',
       personality: 'Playful & Flirty',
       icon: Heart,
       color: 'from-pink-500 to-rose-500'
@@ -21,7 +21,7 @@ export default function ChatSelector({ activeAI, setActiveAI, personas }: ChatSe
     { 
       id: 'mia', 
       name: 'Mia', 
-      image: '/mia-goonhub.jpg',
+      image: '/mia-goonhub.svg',
       personality: 'Sultry & Mysterious',
       icon: Sparkles,
       color: 'from-purple-500 to-indigo-500'
@@ -29,7 +29,7 @@ export default function ChatSelector({ activeAI, setActiveAI, personas }: ChatSe
     { 
       id: 'una', 
       name: 'Una', 
-      image: '/una-goonhub.jpg',
+      image: '/una-goonhub.svg',
       personality: 'Passionate & Bold',
       icon: Flame,
       color: 'from-orange-500 to-red-500'

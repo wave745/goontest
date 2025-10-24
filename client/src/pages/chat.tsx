@@ -28,7 +28,7 @@ export default function Chat() {
     amy: {
       id: 'amy',
       name: 'Amy',
-      avatar: '/amy-goonhub.jpg',
+      avatar: '/amy-goonhub.svg',
       personality: 'Sweet & Naughty',
       icon: Heart,
       responses: [
@@ -44,7 +44,7 @@ export default function Chat() {
     mia: {
       id: 'mia',
       name: 'Mia',
-      avatar: '/mia-goonhub.jpg',
+      avatar: '/mia-goonhub.svg',
       personality: 'Seductive & Dominant',
       icon: Sparkles,
       responses: [
@@ -60,7 +60,7 @@ export default function Chat() {
     una: {
       id: 'una',
       name: 'Una',
-      avatar: '/una-goonhub.jpg',
+      avatar: '/una-goonhub.svg',
       personality: 'Wild & Insatiable',
       icon: Flame,
       responses: [

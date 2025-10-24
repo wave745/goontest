@@ -28,7 +28,7 @@ export default function ChatSimple() {
     amy: {
       id: 'amy',
       name: 'Amy',
-      avatar: '/amy-goonhub.jpg',
+      avatar: '/amy-goonhub.svg',
       personality: 'Playful & Flirty',
       icon: Heart,
       responses: [
@@ -42,7 +42,7 @@ export default function ChatSimple() {
     mia: {
       id: 'mia',
       name: 'Mia',
-      avatar: '/mia-goonhub.jpg',
+      avatar: '/mia-goonhub.svg',
       personality: 'Sultry & Mysterious',
       icon: Sparkles,
       responses: [
@@ -56,7 +56,7 @@ export default function ChatSimple() {
     una: {
       id: 'una',
       name: 'Una',
-      avatar: '/una-goonhub.jpg',
+      avatar: '/una-goonhub.svg',
       personality: 'Passionate & Bold',
       icon: Flame,
       responses: [
