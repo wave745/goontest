@@ -240,7 +240,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       res.json(createAnonymousPost(post));
     } catch (error) {
       console.error("Failed to create post:", error);
-      res.status(400).json({ error: "Invalid post data", details: (error as Error).message });
+      res.status(400).json({ error: "Invalid post data", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -283,7 +283,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
     } catch (error) {
       console.error("Failed to get AI response:", error);
       console.error("Error details:", error);
-      res.status(500).json({ error: "Failed to get AI response", details: error.message });
+      res.status(500).json({ error: "Failed to get AI response", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -487,7 +487,7 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
       res.json(tip);
     } catch (error) {
       console.error("Failed to create tip:", error);
-      res.status(400).json({ error: "Invalid tip data", details: (error as Error).message });
+      res.status(400).json({ error: "Invalid tip data", details: error instanceof Error ? error.message : String(error) });
     }
   });
   

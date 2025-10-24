@@ -37,13 +37,14 @@ export async function chatWithAI(
     return response.choices[0]?.message?.content || "Sorry, I couldn't process that message.";
   } catch (error) {
     console.error("xAI API error:", error);
-    console.error("Error type:", error.constructor.name);
-    console.error("Error message:", error.message);
-    if (error.response) {
-      console.error("API response status:", error.response.status);
-      console.error("API response data:", error.response.data);
+    console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    if (error && typeof error === 'object' && 'response' in error) {
+      const apiError = error as any;
+      console.error("API response status:", apiError.response?.status);
+      console.error("API response data:", apiError.response?.data);
     }
-    throw new Error(`Failed to get AI response: ${error.message}`);
+    throw new Error(`Failed to get AI response: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
