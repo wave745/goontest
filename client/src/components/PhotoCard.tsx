@@ -101,38 +101,6 @@ export default function PhotoCard({
             loading="lazy"
           />
           
-          {/* Subtle View Indicator - No Dark Background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-              <span className="text-black text-xs font-medium">View</span>
-            </div>
-          </div>
-          
-          {/* Price Badge */}
-          {isGated && (
-            <div className="absolute top-2 right-2">
-              <Badge variant="secondary" className="bg-transparent text-accent-foreground border-0">
-                <Coins className="h-3 w-3 mr-1" />
-                {formatPrice(price)}
-              </Badge>
-            </div>
-          )}
-
-        </div>
-
-        {/* Content */}
-        <div className="p-1.5 bg-transparent">
-
-          {/* Compact Info */}
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-medium text-foreground line-clamp-1 flex-1 mr-2">
-              {title}
-            </h3>
-            <div className="flex gap-2 text-xs text-muted-foreground shrink-0">
-              <span>{formatNumber(views)}v</span>
-              <span>{formatNumber(currentLikes)}♥</span>
-            </div>
-          </div>
         </div>
       </CardContent>
     </Card>

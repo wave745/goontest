@@ -222,6 +222,9 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
                     style={{ maxHeight: '85vh' }}
                     data-testid="video-player"
                     autoPlay
+                    preload="auto"
+                    playsInline
+                    muted={false}
                   />
                 ) : isImage ? (
                   <img
