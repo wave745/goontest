@@ -183,7 +183,7 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
-        className="max-w-2xl w-full h-[70vh] p-0 overflow-hidden"
+        className="max-w-5xl w-[95vw] max-h-[95vh] h-auto p-0 overflow-hidden"
         data-testid="content-modal"
       >
         <DialogDescription className="sr-only">
@@ -211,14 +211,15 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
             </div>
           </div>
         ) : (
-          <div className="w-full h-full bg-black flex items-center justify-center relative">
+          <div className="w-full bg-black flex items-center justify-center relative" style={{ minHeight: '50vh', maxHeight: '95vh' }}>
             {canView ? (
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center p-2">
                 {isVideo ? (
                   <video
                     src={post.media_url}
                     controls
-                    className="max-w-full max-h-full object-contain"
+                    className="w-full h-full object-contain"
+                    style={{ maxHeight: '90vh' }}
                     data-testid="video-player"
                     autoPlay
                   />
@@ -226,7 +227,8 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
                   <img
                     src={post.media_url}
                     alt=""
-                    className="max-w-full max-h-full object-contain"
+                    className="w-full h-full object-contain"
+                    style={{ maxHeight: '90vh' }}
                     data-testid="image-content"
                   />
                 ) : (
