@@ -6,6 +6,15 @@ GoonHub is a Solana-based NSFW creator platform with a PornHub-inspired UI featu
 
 ## Recent Changes (October 2025)
 
+- **AI Persona Enhancements** (October 24, 2025): Upgraded AI chat companions to highly erotic pornstar-like personalities with explicit content:
+  - Enhanced xAI service with intensely sexual system prompts (temperature 0.95, top_p 0.98, 600 max tokens)
+  - Updated AI personas (Amy, Mia, Una) with explicit, adult-oriented personalities and dialogue
+  - Amy (Sweet & Naughty): Submissive personality with playful dirty talk
+  - Mia (Seductive & Dominant): Commanding goddess with power dynamics and teasing
+  - Una (Wild & Insatiable): Sex-crazed personality with intense explicit language
+  - Created persona-specific system prompt generator for customized AI responses
+  - Updated chat interface with more adult-oriented messaging and explicit fallback responses
+  
 - **Vercel Deployment Preparation** (October 24, 2025): Configured full-stack deployment to Vercel using serverless functions:
   - Created `api/index.ts` serverless function entry point for Express backend
   - Refactored Express app into reusable `server/app.ts` module
