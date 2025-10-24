@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,9 +17,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('photo');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadTitle, setUploadTitle] = useState('');
-  const [uploadDescription, setUploadDescription] = useState('');
-  const [uploadTags, setUploadTags] = useState('');
   const [solanaAddress, setSolanaAddress] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -46,9 +42,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       // Reset form
       setUploadFile(null);
-      setUploadTitle('');
-      setUploadDescription('');
-      setUploadTags('');
       setSolanaAddress('');
       onOpenChange(false);
     },
@@ -84,10 +77,10 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
 
 
   const handleUpload = async () => {
-    if (!uploadFile || !uploadTitle.trim()) {
+    if (!uploadFile) {
       toast({
         title: "Missing information",
-        description: `Please select a ${activeTab} file and enter a title`,
+        description: `Please select a ${activeTab} file`,
         variant: "destructive",
       });
       return;
@@ -145,7 +138,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       const postData = {
         media_url: mediaUrl,
         thumb_url: thumbUrl,
-        caption: uploadTitle + (uploadDescription ? `\n\n${uploadDescription}` : ''),
+        caption: '',
         ...(solanaAddress.trim() && { solana_address: solanaAddress.trim() }),
       };
 
@@ -276,40 +269,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
         
         <div className="space-y-4">
           <div>
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={uploadTitle}
-              onChange={(e) => setUploadTitle(e.target.value)}
-              placeholder={`Enter ${activeTab} title`}
-              className="mt-1"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={uploadDescription}
-              onChange={(e) => setUploadDescription(e.target.value)}
-              placeholder={`Enter ${activeTab} description`}
-              className="mt-1"
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="tags">Tags (comma-separated)</Label>
-            <Input
-              id="tags"
-              value={uploadTags}
-              onChange={(e) => setUploadTags(e.target.value)}
-              placeholder="nature, landscape, art"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
             <Label htmlFor="solana-address" className="flex items-center gap-2">
               <Wallet className="h-4 w-4" />
               Solana Address for Tips
@@ -328,7 +287,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
           <div className="flex gap-2 pt-4">
             <Button
               onClick={handleUpload}
-              disabled={isUploading || !uploadFile || !uploadTitle.trim()}
+              disabled={isUploading || !uploadFile}
               className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
             >
               {isUploading ? 'Uploading...' : `Upload ${activeTab === 'photo' ? 'Photo' : 'Video'}`}
