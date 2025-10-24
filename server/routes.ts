@@ -257,19 +257,25 @@ export async function registerRoutes(app: Express, upload?: Multer): Promise<Ser
   // AI Chat endpoint for direct AI responses
   app.post("/api/chat/ai", async (req, res) => {
     try {
+      console.log("AI Chat API called with body:", req.body);
       const { message, systemPrompt } = req.body;
       
       if (!message || !systemPrompt) {
+        console.log("Missing message or systemPrompt");
         return res.status(400).json({ error: "Missing message or systemPrompt" });
       }
+
+      console.log("XAI_API_KEY exists:", !!process.env.XAI_API_KEY);
+      console.log("Calling chatWithAI with message:", message);
 
       // Get AI response using xAI
       const aiResponse = await chatWithAI(message, systemPrompt);
       
+      console.log("AI response received:", aiResponse);
       res.json({ response: aiResponse });
     } catch (error) {
       console.error("Failed to get AI response:", error);
-      res.status(500).json({ error: "Failed to get AI response" });
+      res.status(500).json({ error: "Failed to get AI response", details: error.message });
     }
   });
 

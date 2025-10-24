@@ -106,6 +106,7 @@ export default function Chat() {
 
     try {
       // Send message to AI API
+      console.log('Sending AI request to /api/chat/ai');
       const response = await fetch('/api/chat/ai', {
         method: 'POST',
         headers: {
@@ -117,8 +118,12 @@ export default function Chat() {
         }),
       });
 
+      console.log('AI API response status:', response.status);
+      console.log('AI API response headers:', response.headers);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('AI API response data:', data);
         const aiResponse: ChatMessage = {
           id: `ai_${Date.now()}`,
           role: 'assistant',
@@ -127,6 +132,9 @@ export default function Chat() {
         };
         setMessages(prev => [...prev, aiResponse]);
       } else {
+        // Log the error response
+        const errorText = await response.text();
+        console.error('AI API failed with status:', response.status, 'Error:', errorText);
         // Fallback to local responses if API fails
         const aiResponse: ChatMessage = {
           id: `ai_${Date.now()}`,
