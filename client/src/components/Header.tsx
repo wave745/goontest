@@ -24,8 +24,8 @@ export default function Header() {
           </Link>
         </div>
 
-        {/* Center: GoonAI - Responsive positioning */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        {/* Center: GoonAI - Mobile shifted right, Desktop centered */}
+        <div className="absolute left-[65%] md:left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <Link 
             href="/chat" 
             className={`text-base md:text-2xl font-black transition-all duration-300 ${
