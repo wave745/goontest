@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import { CategoryChips } from '@/components/CategoryChips';
 import VideoCard from '@/components/VideoCard';
+import PhotoCard from '@/components/PhotoCard';
 import MasonryGrid from '@/components/MasonryGrid';
 import TipModal from '@/components/modals/TipModal';
 import PaywallModal from '@/components/modals/PaywallModal';
@@ -44,7 +45,12 @@ export default function Home() {
   };
 
   const { data: posts, isLoading } = useQuery<PostWithCreator[]>({
-    queryKey: [getPostsUrl()],
+    queryKey: ['/api/posts', selectedCategory],
+    queryFn: async () => {
+      const response = await fetch(getPostsUrl());
+      if (!response.ok) throw new Error('Failed to fetch posts');
+      return response.json();
+    }
   });
 
   const filteredPosts = posts || [];
@@ -95,22 +101,45 @@ export default function Home() {
       <div className="p-2 md:p-4 pb-20 md:pb-4">
         <MasonryGrid>
           {/* Render Posts */}
-          {filteredPosts?.map((post) => (
-            <VideoCard
-              key={post.id}
-              id={post.id}
-              thumb={post.thumb_url}
-              duration="12:34"
-              title={post.caption}
-              creator={post.creator}
-              views={post.views || 0}
-              likes={post.likes || 0}
-              price={post.price_lamports}
-              isGated={post.price_lamports > 0}
-              isVerified={post.creator.is_creator}
-              onClick={() => handleCardClick(post)}
-            />
-          ))}
+          {filteredPosts?.map((post) => {
+            // Check if post is a video or photo based on media_url
+            const isVideo = post.media_url?.match(/\.(mp4|webm|ogg|mov)$/i);
+            
+            if (isVideo) {
+              return (
+                <VideoCard
+                  key={post.id}
+                  id={post.id}
+                  thumb={post.thumb_url}
+                  duration="12:34"
+                  title={post.caption}
+                  creator={post.creator}
+                  views={post.views || 0}
+                  likes={post.likes || 0}
+                  price={post.price_lamports}
+                  isGated={post.price_lamports > 0}
+                  isVerified={post.creator.is_creator}
+                  onClick={() => handleCardClick(post)}
+                />
+              );
+            } else {
+              return (
+                <PhotoCard
+                  key={post.id}
+                  id={post.id}
+                  imageUrl={post.media_url}
+                  title={post.caption}
+                  creator={post.creator}
+                  views={post.views || 0}
+                  likes={post.likes || 0}
+                  price={post.price_lamports}
+                  isGated={post.price_lamports > 0}
+                  isVerified={post.creator.is_creator}
+                  onClick={() => handleCardClick(post)}
+                />
+              );
+            }
+          })}
         </MasonryGrid>
 
         {/* Load More */}
