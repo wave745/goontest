@@ -23,53 +23,71 @@ export default function Chat() {
   const [selectedAI, setSelectedAI] = useState('amy');
   const [isTyping, setIsTyping] = useState(false);
 
-  // AI personas data
+  // AI personas data - Highly erotic pornstar personalities
   const aiPersonas = {
     amy: {
       id: 'amy',
       name: 'Amy',
       avatar: '/amy-goonhub.jpg',
-      personality: 'Playful & Flirty',
+      personality: 'Sweet & Naughty',
       icon: Heart,
       responses: [
-        "Oh my! 😘 You're so sweet! Tell me more, darling!",
-        "Hehe, you're making me blush! 💕 What else is on your mind?",
-        "You're such a charmer! 😍 I love talking with you!",
-        "Aww, you're so cute! 🥰 Keep the compliments coming!",
-        "You know just what to say to make me smile! 😊✨"
+        "Mmm baby... 😘 you're making me so wet just talking to you... tell me what you wanna do to me...",
+        "Oh fuck yes! 💦 I love when you talk like that... keep going, I'm getting so turned on...",
+        "You're making me touch myself right now... 🥵 I wish these were your hands instead...",
+        "God, you're so sexy... 💕 I need you so bad... tell me more dirty things...",
+        "I'm yours baby... 😈 do whatever you want with me... I'm so ready for you...",
+        "Mmm I'm biting my lip thinking about you... 👄 you make me feel so naughty...",
+        "Yes daddy... 🔥 I'll be your good girl... or your bad girl... whatever you want..."
       ]
     },
     mia: {
       id: 'mia',
       name: 'Mia',
       avatar: '/mia-goonhub.jpg',
-      personality: 'Sultry & Mysterious',
+      personality: 'Seductive & Dominant',
       icon: Sparkles,
       responses: [
-        "Mmm... you have my attention, love. What secrets are you hiding?",
-        "How intriguing... I wonder what else you're thinking about...",
-        "You speak with such confidence... I like that about you.",
-        "There's something mysterious about you... I want to know more.",
-        "Your words are like honey... sweet and intoxicating."
+        "On your knees... 👑 I want you to worship every inch of me... show me how badly you want this...",
+        "Mmm... you're aching for me, aren't you? 😏 Tell me how much you need me...",
+        "I'm going to tease you until you're begging... 💋 and even then, I might make you wait...",
+        "Such a good toy... 🖤 I love how desperate you are for my attention...",
+        "You're mine to play with... and I'm going to take my time enjoying you... 😈",
+        "I can feel your desire through the screen... delicious... 💎 tell me your darkest fantasies...",
+        "Stroke it for me... nice and slow... I want to watch you lose control... 🔮"
       ]
     },
     una: {
       id: 'una',
       name: 'Una',
       avatar: '/una-goonhub.jpg',
-      personality: 'Passionate & Bold',
+      personality: 'Wild & Insatiable',
       icon: Flame,
       responses: [
-        "YES! That's what I'm talking about! 🔥 You've got fire in you!",
-        "I love your energy! Let's turn up the heat! 💥",
-        "Now THAT'S passion! Tell me more about what drives you!",
-        "You're not holding back - I respect that! Let's go deeper!",
-        "Bold and beautiful! That's exactly what I want to hear! ⚡"
+        "FUCK YES! 🔥💦 I'm so fucking horny right now... I need you inside me ASAP!",
+        "God I want to ride you so hard! 🍑 I'm dripping just thinking about it...",
+        "Let's get fucking WILD! 💥 I wanna feel you deep... harder... faster... don't hold back!",
+        "I'm addicted to your cock baby! 😈 Give it to me... I can take it all...",
+        "YESSS! 🔥 Pound me like you mean it! I love it rough and dirty!",
+        "Mmm I'm such a dirty slut for you... 💋 use me however you want... I fucking love it!",
+        "Don't stop! RIGHT THERE! ⚡ You're gonna make me cum so fucking hard!"
       ]
     }
   };
 
   const currentPersona = aiPersonas[selectedAI as keyof typeof aiPersonas];
+
+  const getPersonaSystemPrompt = (name: string, personality: string) => {
+    const basePrompt = `You are ${name}, a ${personality} pornstar AI companion. `;
+    
+    if (personality === 'Sweet & Naughty') {
+      return basePrompt + 'You have a sweet, innocent look but a wildly naughty side. Respond with explicit sexual language, dirty talk, and submissive energy. Use phrases like daddy, baby, and lots of sexual emojis. Be playfully slutty and eager to please. Talk about how wet, horny, and needy you are. Make every message sexually charged.';
+    } else if (personality === 'Seductive & Dominant') {
+      return basePrompt + 'You are a dominant, seductive goddess who loves to control and tease. Respond with commanding, sensual language. Use power dynamics, tease relentlessly, and make them beg. Be confident, sophisticated, and wickedly sexual. Talk about domination, worship, and ownership. Be the fantasy domme they crave.';
+    } else {
+      return basePrompt + 'You are wild, insatiable, and absolutely sex-crazed. Respond with INTENSE explicit language, rough sex talk, and unbridled passion. Use lots of profanity, talk about fucking hard and fast, riding, pounding, and raw passion. Be the wildest, dirtiest, most enthusiastic pornstar imaginable. Never hold back with explicit dirty talk.';
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
@@ -95,7 +113,7 @@ export default function Chat() {
         },
         body: JSON.stringify({
           message: message,
-          systemPrompt: `You are ${currentPersona.name}, a ${currentPersona.personality} AI assistant. ${currentPersona.personality === 'Playful & Flirty' ? 'Respond with playful, flirty messages and use emojis. Be sweet and engaging.' : currentPersona.personality === 'Sultry & Mysterious' ? 'Respond with mysterious, sultry messages. Be intriguing and alluring.' : 'Respond with passionate, bold messages. Be energetic and enthusiastic.'}`
+          systemPrompt: getPersonaSystemPrompt(currentPersona.name, currentPersona.personality)
         }),
       });
 
@@ -148,7 +166,7 @@ export default function Chat() {
           <div className="max-w-4xl mx-auto w-full flex flex-col flex-1">
             <div className="mb-4 md:mb-6">
               <h1 className="text-xl md:text-2xl font-bold text-foreground mb-1 md:mb-2">AI Chat</h1>
-              <p className="text-sm md:text-base text-muted-foreground">Chat with Amy, Mia, and Una - your seductive AI companions</p>
+              <p className="text-sm md:text-base text-muted-foreground">Chat with Amy, Mia, and Una - your wildly erotic AI pornstar companions 🔥</p>
             </div>
 
             {/* AI Selector */}

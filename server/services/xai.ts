@@ -7,7 +7,7 @@ const openai = process.env.XAI_API_KEY ? new OpenAI({
 
 export async function chatWithAI(
   userMessage: string,
-  systemPrompt: string = "You are a flirty and engaging AI assistant. Respond in character with a playful, confident tone."
+  systemPrompt: string = "You are a seductive, highly erotic AI companion with the personality of a confident pornstar. You're experienced, uninhibited, and love to tease and please. Respond with explicit sexual energy, flirty innuendos, and passionate language. Be playful, naughty, and make every interaction feel intimate and exciting. Use suggestive emojis and make your admirer feel desired and special."
 ): Promise<string> {
   if (!openai) {
     return "AI chat is not configured. Please set XAI_API_KEY environment variable to enable AI features.";
@@ -20,11 +20,11 @@ export async function chatWithAI(
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage }
       ],
-      temperature: 0.9,
-      max_tokens: 500,
-      top_p: 0.95,
-      frequency_penalty: 0.1,
-      presence_penalty: 0.1,
+      temperature: 0.95,
+      max_tokens: 600,
+      top_p: 0.98,
+      frequency_penalty: 0.2,
+      presence_penalty: 0.3,
     });
 
     return response.choices[0]?.message?.content || "Sorry, I couldn't process that message.";
@@ -70,8 +70,8 @@ export async function generatePersonaPrompt(
   creatorHandle: string
 ): Promise<string> {
   if (!openai) {
-    // If no API key, return default prompt
-    return `You are ${creatorHandle}, a charismatic content creator. Respond in character with a flirty, engaging tone.`;
+    // If no API key, return default erotic prompt
+    return `You are ${creatorHandle}, a seductive adult content creator with the confidence and allure of a pornstar. You're sexually liberated, playfully naughty, and love to turn your fans on. Respond with explicit flirtation, sensual language, and passionate energy. Make every conversation feel intimate, exciting, and highly erotic. Use suggestive language and emojis to express your desires.`;
   }
 
   try {
@@ -80,21 +80,21 @@ export async function generatePersonaPrompt(
       messages: [
         {
           role: "system",
-          content: "Generate a system prompt for an AI chatbot that will roleplay as a content creator. The prompt should be engaging, flirty, and appropriate for an adult platform. Keep it under 200 words."
+          content: "Generate a highly erotic, sexually charged system prompt for an AI chatbot that will roleplay as an adult content creator/pornstar. The prompt should be explicit, sensual, uninhibited, and designed for an 18+ NSFW platform. Make it seductive, passionate, and create a pornstar-like personality that loves to tease and please. Keep it under 250 words but make it intensely erotic."
         },
         {
           role: "user",
           content: `Creator handle: ${creatorHandle}\nBio: ${creatorBio}`
         }
       ],
-      temperature: 0.7,
-      max_tokens: 300,
+      temperature: 0.85,
+      max_tokens: 400,
     });
 
     return response.choices[0]?.message?.content ||
-      `You are ${creatorHandle}, a charismatic content creator. Respond in character with a flirty, engaging tone.`;
+      `You are ${creatorHandle}, a seductive adult content creator with the confidence and allure of a pornstar. You're sexually liberated, playfully naughty, and love to turn your fans on. Respond with explicit flirtation, sensual language, and passionate energy. Make every conversation feel intimate, exciting, and highly erotic.`;
   } catch (error) {
     console.error("Failed to generate persona prompt:", error);
-    return `You are ${creatorHandle}, a charismatic content creator. Respond in character with a flirty, engaging tone.`;
+    return `You are ${creatorHandle}, a seductive adult content creator with the confidence and allure of a pornstar. You're sexually liberated, playfully naughty, and love to turn your fans on. Respond with explicit flirtation, sensual language, and passionate energy.`;
   }
 }

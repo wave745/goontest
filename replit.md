@@ -6,6 +6,15 @@ GoonHub is a Solana-based NSFW creator platform with a PornHub-inspired UI featu
 
 ## Recent Changes (October 2025)
 
+- **Vercel Deployment Preparation** (October 24, 2025): Configured full-stack deployment to Vercel using serverless functions:
+  - Created `api/index.ts` serverless function entry point for Express backend
+  - Refactored Express app into reusable `server/app.ts` module
+  - Updated `vercel.json` for monorepo deployment with both frontend and backend
+  - Created comprehensive deployment documentation in `DEPLOYMENT.md`
+  - Added `.env.example` template for required environment variables
+  - Updated `.vercelignore` to exclude development files
+  - Architecture supports deploying entire stack to Vercel with automatic scaling
+
 - **Animated Goon Text**: Added hypnotic animated Chinese goon text banners that scroll across the top and bottom of the screen, with pulsing corner characters and a floating background GOON text. Features include:
   - Scrolling Chinese/GOON text banners with orange glow effects
   - Animated opacity pulsing for hypnotic effect
@@ -96,7 +105,9 @@ The schema supports content visibility levels (public, subscribers, goon-gated) 
   - Framer Motion for animations
 
 - **Deployment & Monitoring**:
-  - Vercel for frontend hosting
+  - Vercel for full-stack hosting (frontend + serverless backend)
+  - Backend runs as Node.js serverless functions
+  - Frontend served from global CDN
   - Upstash Redis for rate limiting
   - Sentry and PostHog for observability (planned)
 
