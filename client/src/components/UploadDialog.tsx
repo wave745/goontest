@@ -1,11 +1,9 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Image, Video, Upload, X, Wallet } from 'lucide-react';
+import { Image, Video, Upload, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface UploadDialogProps {
@@ -17,7 +15,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('photo');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [solanaAddress, setSolanaAddress] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<string>('');
@@ -42,7 +39,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       // Reset form
       setUploadFile(null);
-      setSolanaAddress('');
       onOpenChange(false);
     },
     onError: (error) => {
@@ -139,7 +135,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
         media_url: mediaUrl,
         thumb_url: thumbUrl,
         caption: '',
-        ...(solanaAddress.trim() && { solana_address: solanaAddress.trim() }),
       };
 
       setUploadProgress(100);
@@ -268,22 +263,6 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
         </Tabs>
         
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="solana-address" className="flex items-center gap-2">
-              <Wallet className="h-4 w-4" />
-              Solana Address for Tips
-            </Label>
-            <Input
-              id="solana-address"
-              value={solanaAddress}
-              onChange={(e) => setSolanaAddress(e.target.value)}
-              placeholder="Enter your Solana wallet address"
-              className="mt-1 bg-muted/50"
-              data-testid="input-solana-address"
-            />
-          </div>
-          
-          
           <div className="flex gap-2 pt-4">
             <Button
               onClick={handleUpload}
