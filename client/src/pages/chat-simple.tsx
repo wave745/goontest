@@ -282,7 +282,6 @@ export default function ChatSimple() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
                   <span>Press Enter to send</span>
-                  <span>{message.length}/500</span>
                 </div>
               </div>
             </Card>

@@ -337,7 +337,6 @@ export default function Chat() {
                 </div>
                 <div className="flex items-center justify-between text-[10px] md:text-xs text-muted-foreground mt-1.5 md:mt-2">
                   <span className="hidden sm:inline">Press Enter to send</span>
-                  <span>{message.length}/500</span>
                 </div>
               </div>
             </Card>
