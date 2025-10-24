@@ -172,10 +172,6 @@ export default function Chat() {
       <Header />
         <div className="flex-1 p-2 md:p-6 flex flex-col">
           <div className="max-w-4xl mx-auto w-full flex flex-col flex-1">
-            <div className="mb-4 md:mb-6">
-              <h1 className="text-xl md:text-2xl font-bold text-foreground mb-1 md:mb-2">AI Chat</h1>
-              <p className="text-sm md:text-base text-muted-foreground">Chat with Amy, Mia, and Una - your wildly erotic AI pornstar companions 🔥</p>
-            </div>
 
             {/* AI Selector */}
             <div className="flex flex-col sm:flex-row gap-2 md:gap-3 mb-4 md:mb-6">
@@ -267,7 +263,7 @@ export default function Chat() {
                 </div>
               </CardHeader>
 
-              <CardContent className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 scrollbar-thin scrollbar-thumb-accent/20 scrollbar-track-transparent">
+              <CardContent className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 scrollbar-hide">
                 {messages.map((msg) => (
                   <div 
                     key={msg.id} 
