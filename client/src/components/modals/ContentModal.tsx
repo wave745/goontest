@@ -183,7 +183,7 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
-        className="max-w-5xl w-[95vw] max-h-[95vh] h-auto p-0 overflow-hidden"
+        className="max-w-3xl w-auto max-h-[85vh] h-auto p-0 overflow-hidden bg-transparent border-0"
         data-testid="content-modal"
       >
         <DialogDescription className="sr-only">
@@ -192,7 +192,7 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-black/50 text-white p-2"
+          className="absolute -right-12 top-0 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-black/50 text-white p-2"
           data-testid="button-close-modal"
         >
           <X className="h-4 w-4" />
@@ -211,15 +211,15 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
             </div>
           </div>
         ) : (
-          <div className="w-full bg-black flex items-center justify-center relative" style={{ minHeight: '50vh', maxHeight: '95vh' }}>
+          <div className="w-full flex items-center justify-center relative">
             {canView ? (
-              <div className="w-full h-full flex items-center justify-center p-2">
+              <div className="w-full flex items-center justify-center">
                 {isVideo ? (
                   <video
                     src={post.media_url}
                     controls
-                    className="w-full h-full object-contain"
-                    style={{ maxHeight: '90vh' }}
+                    className="w-full object-contain rounded-lg"
+                    style={{ maxHeight: '85vh' }}
                     data-testid="video-player"
                     autoPlay
                   />
@@ -227,8 +227,8 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
                   <img
                     src={post.media_url}
                     alt=""
-                    className="w-full h-full object-contain"
-                    style={{ maxHeight: '90vh' }}
+                    className="w-full object-contain rounded-lg"
+                    style={{ maxHeight: '85vh' }}
                     data-testid="image-content"
                   />
                 ) : (
@@ -238,11 +238,12 @@ export default function ContentModal({ postId, isOpen, onClose }: ContentModalPr
                 )}
               </div>
             ) : (
-              <div className="relative w-full h-full flex items-center justify-center">
+              <div className="relative w-full flex items-center justify-center rounded-lg overflow-hidden">
                 <img
                   src={post.thumb_url}
                   alt="Thumbnail"
-                  className="w-full h-full object-cover filter blur-sm opacity-50"
+                  className="w-full object-contain filter blur-sm opacity-50 rounded-lg"
+                  style={{ maxHeight: '85vh' }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center text-white">
