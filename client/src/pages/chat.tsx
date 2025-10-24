@@ -179,7 +179,7 @@ export default function Chat() {
           <div className="max-w-4xl mx-auto w-full flex flex-col flex-1">
 
             {/* AI Selector */}
-            <div className="flex flex-col sm:flex-row gap-2 md:gap-3 mb-4 md:mb-6">
+            <div className="flex flex-row gap-1.5 md:gap-3 mb-4 md:mb-6 overflow-x-auto">
               {Object.values(aiPersonas).map((ai) => {
                 const IconComponent = ai.icon;
                 const isActive = selectedAI === ai.id;
@@ -188,7 +188,7 @@ export default function Chat() {
                   <Button
                     key={ai.id}
                     onClick={() => setSelectedAI(ai.id)}
-                    className={`relative group rounded-xl p-1.5 md:p-2 h-auto min-h-[35px] md:min-h-[40px] flex flex-row items-center gap-1.5 md:gap-2 transition-all duration-300 ${
+                    className={`relative group rounded-xl p-1 md:p-2 h-auto min-h-[35px] md:min-h-[40px] flex flex-row items-center gap-1 md:gap-2 transition-all duration-300 flex-shrink-0 ${
                       isActive 
                         ? 'bg-gradient-to-r from-accent to-accent-2 text-black shadow-lg scale-105' 
                         : 'bg-card/50 hover:bg-card border border-border hover:border-accent/30 hover:shadow-lg hover:scale-102'
@@ -225,12 +225,12 @@ export default function Chat() {
                     {/* AI Info */}
                     <div className="flex flex-col items-start text-left flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 md:gap-2">
-                        <h3 className={`font-semibold text-[10px] md:text-xs ${isActive ? 'text-black' : 'text-foreground'}`}>
+                        <h3 className={`font-semibold text-[9px] md:text-xs ${isActive ? 'text-black' : 'text-foreground'}`}>
                           {ai.name}
                         </h3>
                         <IconComponent className={`w-2 h-2 md:w-2.5 md:h-2.5 flex-shrink-0 ${isActive ? 'text-black' : 'text-accent'}`} />
                       </div>
-                      <p className={`text-[10px] md:text-xs truncate ${isActive ? 'text-black/70' : 'text-muted-foreground'}`}>
+                      <p className={`text-[8px] md:text-xs truncate ${isActive ? 'text-black/70' : 'text-muted-foreground'}`}>
                         {ai.personality}
                       </p>
                     </div>
