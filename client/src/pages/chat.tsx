@@ -246,28 +246,28 @@ export default function Chat() {
             </div>
 
             {/* Chat Interface */}
-            <Card className="bg-card border-border flex-1 flex flex-col min-h-0">
-              <CardHeader className="border-b border-border p-3 md:p-6">
-                <div className="flex items-center gap-2 md:gap-3">
-                  <Avatar className="w-10 h-10 md:w-12 md:h-12">
+            <Card className="bg-card border-border h-[500px] md:h-[600px] flex flex-col">
+              <CardHeader className="border-b border-border p-2 md:p-3">
+                <div className="flex items-center gap-2">
+                  <Avatar className="w-8 h-8 md:w-9 md:h-9">
                     <AvatarImage src={currentPersona.avatar} />
                     <AvatarFallback>
-                      <Bot className="h-5 w-5 md:h-6 md:w-6" />
+                      <Bot className="h-4 w-4 md:h-5 md:w-5" />
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <CardTitle className="text-foreground text-base md:text-lg">
+                    <CardTitle className="text-foreground text-sm md:text-base">
                       {currentPersona.name}
                     </CardTitle>
-                    <div className="flex items-center gap-1.5 md:gap-2">
-                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-success rounded-full"></div>
-                      <p className="text-xs md:text-sm text-success">Online</p>
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 bg-success rounded-full"></div>
+                      <p className="text-xs text-success">Online</p>
                     </div>
                   </div>
                 </div>
               </CardHeader>
 
-              <CardContent className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4">
+              <CardContent className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 scrollbar-thin scrollbar-thumb-accent/20 scrollbar-track-transparent">
                 {messages.map((msg) => (
                   <div 
                     key={msg.id} 
