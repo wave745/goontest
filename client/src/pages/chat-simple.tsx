@@ -71,6 +71,11 @@ export default function ChatSimple() {
 
   const currentPersona = aiPersonas[selectedAI as keyof typeof aiPersonas];
 
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
+
   const handleSendMessage = async () => {
     if (!message.trim()) return;
 
