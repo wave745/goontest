@@ -24,11 +24,11 @@ export default function Header() {
           </Link>
         </div>
 
-        {/* Center: GoonAI - Hidden on mobile */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+        {/* Center: GoonAI - Responsive positioning */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <Link 
             href="/chat" 
-            className={`text-2xl font-black transition-all duration-300 ${
+            className={`text-base md:text-2xl font-black transition-all duration-300 ${
               location === '/chat' ? 'text-accent' : 'text-accent/80 hover:text-accent'
             }`}
             style={{
